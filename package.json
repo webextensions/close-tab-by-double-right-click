@@ -1,0 +1,31 @@
+{
+  "name": "close-tab-by-double-right-click",
+  "version": "1.0.0",
+  "description": "Chrome extension \"Close Tab by Double Right Click\"",
+  "scripts": {
+    "lint": "./node_modules/.bin/eslint ."
+  },
+  "devDependencies": {
+    "eslint": "3.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webextensions/close-tab-by-double-right-click.git"
+  },
+  "keywords": [
+    "Chrome",
+    "extension",
+    "Close",
+    "Tab",
+    "by",
+    "Double",
+    "Right",
+    "Click"
+  ],
+  "author": "Priyank Parashar",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/webextensions/close-tab-by-double-right-click/issues"
+  },
+  "homepage": "https://github.com/webextensions/close-tab-by-double-right-click#readme"
+}

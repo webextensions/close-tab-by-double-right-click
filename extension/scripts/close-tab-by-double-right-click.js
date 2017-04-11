@@ -37,7 +37,7 @@ if (window.DRCsetup === undefined) {
     var interval = setInterval(function () {
         if (document.body) {
             // document.body events seem to be getting affected by prevention of event bubbling
-            // document.body.onmousedown = document.body.onmouseup = function (e) {
+            // document.body.onmouseup = function (e) {
                 // recieveRightClick(e);
             // };
 
@@ -47,7 +47,7 @@ if (window.DRCsetup === undefined) {
             // (which may be harmful if user keeps on double-right-clicking and the clicks
             // might be received by other tabs as the current tab closes),
             // probably due to the architecture of the browser.
-            document.onmousedown = document.onmouseup = function (e) {
+            document.onmouseup = function (e) {
                 recieveRightClick(e);
             };
 

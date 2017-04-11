@@ -115,8 +115,6 @@
         });
     });
 
-    addContextMenuEntry();
-
     chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
         // Run the script as quickly as possible (changeInfo.status === 'loading')
         runScript(tab);

@@ -21,11 +21,11 @@ if (window.DRCsetup === undefined) {
                 timeDiff = thisTime - lastTime;
             lastTime = thisTime;
 
-            // Using timeDiff >= 100 is used to avoid the following cases:
+            // Using timeDiff >= 50 is used to avoid the following cases:
             //     1. Receiving too many clicks if the mouse's mechanics is faulty in the sense that it receives multiple clicks even though the
             //        user intended to click only once
             //     2. User is clicking too fast and might close more tabs than he/she wishes to
-            if ((counter === 2 && timeDiff >= 100) || counter > 2) {
+            if ((counter === 2 && timeDiff >= 50) || counter > 2) {
                 if (!tabRemoveAlreadyRequested) {
                     tabRemoveAlreadyRequested = true;
                     chrome.runtime.sendMessage({closeTab: true});
@@ -50,6 +50,15 @@ if (window.DRCsetup === undefined) {
             document.onmouseup = function (e) {
                 recieveRightClick(e);
             };
+
+            var isLinux = navigator.platform.toUpperCase().indexOf('LINUX') >= 0;
+            if (isLinux) {
+                // HACK: Attaching "document.onmousedown" as a hack for Linux due to the following Chromium bug, which is marked as Won't Fix:
+                //       https://bugs.chromium.org/p/chromium/issues/detail?id=506801 (Right-click should fire mouseup event after contextmenu)
+                document.onmousedown = function (e) {
+                    recieveRightClick(e);
+                };
+            }
 
             clearInterval(interval);
         }

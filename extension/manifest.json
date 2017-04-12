@@ -1,6 +1,6 @@
 {
     "name": "Close Tab by Double Right Click",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "manifest_version": 2,
     "description": "Close tab by double right clicking anywhere on the page. Inspired by \"Rights To Close\" extension for Mozilla Firefox.",
     "homepage_url": "https://webextensions.org/",
@@ -8,6 +8,7 @@
         "16": "images/double-click-16x16.png",
         "128": "images/double-click-128x128.png"
     },
+    "offline_enabled": true,
     "permissions": [
         "<all_urls>",
         "contextMenus",

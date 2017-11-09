@@ -6,7 +6,7 @@
     "lint": "./node_modules/.bin/eslint ."
   },
   "devDependencies": {
-    "eslint": "3.19.0"
+    "eslint": "4.10.0"
   },
   "repository": {
     "type": "git",

@@ -51,8 +51,9 @@ if (window.DRCsetup === undefined) {
                 recieveRightClick(e);
             };
 
-            var isLinux = navigator.platform.toUpperCase().indexOf('LINUX') >= 0;
-            if (isLinux) {
+            var isLinux = navigator.platform.toUpperCase().indexOf('LINUX') >= 0,
+                isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+            if (isLinux && isChrome) {
                 // HACK: Attaching "document.onmousedown" as a hack for Linux due to the following Chromium bug, which is marked as Won't Fix:
                 //       https://bugs.chromium.org/p/chromium/issues/detail?id=506801 (Right-click should fire mouseup event after contextmenu)
                 document.onmousedown = function (e) {

@@ -4,7 +4,7 @@
     'use strict';
     var contextMenuEntry;
 
-    function runScriptByTabId(tabId) {
+    function runScriptByTabId(tabId, pageAlreadyLoaded) {
         chrome.tabs.get(tabId, function (tab) {
             var url = tab.url;
             if (
@@ -37,9 +37,13 @@
                         // Note: Even in such cases, chrome.tabs.get() does call the callback
                         // function with the undefined value for "tab"
                         if (tab) {
-                            // Run the script for all the iframes
-                            // ("allFrames: true" parameter does not seem to be of use when "changeInfo.status === 'loading'")
-                            chrome.tabs.executeScript(tabId, {allFrames: true, runAt: 'document_end', file: "scripts/close-tab-by-double-right-click.js"});
+                            chrome.tabs.executeScript(tabId, {
+                                // Run the script for all the iframes
+                                // ("allFrames: true" parameter does not seem to be of use when "changeInfo.status === 'loading'")
+                                allFrames: true,
+                                runAt: pageAlreadyLoaded ? 'document_idle' : 'document_end',
+                                file: "scripts/close-tab-by-double-right-click.js"
+                            });
                         } else {
                             clearInterval(t);
                         }
@@ -50,8 +54,8 @@
         });
     }
 
-    function runScript(tab) {
-        runScriptByTabId(tab.id);
+    function runScript(tab, pageAlreadyLoaded) {
+        runScriptByTabId(tab.id, pageAlreadyLoaded);
     }
 
     function closeTabByTabId(tabId) {
@@ -107,19 +111,19 @@
         });
     }
 
-    chrome.runtime.onInstalled.addListener(function (details) {     // eslint-disable-line no-unused-vars
-        chrome.tabs.query({}, function (tabs) {
-            tabs.forEach(function (tab) {
-                runScript(tab);
-            });
+    chrome.tabs.query({}, function (tabs) {
+        tabs.forEach(function (tab) {
+            runScript(tab, true);
         });
     });
 
     chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
         // Run the script as quickly as possible (changeInfo.status === 'loading')
         runScript(tab);
-        addContextMenuEntryIfRequired(tabId);    // Without this Undoing close tab (Ctrl + Shift + T) would re-open the closed tab and the context menu entry would exist in the file
-                            // This probably can't be added/called directly to/from the content script (through message-passing) because runScript might be called on multiple tabs at once (currently it happens on "onInstalled")
+
+        // Without this Undoing close tab (Ctrl + Shift + T) would re-open the closed tab and the context menu entry would exist in the file
+        // This probably can't be added/called directly to/from the content script (through message-passing) because runScript might be called on multiple tabs at once (currently it happens on "onInstalled")
+        addContextMenuEntryIfRequired(tabId);
     });
 
     // chrome.tabs.onUpdated does not fire on new tabs for cached pages

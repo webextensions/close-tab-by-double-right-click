@@ -1,12 +1,12 @@
 {
   "name": "close-tab-by-double-right-click",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Chrome extension \"Close Tab by Double Right Click\"",
   "scripts": {
     "lint": "./node_modules/.bin/eslint ."
   },
   "devDependencies": {
-    "eslint": "4.10.0"
+    "eslint": "4.11.0"
   },
   "repository": {
     "type": "git",

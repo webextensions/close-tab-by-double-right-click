@@ -3,10 +3,10 @@
   "version": "1.0.6",
   "description": "Chrome extension \"Close Tab by Double Right Click\"",
   "scripts": {
-    "lint": "./node_modules/.bin/eslint ."
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "eslint": "4.11.0"
+    "eslint": "^5.13.0"
   },
   "repository": {
     "type": "git",

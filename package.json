@@ -3,7 +3,9 @@
   "version": "1.0.6",
   "description": "Chrome extension \"Close Tab by Double Right Click\"",
   "scripts": {
-    "lint": "eslint ."
+    "postversion": "git push --follow-tags",
+    "lint": "eslint .",
+    "test": "npm run lint"
   },
   "devDependencies": {
     "eslint": "^8.0.0"

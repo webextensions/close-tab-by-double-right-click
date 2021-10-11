@@ -12,8 +12,13 @@
     "permissions": [
         "<all_urls>",
         "contextMenus",
+        "storage",
         "tabs"
     ],
+    "options_ui": {
+        "page": "options.html",
+        "chrome_style": true
+    },
     "background": {
         "page": "background.html"
     }

@@ -6,22 +6,29 @@
 
     function runScriptByTabId(tabId, pageAlreadyLoaded) {
         chrome.tabs.get(tabId, function (tab) {
+            if (!tab) {
+                return;
+            }
+
             var url = tab.url;
             if (
-                url.indexOf('chrome://') === 0 ||
-                url.indexOf('chrome-devtools://') === 0 ||
-                url.indexOf('view-source:') === 0
-            ) {
-                return;
-            } else if (
-                url.indexOf('http://') === 0 ||
+                url.indexOf('http://')  === 0 ||
                 url.indexOf('https://') === 0 ||
                 url.indexOf('file:///') === 0 ||
-                url.indexOf('ftp:///') === 0
+                url.indexOf('ftp:///')  === 0
             ) {
-                // doing nothing yet
+                if (url.indexOf('https://chrome.google.com/webstore/') === 0) {
+                    return;
+                } else {
+                    // Do nothing
+                }
             } else {
-                // doing nothing yet
+                // URLs might begin with:
+                //     chrome://
+                //     chrome-devtools://
+                //     chrome-error://
+                //     view-source:
+                return;
             }
 
             var limit = 40,
@@ -32,11 +39,22 @@
                     }
 
                     chrome.tabs.get(tabId, function (tab) {
+                        if (chrome.runtime.lastError) {
+                            // do nothing
+                        }
+
                         // Chrome unnecessarily logs an error if
                         // the tab with "tabId" is not found for chrome.tabs.get().
                         // Note: Even in such cases, chrome.tabs.get() does call the callback
                         // function with the undefined value for "tab"
                         if (tab) {
+                            chrome.tabs.executeScript(tabId, {
+                                // Run the script for all the iframes
+                                // ("allFrames: true" parameter does not seem to be of use when "changeInfo.status === 'loading'")
+                                allFrames: true,
+                                runAt: pageAlreadyLoaded ? 'document_idle' : 'document_end',
+                                file: "utils.js"
+                            });
                             chrome.tabs.executeScript(tabId, {
                                 // Run the script for all the iframes
                                 // ("allFrames: true" parameter does not seem to be of use when "changeInfo.status === 'loading'")
@@ -68,7 +86,13 @@
 
     function removeContextMenuEntry() {
         if (contextMenuEntry) {
-            chrome.contextMenus.remove(contextMenuEntry);
+            /*
+                Note:
+                Ideally, we would want to use "chrome.contextMenus.remove(contextMenuEntry);", but, due to lack of
+                ability to add checks if the "contextMenuEntry" still exists, there can be some unwanted error logs
+                under some scenario. Hence, using "chrome.contextMenus.removeAll();".
+            */
+            chrome.contextMenus.removeAll(); // chrome.contextMenus.remove(contextMenuEntry);
         }
     }
 
@@ -86,6 +110,10 @@
 
     function addContextMenuEntryIfRequired(tabId) {
         chrome.tabs.get(tabId, function (tab) {
+            if (chrome.runtime.lastError) {
+                // do nothing
+            }
+
             var url = tab && tab.url;
             if (url && tab.active) {
                 chrome.windows.getLastFocused(function (win) {

@@ -6,7 +6,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "eslint": "^7.32.0"
+    "eslint": "^8.0.0"
   },
   "repository": {
     "type": "git",

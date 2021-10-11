@@ -1,0 +1,130 @@
+<!doctype html>
+
+<!--
+    chrome-extension://<extension-id>/options.html
+-->
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Close Tab by Double Right Click</title>
+
+    <style>
+        html {
+            /* width: 410px; */
+            font-size: 62.5%;
+        }
+        body {
+            font-size: 1.3rem;
+        }
+        button {
+            cursor: pointer;
+        }
+        .option-heading {
+            font-size: 1.4rem;
+        }
+        .option-value,
+        label {
+            display: flex;
+        }
+        .option-value {
+            align-items: center;
+        }
+        label {
+            margin-top: 1px;
+            margin-bottom: 1px;
+        }
+        label input,
+        label input[type="button"],
+        label input[type="checkbox"],
+        label input[type="radio"],
+        label input[type="submit"],
+        label select {
+            margin-right: 4px;
+        }
+        .option-heading {
+            font-weight: bold;
+            padding-bottom: 7px;
+        }
+        .option-value {
+            padding-bottom: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="display:flex; justify-content:center;">
+        <div>
+            <div class="option" style="margin-top:10px">
+                <div class="option-heading">Maximum time between clicks</div>
+                <div style="margin-top:10px; margin-left:20px; margin-right:20px">
+                    <div class="option-value">
+                        <label><input type="radio" name="maximum-time-between-clicks-type" value="default" /> Default &nbsp;&nbsp;<span style="color: #777;">(500 ms)</span></label>
+                    </div>
+                    <div class="option-value">
+                        <label><input type="radio" name="maximum-time-between-clicks-type" value="custom" /> Custom:&nbsp;&nbsp;</label>
+                        <select class="maximum-time-between-clicks-value">
+                            <optgroup label="Too fast">
+                                <option value="100">100</option>
+                                <option value="150">150</option>
+                                <option value="200">200</option>
+                                <option value="250">250</option>
+                            </optgroup>
+                            <optgroup label="Recommended">
+                                <option value="300">300</option>
+                                <option value="350">350</option>
+                                <option value="400">400</option>
+                                <option value="450">450</option>
+                                <option value="500">500</option>
+                                <option value="550">550</option>
+                                <option value="600">600</option>
+                                <option value="650">650</option>
+                                <option value="700">700</option>
+                                <option value="750">750</option>
+                            </optgroup>
+                            <optgroup label="Too slow">
+                                <option value="800">800</option>
+                                <option value="850">850</option>
+                                <option value="900">900</option>
+                                <option value="950">950</option>
+                                <option value="1000">1000</option>
+                                <option value="1050">1050</option>
+                                <option value="1100">1100</option>
+                                <option value="1150">1150</option>
+                                <option value="1200">1200</option>
+                                <option value="1250">1250</option>
+                                <option value="1300">1300</option>
+                                <option value="1350">1350</option>
+                                <option value="1400">1400</option>
+                                <option value="1450">1450</option>
+                                <option value="1500">1500</option>
+                                <option value="1550">1550</option>
+                                <option value="1600">1600</option>
+                                <option value="1650">1650</option>
+                                <option value="1700">1700</option>
+                                <option value="1750">1750</option>
+                                <option value="1800">1800</option>
+                                <option value="1850">1850</option>
+                                <option value="1900">1900</option>
+                                <option value="1950">1950</option>
+                                <option value="2000">2000</option>
+                            </optgroup>
+                        </select>
+                        &nbsp;ms
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:30px; display:flex; justify-content:center">
+                <button id="done">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="utils.js"></script>
+    <script src="options.js"></script>
+</body>
+
+</html>

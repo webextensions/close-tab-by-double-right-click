@@ -1,4 +1,14 @@
 {
+    "parserOptions": {
+        "ecmaVersion": 2017
+    },
+    "env": {
+        "es6": true,
+        "node": false,
+        "browser": true
+    },
+    "extends": "eslint:recommended",
+    "plugins": [],
     // http://eslint.org/docs/user-guide/configuring.html
     // http://bl.ocks.org/cletusw/e01a85e399ab563b1236
     "rules": {
@@ -10,12 +20,5 @@
         "no-console": "off",
         "no-debugger": "off",
         "no-shadow": "off"
-    },
-    "env": {
-        "es6": true,
-        "node": false,
-        "browser": true
-    },
-    "extends": "eslint:recommended",
-    "plugins": []
+    }
 }

@@ -119,8 +119,8 @@
                 chrome.windows.getLastFocused(function (win) {
                     if (tab.windowId === win.id) {
                         if (
-                            url.indexOf('https://chrome.google.com/') === 0 ||
-                            url.indexOf('view-source:') === 0
+                            url.indexOf('https://chrome.google.com/webstore/') === 0 ||
+                            url.indexOf('https://addons.mozilla.org/') === 0
                         ) {
                             addContextMenuEntry();
                         } else if (
@@ -131,6 +131,11 @@
                         ) {
                             removeContextMenuEntry();
                         } else {
+                            // URLs might begin with:
+                            //     chrome://
+                            //     chrome-devtools://
+                            //     chrome-error://
+                            //     view-source:
                             addContextMenuEntry();
                         }
                     }

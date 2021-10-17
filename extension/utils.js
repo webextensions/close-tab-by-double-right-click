@@ -9,32 +9,54 @@ if (!utils.defined) {
     utils.defined = true;
 
     utils.chromeStorageGet = function (storageObject, prop) {
-        return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
-            storageObject.get(prop, function (values) {
-                resolve(values[prop]);
+        if (typeof browser === 'undefined') { // If Chromium based
+            return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
+                storageObject.get(prop, function (values) {
+                    resolve(values[prop]);
+                });
             });
-        });
+        } else { // Else Firefox based
+            return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
+                let promiseGettingItem = storageObject.get(prop);
+                promiseGettingItem.then(function (values) {
+                    resolve(values[prop]);
+                });
+            });
+        }
     };
 
     utils.chromeStorageSet = function (storageObject, prop, value) {
-        return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
-            storageObject.set(
-                {
-                    [prop]: value
-                },
-                function () {
-                    resolve();
-                }
-            );
-        });
+        if (typeof browser === 'undefined') { // If Chromium based
+            return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
+                storageObject.set(
+                    {
+                        [prop]: value
+                    },
+                    function () {
+                        resolve();
+                    }
+                );
+            });
+        } else { // Else Firefox based
+            let promiseSettingItem = storageObject.set({
+                [prop]: value
+            });
+            return promiseSettingItem;
+        }
+
     };
 
     utils.chromeStorageRemove = function (storageObject, prop) {
-        return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
-            storageObject.remove(prop, function () {
-                resolve();
+        if (typeof browser === 'undefined') { // If Chromium based
+            return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
+                storageObject.remove(prop, function () {
+                    resolve();
+                });
             });
-        });
+        } else { // Else Firefox based
+            let promiseRemovingItem = storageObject.remove(prop);
+            return promiseRemovingItem;
+        }
     };
 
     utils.chromeStorageLocalGet = async function (prop) {

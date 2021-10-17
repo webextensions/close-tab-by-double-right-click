@@ -29,6 +29,8 @@ const main = function () {
     const MAXIMUM_TIME_BETWEEN_CLICKS_TYPE = 'MAXIMUM_TIME_BETWEEN_CLICKS_TYPE';
     const MAXIMUM_TIME_BETWEEN_CLICKS_VALUE = 'MAXIMUM_TIME_BETWEEN_CLICKS_VALUE';
 
+    // Note:
+    //     In Firefox, using sync storage requires an add-on ID (https://extensionworkshop.com/documentation/develop/extensions-and-the-add-on-id/#when-do-you-need-an-add-on-id)
     const chromeStorageForExtensionData = chrome.storage.sync || chrome.storage.local;
 
     const maximumTimeTypeRadioName = 'maximum-time-between-clicks-type';

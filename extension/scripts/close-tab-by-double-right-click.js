@@ -9,6 +9,8 @@ if (window.DRCsetup === undefined) {
         const TIME_BETWEEN_CLICKS_RANGE_MAX = 2000;
         const TIME_BETWEEN_CLICKS_DEFAULT = 500;
 
+        // Note:
+        //     In Firefox, using sync storage requires an add-on ID (https://extensionworkshop.com/documentation/develop/extensions-and-the-add-on-id/#when-do-you-need-an-add-on-id)
         var chromeStorageForExtensionData = chrome.storage.sync || chrome.storage.local;
 
         let maxTimeBetweenClicksType;
@@ -27,6 +29,7 @@ if (window.DRCsetup === undefined) {
         } catch (e) {
             maxTimeBetweenClicksType = 'default';
             console.log(`Caught an unexpected error while trying to read ${MAXIMUM_TIME_BETWEEN_CLICKS_TYPE}`);
+            console.log(e);
         }
 
         if (maxTimeBetweenClicksType === 'custom') {
@@ -38,6 +41,7 @@ if (window.DRCsetup === undefined) {
             } catch (e) {
                 maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
                 console.log(`Caught an unexpected error while trying to read ${MAXIMUM_TIME_BETWEEN_CLICKS_VALUE}`);
+                console.log(e);
             }
             if (
                 Number.isInteger(maxTimeBetweenClicksValue) &&

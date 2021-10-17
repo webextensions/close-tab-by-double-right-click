@@ -3,6 +3,8 @@
   "version": "1.1.0",
   "description": "Chrome extension \"Close Tab by Double Right Click\"",
   "scripts": {
+    "preversion": "npm test",
+    "version": "./scripts/build-and-release/prepare-version/prepare-version.sh",
     "postversion": "git push --follow-tags",
     "lint": "eslint .",
     "test": "npm run lint"

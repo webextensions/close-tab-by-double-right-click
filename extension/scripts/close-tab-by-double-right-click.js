@@ -11,6 +11,12 @@ if (window.DRCsetup === undefined) {
 
         // Note:
         //     In Firefox, using sync storage requires an add-on ID (https://extensionworkshop.com/documentation/develop/extensions-and-the-add-on-id/#when-do-you-need-an-add-on-id)
+        //     To handle that, during development, add the following property at JSON root in manifest.json
+        //         "applications": {
+        //             "gecko": {
+        //                 "id": "any-unique-enough-email-during-development@example.com"
+        //             }
+        //         }
         var chromeStorageForExtensionData = chrome.storage.sync || chrome.storage.local;
 
         let maxTimeBetweenClicksType;

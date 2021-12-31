@@ -28,8 +28,8 @@ Double right click anywhere on the page to close the active tab.
 **Inspirations:**
 * The idea of this extension is inspired by "Rights To Close" legacy extension for Mozilla Firefox.
 
-**Connect to us at:**
-* https://webextensions.org/
+**Connect with us:**
+* https://www.webextensions.org/
 * [GitHub](https://github.com/webextensions/close-tab-by-double-right-click)
 * [Twitter](https://twitter.com/webextensions)
 * [LinkedIn - Priyank Parashar](https://linkedin.com/in/ParasharPriyank/)

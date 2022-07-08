@@ -1,9 +1,9 @@
 # Close Tab by Double Right Click
 Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Firefox.
-| Close active tab by \ Browser                                         | Chrome             | Firefox            |
-| :---                                                                  |        :----:      |               ---: |
-| Double right click anywhere on the page                               | :heavy_check_mark: | Upto Firefox 101   |
-| Left click immediately followed by right click anywhere on the page   | :heavy_check_mark: | :heavy_check_mark: |
+| Close active tab by                                                 | Chrome             | Firefox            |
+| :---                                                                |        :----:      |               ---: |
+| Double right click anywhere on the page                             | :heavy_check_mark: | Upto Firefox 101   |
+| Left click immediately followed by right click anywhere on the page | :heavy_check_mark: | :heavy_check_mark: |
   
 <img width="32" alt="Google Chrome Logo" src="https://cdn.rawgit.com/webextensions/live-css-editor/master/extension/ui-images/logo-google-chrome.svg"> &nbsp; https://chrome.google.com/webstore/detail/klngijkfgagcnegkffeckmkdpnpmbdpm
 

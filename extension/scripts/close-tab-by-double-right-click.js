@@ -1,5 +1,20 @@
 /* global chrome, utils */
 
+var flagFirefox102Plus = (function () {
+    try {
+        const firefoxVersion = parseInt(
+            navigator.userAgent.split('Firefox/')[1],
+            10
+        );
+        if (firefoxVersion >= 102) {
+            return true;
+        }
+    } catch (e) {
+        // do nothing
+    }
+    return false;
+}());
+
 if (window.DRCsetup === undefined) {
     setTimeout(async function () {
         const MAXIMUM_TIME_BETWEEN_CLICKS_TYPE = 'MAXIMUM_TIME_BETWEEN_CLICKS_TYPE';
@@ -62,16 +77,27 @@ if (window.DRCsetup === undefined) {
             maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
         }
 
-        var recieveRightClick = (function () {
+        var recieveClick = (function () {
             var counter = 0,
                 lastTime = new Date(),
                 tabRemoveAlreadyRequested = false;
-            return function (e) {
-                if (e.which !== 3) {
+            return function (e, whichClick) {
+                if (whichClick === 'right') {
+                    if (e.which !== 3) {
+                        return;
+                    }
+                } else if (whichClick === 'left') {
+                    if (e.which !== 1) {
+                        return;
+                    }
+                }
+
+                if (e.which === 1 && counter >= 1) {
                     return;
                 }
 
                 counter++;
+
                 setTimeout(function () {
                     if (counter > 0) {
                         counter--;
@@ -86,7 +112,13 @@ if (window.DRCsetup === undefined) {
                 //     1. Receiving too many clicks if the mouse's mechanics is faulty in the sense that it receives multiple clicks even though the
                 //        user intended to click only once
                 //     2. User is clicking too fast and might close more tabs than he/she wishes to
-                if ((counter === 2 && timeDiff >= 50) || counter > 2) {
+                if (
+                    counter > 2 ||
+                    (
+                        counter === 2 &&
+                        (timeDiff >= 50 || flagFirefox102Plus) // For right-click-context-menu-open state on a page, if we do left-click-followed-by-right-click (to be used in Firefox 102+ versions), the timeDiff might have a very small value (eg: 5ms)
+                    )
+                ) {
                     if (!tabRemoveAlreadyRequested) {
                         tabRemoveAlreadyRequested = true;
                         chrome.runtime.sendMessage({closeTab: true});
@@ -99,7 +131,8 @@ if (window.DRCsetup === undefined) {
             if (document.body) {
                 // document.body events seem to be getting affected by prevention of event bubbling
                 // document.body.onmouseup = function (e) {
-                //     recieveRightClick(e);
+                //     recieveClick(e, 'right');
+                //     recieveClick(e, 'left');
                 // };
 
                 // Not 100% sure, but it seems that if we register "document.onmouseup"
@@ -109,16 +142,25 @@ if (window.DRCsetup === undefined) {
                 // might be received by other tabs as the current tab closes),
                 // probably due to the architecture of the browser.
                 document.onmouseup = function (e) {
-                    recieveRightClick(e);
+                    recieveClick(e, 'right');
+                    recieveClick(e, 'left');
                 };
 
                 var isLinux = navigator.platform.toUpperCase().indexOf('LINUX') >= 0,
                     isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-                if (isLinux && isChrome) {
-                    // HACK: Attaching "document.onmousedown" as a hack for Linux due to the following Chromium bug, which is marked as Won't Fix:
-                    //       https://bugs.chromium.org/p/chromium/issues/detail?id=506801 (Right-click should fire mouseup event after contextmenu)
+
+                // HACK:
+                //       * Attaching "document.onmousedown" as a hack for Linux due to the following Chromium bug, which is marked as Won't Fix:
+                //         https://bugs.chromium.org/p/chromium/issues/detail?id=506801 (Right-click should fire mouseup event after contextmenu)
+                //       * Like Chromium for Linux, similar effect/browser-behavior seems to happen for Firefox 102 onwards (seemingly for all OSes)
+                //         (https://github.com/webextensions/close-tab-by-double-right-click/issues/12)
+                if (
+                    (isLinux && isChrome) ||
+                    flagFirefox102Plus
+                ) {
                     document.onmousedown = function (e) {
-                        recieveRightClick(e);
+                        recieveClick(e, 'right');
+                        recieveClick(e, 'left');
                     };
                 }
 

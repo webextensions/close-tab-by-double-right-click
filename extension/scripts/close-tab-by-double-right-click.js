@@ -152,11 +152,11 @@ if (window.DRCsetup === undefined) {
                 // HACK:
                 //       * Attaching "document.onmousedown" as a hack for Linux due to the following Chromium bug, which is marked as Won't Fix:
                 //         https://bugs.chromium.org/p/chromium/issues/detail?id=506801 (Right-click should fire mouseup event after contextmenu)
-                //       * Like Chromium for Linux, similar effect/browser-behavior seems to happen for Firefox 102 onwards (seemingly for all OSes)
+                //       * Like Chromium for Linux, similar effect/browser-behavior seems to happen for Firefox 102 onwards
                 //         (https://github.com/webextensions/close-tab-by-double-right-click/issues/12)
                 if (
-                    (isLinux && isChrome) ||
-                    flagFirefox102Plus
+                    isLinux &&
+                    (isChrome || flagFirefox102Plus)
                 ) {
                     document.onmousedown = function (e) {
                         recieveClick(e, 'right');

@@ -10,7 +10,7 @@
     "test": "npm run lint"
   },
   "devDependencies": {
-    "eslint": "^8.19.0"
+    "eslint": "^8.55.0"
   },
   "repository": {
     "type": "git",

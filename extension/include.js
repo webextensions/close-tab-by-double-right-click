@@ -4,6 +4,9 @@
     'use strict';
     var contextMenuEntry;
 
+    const removedTabs = {};
+
+    // eslint-disable-next-line no-unused-vars
     function runScriptByTabId(tabId, pageAlreadyLoaded) {
         chrome.tabs.get(tabId, function (tab) {
             if (!tab) {
@@ -38,7 +41,7 @@
                         clearInterval(t);
                     }
 
-                    chrome.tabs.get(tabId, function (tab) {
+                    chrome.tabs.get(tabId, async function (tab) {
                         if (chrome.runtime.lastError) {
                             // do nothing
                         }
@@ -48,20 +51,24 @@
                         // Note: Even in such cases, chrome.tabs.get() does call the callback
                         // function with the undefined value for "tab"
                         if (tab) {
-                            chrome.tabs.executeScript(tabId, {
-                                // Run the script for all the iframes
-                                // ("allFrames: true" parameter does not seem to be of use when "changeInfo.status === 'loading'")
-                                allFrames: true,
-                                runAt: pageAlreadyLoaded ? 'document_idle' : 'document_end',
-                                file: "utils.js"
-                            });
-                            chrome.tabs.executeScript(tabId, {
-                                // Run the script for all the iframes
-                                // ("allFrames: true" parameter does not seem to be of use when "changeInfo.status === 'loading'")
-                                allFrames: true,
-                                runAt: pageAlreadyLoaded ? 'document_idle' : 'document_end',
-                                file: "scripts/close-tab-by-double-right-click.js"
-                            });
+                            if (tab.status === 'complete') {
+                                try {
+                                    await chrome.scripting.executeScript({
+                                        target: {
+                                            tabId,
+                                            allFrames: true
+                                        },
+                                        files: [
+                                            "utils.js",
+                                            "scripts/close-tab-by-double-right-click.js"
+                                        ]
+                                    });
+                                } catch (e) {
+                                    if (chrome.runtime.lastError) {
+                                        // do nothing
+                                    }
+                                }
+                            }
                         } else {
                             clearInterval(t);
                         }
@@ -77,14 +84,25 @@
     }
 
     function closeTabByTabId(tabId) {
-        chrome.tabs.remove(tabId);
+        // chrome.tabs.remove(tabId);
+
+        if (removedTabs[tabId]) {
+            return;
+        } else {
+            chrome.tabs.remove(tabId);
+            removedTabs[tabId] = true;
+
+            setTimeout(function () {
+                delete removedTabs[tabId];
+            }, 2500);
+        }
     }
 
     function closeTab(tab) {
         closeTabByTabId(tab.id);
     }
 
-    function removeContextMenuEntry() {
+    function removeContextMenuEntry(tabId) { // eslint-disable-line no-unused-vars
         if (contextMenuEntry) {
             /*
                 Note:
@@ -96,14 +114,25 @@
         }
     }
 
-    function addContextMenuEntry() {
-        removeContextMenuEntry();
+    function addContextMenuEntry(tabId) {
+        removeContextMenuEntry(tabId);
 
         contextMenuEntry = chrome.contextMenus.create({
+            id: 'close-tab-' + tabId,
             title: 'Close Tab',
-            contexts: ['all'],
-            onclick: function (info, tab) {
-                closeTab(tab);
+            contexts: ['all']
+            // onclick: function (info, tab) {
+            //     closeTab(tab);
+            // }
+        });
+
+        // eslint-disable-next-line no-unused-vars
+        chrome.contextMenus.onClicked.addListener(function (info, tab) {
+            if (info.menuItemId.startsWith('close-tab-')) {
+                // closeTab(tab);
+
+                const tabId = parseInt(info.menuItemId.split('-')[2], 10);
+                closeTabByTabId(tabId);
             }
         });
     }
@@ -122,21 +151,22 @@
                             url.indexOf('https://chrome.google.com/webstore/') === 0 ||
                             url.indexOf('https://addons.mozilla.org/') === 0
                         ) {
-                            addContextMenuEntry();
+                            addContextMenuEntry(tabId);
                         } else if (
                             url.indexOf('http://') === 0 ||
                             url.indexOf('https://') === 0 ||
                             url.indexOf('file:///') === 0 ||
                             url.indexOf('ftp:///') === 0
                         ) {
-                            removeContextMenuEntry();
+                            // TODO: If it is a native error page (eg: "This site can’t be reached"), then add the context menu entry
+                            removeContextMenuEntry(tabId);
                         } else {
                             // URLs might begin with:
                             //     chrome://
                             //     chrome-devtools://
                             //     chrome-error://
                             //     view-source:
-                            addContextMenuEntry();
+                            addContextMenuEntry(tabId);
                         }
                     }
                 });
@@ -144,10 +174,32 @@
         });
     }
 
+    /*
     chrome.tabs.query({}, function (tabs) {
         tabs.forEach(function (tab) {
             runScript(tab, true);
         });
+    });
+    */
+    // Run this also when the extension is turned from disabled to enabled in chrome://extensions
+    chrome.management.onEnabled.addListener(function (extensionInfo) { // eslint-disable-line no-unused-vars
+        // console.log('extensionInfo', extensionInfo);
+        chrome.tabs.query({}, function (tabs) {
+            tabs.forEach(function (tab) {
+                runScript(tab, true);
+            });
+        });
+    });
+
+    // Run this only once (on extension install/update)
+    chrome.runtime.onInstalled.addListener(function (details) {
+        if (details.reason === 'install' || details.reason === 'update') {
+            chrome.tabs.query({}, function (tabs) {
+                tabs.forEach(function (tab) {
+                    runScript(tab, true);
+                });
+            });
+        }
     });
 
     chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
@@ -163,7 +215,7 @@
     // https://code.google.com/p/chromium/issues/detail?id=154631
     chrome.tabs.onReplaced.addListener(function (tabId, changeInfo, tab) {      // eslint-disable-line no-unused-vars
         runScriptByTabId(tabId);
-        removeContextMenuEntry();
+        removeContextMenuEntry(tabId);
     });
 
     chrome.runtime.onMessage.addListener(

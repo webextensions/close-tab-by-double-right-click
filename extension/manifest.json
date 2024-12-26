@@ -11,7 +11,6 @@
     "offline_enabled": true,
     "permissions": [
         "contextMenus",
-        "management",
         "scripting",
         "storage",
         "tabs"

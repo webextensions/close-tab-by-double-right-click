@@ -174,33 +174,34 @@
         });
     }
 
-    /*
+    // Apply the script to all tabs
     chrome.tabs.query({}, function (tabs) {
         tabs.forEach(function (tab) {
             runScript(tab, true);
         });
     });
-    */
-    // Run this also when the extension is turned from disabled to enabled in chrome://extensions
-    chrome.management.onEnabled.addListener(function (extensionInfo) { // eslint-disable-line no-unused-vars
-        // console.log('extensionInfo', extensionInfo);
-        chrome.tabs.query({}, function (tabs) {
-            tabs.forEach(function (tab) {
-                runScript(tab, true);
-            });
-        });
-    });
 
-    // Run this only once (on extension install/update)
-    chrome.runtime.onInstalled.addListener(function (details) {
-        if (details.reason === 'install' || details.reason === 'update') {
-            chrome.tabs.query({}, function (tabs) {
-                tabs.forEach(function (tab) {
-                    runScript(tab, true);
-                });
-            });
-        }
-    });
+    // // Run this also when the extension is turned from disabled to enabled in chrome://extensions
+    // // Note: chrome.management needs "management" permission in manifest.json
+    // chrome.management.onEnabled.addListener(function (extensionInfo) { // eslint-disable-line no-unused-vars
+    //     // console.log('extensionInfo', extensionInfo);
+    //     chrome.tabs.query({}, function (tabs) {
+    //         tabs.forEach(function (tab) {
+    //             runScript(tab, true);
+    //         });
+    //     });
+    // });
+
+    // // Run this only once (on extension install/update)
+    // chrome.runtime.onInstalled.addListener(function (details) {
+    //     if (details.reason === 'install' || details.reason === 'update') {
+    //         chrome.tabs.query({}, function (tabs) {
+    //             tabs.forEach(function (tab) {
+    //                 runScript(tab, true);
+    //             });
+    //         });
+    //     }
+    // });
 
     chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
         // Run the script as quickly as possible (changeInfo.status === 'loading')

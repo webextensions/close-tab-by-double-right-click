@@ -1,6 +1,6 @@
 {
     "name": "Close Tab by Double Right Click",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "manifest_version": 3,
     "description": "Close tab by double right clicking anywhere on the page. Inspired by \"Rights To Close\" legacy extension for Mozilla Firefox.",
     "homepage_url": "https://webextensions.org/",

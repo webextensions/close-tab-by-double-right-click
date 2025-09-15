@@ -1,12 +1,12 @@
-/*global chrome*/
 
 (function () {
     'use strict';
     var contextMenuEntry;
 
+    const scheduledTimerForTabs = {};
+
     const removedTabs = {};
 
-    // eslint-disable-next-line no-unused-vars
     function runScriptByTabId(tabId, pageAlreadyLoaded) {
         chrome.tabs.get(tabId, function (tab) {
             if (!tab) {
@@ -15,16 +15,18 @@
 
             var url = tab.url;
             if (
+                url.indexOf('https://chromewebstore.google.com/') === 0 ||
+                url.indexOf('https://chrome.google.com/webstore/') === 0 ||
+                url.indexOf('https://addons.mozilla.org/') === 0
+            ) {
+                return;
+            } else if (
                 url.indexOf('http://')  === 0 ||
                 url.indexOf('https://') === 0 ||
                 url.indexOf('file:///') === 0 ||
                 url.indexOf('ftp:///')  === 0
             ) {
-                if (url.indexOf('https://chrome.google.com/webstore/') === 0) {
-                    return;
-                } else {
-                    // Do nothing
-                }
+                // Do nothing
             } else {
                 // URLs might begin with:
                 //     chrome://
@@ -34,48 +36,62 @@
                 return;
             }
 
-            var limit = 40,
-                fn = function () {
-                    limit -= 1;
-                    if (limit <= 0) {
-                        clearInterval(t);
+            if (scheduledTimerForTabs[tabId]) {
+                clearInterval(scheduledTimerForTabs[tabId]);
+                delete scheduledTimerForTabs[tabId];
+            }
+
+            var limit = 20;
+            var fn = function () {
+                limit -= 1;
+                if (limit <= 0) {
+                    clearInterval(t);
+                }
+
+                chrome.tabs.get(tabId, async function (tab) {
+                    if (chrome.runtime.lastError) {
+                        // do nothing
                     }
 
-                    chrome.tabs.get(tabId, async function (tab) {
-                        if (chrome.runtime.lastError) {
-                            // do nothing
-                        }
-
-                        // Chrome unnecessarily logs an error if
-                        // the tab with "tabId" is not found for chrome.tabs.get().
-                        // Note: Even in such cases, chrome.tabs.get() does call the callback
-                        // function with the undefined value for "tab"
-                        if (tab) {
-                            if (tab.status === 'complete') {
-                                try {
-                                    await chrome.scripting.executeScript({
-                                        target: {
-                                            tabId,
-                                            allFrames: true
-                                        },
-                                        files: [
-                                            "utils.js",
-                                            "scripts/close-tab-by-double-right-click.js"
-                                        ]
-                                    });
-                                } catch (e) {
-                                    if (chrome.runtime.lastError) {
-                                        // do nothing
-                                    }
+                    // Chrome unnecessarily logs an error if
+                    // the tab with "tabId" is not found for chrome.tabs.get().
+                    // Note: Even in such cases, chrome.tabs.get() does call the callback
+                    // function with the undefined value for "tab"
+                    if (tab) {
+                        if (tab.status === 'complete') {
+                            try {
+                                await chrome.scripting.executeScript({
+                                    target: {
+                                        tabId,
+                                        allFrames: true
+                                    },
+                                    files: [
+                                        "utils.js",
+                                        "scripts/close-tab-by-double-right-click.js"
+                                    ]
+                                });
+                            } catch (e) {
+                                console.error('Error executing script', e, tab);
+                                if (chrome.runtime.lastError) {
+                                    // do nothing
                                 }
                             }
-                        } else {
-                            clearInterval(t);
                         }
-                    });
-                },
-                t = setInterval(fn, 1500);    // Handling dynamic iframes added to the page
+                    } else {
+                        clearInterval(t);
+                    }
+                });
+            };
+
             fn();
+
+            var t;
+            if (pageAlreadyLoaded) {
+                // do nothing
+            } else {
+                t = setInterval(fn, 2500); // Handling dynamic iframes added to the page
+                scheduledTimerForTabs[tabId] = t;
+            }
         });
     }
 
@@ -148,6 +164,7 @@
                 chrome.windows.getLastFocused(function (win) {
                     if (tab.windowId === win.id) {
                         if (
+                            url.indexOf('https://chromewebstore.google.com/') === 0 ||
                             url.indexOf('https://chrome.google.com/webstore/') === 0 ||
                             url.indexOf('https://addons.mozilla.org/') === 0
                         ) {

@@ -1,4 +1,4 @@
-/* global chrome, utils */
+/* global utils */
 
 const ready = function (cb) {
     if (document.readyState !== 'loading') {

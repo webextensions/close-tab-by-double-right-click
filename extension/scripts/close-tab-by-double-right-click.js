@@ -1,4 +1,4 @@
-/* global chrome, utils */
+/* global utils */
 
 if (window.DRCsetup === undefined) {
     setTimeout(async function () {

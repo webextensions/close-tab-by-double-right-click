@@ -1,4 +1,3 @@
-/* global chrome */
 
 'use strict';
 
@@ -200,7 +199,7 @@ if (!utils.defined) {
                         firstChild.style.opacity = '0';
                         firstChild.style.pointerEvents = 'none';
                     }, false);
-                } catch (e) {
+                } catch (e) { // eslint-disable-line no-unused-vars
                     // do nothing
                 }
             }

@@ -1,38 +1,38 @@
 {
-  "name": "close-tab-by-double-right-click",
-  "version": "2.2.0",
-  "description": "Chrome extension \"Close Tab by Double Right Click\"",
-  "type": "module",
-  "scripts": {
-    "preversion": "npm test",
-    "version": "./scripts/build-and-release/prepare-version/prepare-version.sh",
-    "postversion": "git push --follow-tags",
-    "lint": "eslint .",
-    "test": "npm run lint"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.35.0",
-    "eslint": "^9.35.0",
-    "globals": "^16.4.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/webextensions/close-tab-by-double-right-click.git"
-  },
-  "keywords": [
-    "Chrome",
-    "extension",
-    "Close",
-    "Tab",
-    "by",
-    "Double",
-    "Right",
-    "Click"
-  ],
-  "author": "Priyank Parashar",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/webextensions/close-tab-by-double-right-click/issues"
-  },
-  "homepage": "https://github.com/webextensions/close-tab-by-double-right-click#readme"
+    "name": "close-tab-by-double-right-click",
+    "version": "2.2.0",
+    "description": "Chrome extension \"Close Tab by Double Right Click\"",
+    "type": "module",
+    "scripts": {
+        "preversion": "npm test",
+        "version": "./scripts/build-and-release/prepare-version/prepare-version.sh",
+        "postversion": "git push --follow-tags",
+        "lint": "eslint .",
+        "test": "npm run lint"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.35.0",
+        "eslint": "^9.35.0",
+        "globals": "^16.4.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/webextensions/close-tab-by-double-right-click.git"
+    },
+    "keywords": [
+        "Chrome",
+        "extension",
+        "Close",
+        "Tab",
+        "by",
+        "Double",
+        "Right",
+        "Click"
+    ],
+    "author": "Priyank Parashar",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/webextensions/close-tab-by-double-right-click/issues"
+    },
+    "homepage": "https://github.com/webextensions/close-tab-by-double-right-click#readme"
 }

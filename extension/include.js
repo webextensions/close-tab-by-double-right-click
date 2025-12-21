@@ -1,6 +1,5 @@
 
 (function () {
-    'use strict';
     var contextMenuEntry;
 
     const scheduledTimerForTabs = {};

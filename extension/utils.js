@@ -1,6 +1,4 @@
 
-'use strict';
-
 var utils = window.utils || {};
 window.utils = utils;
 

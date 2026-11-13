@@ -25,6 +25,14 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 
 * Close Tab by Double Right Click implements an alternative approach for closing "chrome://", "about:blank" and other special tabs. This is due to technical limitations of Chrome API. In these tabs, you would find a "Close Tab" context-menu entry which is shown when you right click anywhere on the page.
 
+**Development:**
+* Use the Node.js version from `.nvmrc`: `nvm use`
+* Install dependencies: `npm ci`
+* Lint: `npm test`
+* Build the per-browser folders `dist/chrome/` and `dist/firefox/` from `extension/`: `npm run build:dist` (or just one: `npm run build:chrome` / `npm run build:firefox`)
+* Rebuild both folders on every change under `extension/` (press Ctrl+C to stop): `npm start`
+* Load the extension in Chrome: "Load unpacked" on `chrome://extensions`, then choose `dist/chrome/`. Chrome and other Chromium-based browsers can also load `extension/` directly, without any build
+
 **Inspirations:**
 * The idea of this extension is inspired by "Rights To Close" legacy extension for Mozilla Firefox.
 

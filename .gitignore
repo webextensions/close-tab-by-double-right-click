@@ -11,3 +11,6 @@ node_modules
 
 # Optional npm cache directory
 .npm
+
+# Generated per-browser builds ("npm run build:dist")
+dist

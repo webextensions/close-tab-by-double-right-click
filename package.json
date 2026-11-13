@@ -9,6 +9,11 @@
         "version": "node scripts/build-and-release/prepare-version/prepare-version.js && git add extension/manifest.json",
         "postversion": "git push --follow-tags",
         "lint": "eslint .",
+        "start": "npm run build:dist:watch",
+        "build:dist": "node scripts/build-and-release/build-dist/build-dist.js",
+        "build:dist:watch": "node --watch-path=extension scripts/build-and-release/build-dist/build-dist.js",
+        "build:chrome": "node scripts/build-and-release/build-dist/build-dist.js chrome",
+        "build:firefox": "node scripts/build-and-release/build-dist/build-dist.js firefox",
         "test": "npm run lint"
     },
     "devDependencies": {

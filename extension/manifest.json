@@ -22,5 +22,16 @@
     },
     "background": {
         "service_worker": "include.js"
+    },
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "{6f6ede9c-d2e0-4c2c-b77d-eb98b801892c}",
+            "strict_min_version": "128.0",
+            "data_collection_permissions": {
+                "required": [
+                    "none"
+                ]
+            }
+        }
     }
 }

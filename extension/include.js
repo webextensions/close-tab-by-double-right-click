@@ -21,8 +21,7 @@
             } else if (
                 url.indexOf('http://')  === 0 ||
                 url.indexOf('https://') === 0 ||
-                url.indexOf('file:///') === 0 ||
-                url.indexOf('ftp:///')  === 0
+                url.indexOf('file:///') === 0
             ) {
                 // Do nothing
             } else {
@@ -70,9 +69,6 @@
                                 });
                             } catch (e) {
                                 console.error('Error executing script', e, tab);
-                                if (chrome.runtime.lastError) {
-                                    // do nothing
-                                }
                             }
                         }
                     } else {
@@ -114,7 +110,7 @@
         closeTabByTabId(tab.id);
     }
 
-    function removeContextMenuEntry(tabId) { // eslint-disable-line no-unused-vars
+    function removeContextMenuEntry() {
         if (contextMenuEntry) {
             /*
                 Note:
@@ -127,7 +123,7 @@
     }
 
     function addContextMenuEntry(tabId) {
-        removeContextMenuEntry(tabId);
+        removeContextMenuEntry();
 
         contextMenuEntry = chrome.contextMenus.create({
             id: 'close-tab-' + tabId,
@@ -163,11 +159,10 @@
                         } else if (
                             url.indexOf('http://') === 0 ||
                             url.indexOf('https://') === 0 ||
-                            url.indexOf('file:///') === 0 ||
-                            url.indexOf('ftp:///') === 0
+                            url.indexOf('file:///') === 0
                         ) {
-                            // TODO: If it is a native error page (eg: "This site can’t be reached"), then add the context menu entry
-                            removeContextMenuEntry(tabId);
+                            // TODO: If it is a native error page (eg: "This site can't be reached"), then add the context menu entry
+                            removeContextMenuEntry();
                         } else {
                             // URLs might begin with:
                             //     chrome://
@@ -190,7 +185,7 @@
     });
 
     chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-        // Run the script as quickly as possible (changeInfo.status === 'loading')
+        // Called on every update of the tab; the script gets injected once the tab's status is "complete"
         runScript(tab);
 
         // Without this Undoing close tab (Ctrl + Shift + T) would re-open the closed tab and the context menu entry would exist in the file
@@ -200,9 +195,9 @@
 
     // chrome.tabs.onUpdated does not fire on new tabs for cached pages
     // https://code.google.com/p/chromium/issues/detail?id=154631
-    chrome.tabs.onReplaced.addListener(function (tabId, changeInfo, tab) {      // eslint-disable-line no-unused-vars
-        runScriptByTabId(tabId);
-        removeContextMenuEntry(tabId);
+    chrome.tabs.onReplaced.addListener(function (addedTabId) {
+        runScriptByTabId(addedTabId);
+        removeContextMenuEntry();
     });
 
     chrome.runtime.onMessage.addListener(

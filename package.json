@@ -15,6 +15,9 @@
         "eslint": "^9.39.1",
         "globals": "^16.5.0"
     },
+    "engines": {
+        "node": ">=26"
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/webextensions/close-tab-by-double-right-click.git"

@@ -32,5 +32,13 @@ export default defineConfig([
             '@stylistic/space-before-function-paren': ['error', { 'anonymous': 'always', 'named': 'never', 'asyncArrow': 'always' }],
             '@stylistic/space-infix-ops': 'error'
         }
+    },
+    {
+        files: ['eslint.config.js', 'scripts/**/*.js'],
+        languageOptions: {
+            globals: {
+                ...globals.node
+            }
+        }
     }
 ]);

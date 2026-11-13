@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "preversion": "npm test",
-        "version": "./scripts/build-and-release/prepare-version/prepare-version.sh",
+        "version": "node scripts/build-and-release/prepare-version/prepare-version.js && git add extension/manifest.json",
         "postversion": "git push --follow-tags",
         "lint": "eslint .",
         "test": "npm run lint"

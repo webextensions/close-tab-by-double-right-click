@@ -34,6 +34,7 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 * Load the extension in Chrome: "Load unpacked" on `chrome://extensions`, then choose `dist/chrome/`. Chrome and other Chromium-based browsers can also load `extension/` directly, without any build
 * Try the extension in Firefox (profile kept in `web-ext-profile/`): `npm run start:firefox`; for live reload while editing, also run `npm start` in a second terminal
 * Try the extension in Chrome (temporary profile): `npm run start:chrome`; for live reload while editing, also run `npm start` in a second terminal
+* End-to-end tests in Chromium: `npx playwright install chromium` (once), then `npm run test:e2e` (builds `dist/chrome/` first)
 * Build the store upload zips, one per browser (into `web-ext-artifacts/`): `npm run build`
 
 **Inspirations:**

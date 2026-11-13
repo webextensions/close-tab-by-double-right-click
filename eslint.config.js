@@ -5,7 +5,7 @@ import globals from 'globals';
 
 export default defineConfig([
     {
-        ignores: ['web-ext-artifacts/', 'web-ext-profile/', 'dist/']
+        ignores: ['web-ext-artifacts/', 'web-ext-profile/', 'test-results/', 'playwright-report/', 'dist/']
     },
     js.configs.recommended,
     {
@@ -37,7 +37,7 @@ export default defineConfig([
         }
     },
     {
-        files: ['eslint.config.js', 'scripts/**/*.js'],
+        files: ['eslint.config.js', 'playwright.config.js', 'scripts/**/*.js', 'tests/**/*.js'],
         languageOptions: {
             globals: {
                 ...globals.node

@@ -20,3 +20,7 @@ dist
 
 # Firefox profile kept between "npm run start:firefox" runs
 web-ext-profile
+
+# Playwright output
+test-results
+playwright-report

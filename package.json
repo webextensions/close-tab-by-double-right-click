@@ -5,7 +5,7 @@
     "description": "Browser extension \"Close Tab by Double Right Click\" for Google Chrome and Mozilla Firefox",
     "type": "module",
     "scripts": {
-        "preversion": "npm test",
+        "preversion": "npm test && npm run test:e2e",
         "version": "node scripts/build-and-release/prepare-version/prepare-version.js && git add extension/manifest.json",
         "postversion": "git push --follow-tags",
         "lint": "eslint .",
@@ -18,10 +18,12 @@
         "build:dist:watch": "node --watch-path=extension scripts/build-and-release/build-dist/build-dist.js",
         "build:chrome": "node scripts/build-and-release/build-dist/build-dist.js chrome",
         "build:firefox": "node scripts/build-and-release/build-dist/build-dist.js firefox",
-        "test": "npm run lint && npm run lint:firefox"
+        "test": "npm run lint && npm run lint:firefox",
+        "test:e2e": "npm run build:chrome && playwright test"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
+        "@playwright/test": "^1.65.0",
         "@stylistic/eslint-plugin": "^5.10.0",
         "eslint": "^10.14.0",
         "globals": "^17.14.0",

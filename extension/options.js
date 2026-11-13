@@ -74,7 +74,7 @@ const main = function () {
         const
             value = elMaxTimeBetweenClicksDropdown.value,
             intValue = parseInt(value, 10);
-        let valueToSet = value;
+        let valueToSet;
         if (
             Number.isInteger(intValue) &&
             intValue >= TIME_BETWEEN_CLICKS_RANGE_MIN &&

@@ -4,7 +4,7 @@
     chrome-extension://<extension-id>/options.html
 -->
 
-<html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
@@ -13,7 +13,6 @@
 
     <style>
         html {
-            /* width: 410px; */
             font-size: 62.5%;
         }
         body {
@@ -24,6 +23,8 @@
         }
         .option-heading {
             font-size: 1.4rem;
+            font-weight: bold;
+            padding-bottom: 7px;
         }
         .option-value,
         label {
@@ -31,6 +32,7 @@
         }
         .option-value {
             align-items: center;
+            padding-bottom: 3px;
         }
         label {
             margin-top: 1px;
@@ -43,13 +45,6 @@
         label input[type="submit"],
         label select {
             margin-right: 4px;
-        }
-        .option-heading {
-            font-weight: bold;
-            padding-bottom: 7px;
-        }
-        .option-value {
-            padding-bottom: 3px;
         }
     </style>
 </head>

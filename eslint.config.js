@@ -1,20 +1,36 @@
 import js from '@eslint/js';
+import stylistic from '@stylistic/eslint-plugin';
+import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 
-export default [
+export default defineConfig([
     js.configs.recommended,
     {
+        plugins: {
+            '@stylistic': stylistic
+        },
         languageOptions: {
-            ecmaVersion: "latest",
+            ecmaVersion: 'latest',
             globals: {
                 ...globals.browser,
                 ...globals.webextensions
             }
         },
         rules: {
-            "indent": ["error", 4, { "SwitchCase": 1 }],
-            "linebreak-style": ["error", "unix"],
-            "semi": ["error", "always"]
+            'curly': 'error',
+            'eqeqeq': 'error',
+
+            '@stylistic/comma-dangle': ['error', 'never'],
+            '@stylistic/eol-last': 'error',
+            '@stylistic/indent': ['error', 4, { 'SwitchCase': 1 }],
+            '@stylistic/keyword-spacing': 'error',
+            '@stylistic/linebreak-style': ['error', 'unix'],
+            '@stylistic/no-multiple-empty-lines': ['error', { 'max': 1, 'maxBOF': 0, 'maxEOF': 0 }],
+            '@stylistic/no-trailing-spaces': 'error',
+            '@stylistic/quotes': ['error', 'single', { 'avoidEscape': true }],
+            '@stylistic/semi': ['error', 'always'],
+            '@stylistic/space-before-function-paren': ['error', { 'anonymous': 'always', 'named': 'never', 'asyncArrow': 'always' }],
+            '@stylistic/space-infix-ops': 'error'
         }
     }
-];
+]);

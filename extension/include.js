@@ -1,4 +1,3 @@
-
 (function () {
     var contextMenuEntry;
 
@@ -65,8 +64,8 @@
                                         allFrames: true
                                     },
                                     files: [
-                                        "utils.js",
-                                        "scripts/close-tab-by-double-right-click.js"
+                                        'utils.js',
+                                        'scripts/close-tab-by-double-right-click.js'
                                     ]
                                 });
                             } catch (e) {

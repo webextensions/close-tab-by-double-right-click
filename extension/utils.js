@@ -1,4 +1,3 @@
-
 var utils = window.utils || {};
 window.utils = utils;
 
@@ -123,7 +122,7 @@ if (!utils.defined) {
             // - Apply !important for various inline styles (otherwise, it might get over-ridden by some previously present !important CSS styles)
             // - "OK" button functionality
 
-            /*eslint-disable indent */
+            /*eslint-disable @stylistic/indent */
             div.innerHTML = [
                 '<div ' +
                     'style="' +
@@ -180,7 +179,7 @@ if (!utils.defined) {
                     '</div>',
                 '</div>'
             ].join('');
-            /*eslint-enable indent */
+            /*eslint-enable @stylistic/indent */
 
             if (unobtrusive) {
                 try {

@@ -9,7 +9,7 @@ const ready = function (cb) {
 };
 
 const RadioButtonSelectedValueSet = function (name, SelectedValue) {
-    const els = document.querySelectorAll('input[name="' + name+ '"]');
+    const els = document.querySelectorAll('input[name="' + name + '"]');
     els.forEach((el) => {
         if (el.value === SelectedValue) {
             el.checked = true;

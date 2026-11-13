@@ -5,7 +5,7 @@ import globals from 'globals';
 
 export default defineConfig([
     {
-        ignores: ['dist/']
+        ignores: ['web-ext-artifacts/', 'web-ext-profile/', 'dist/']
     },
     js.configs.recommended,
     {

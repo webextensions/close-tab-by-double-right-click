@@ -28,10 +28,13 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 **Development:**
 * Use the Node.js version from `.nvmrc`: `nvm use`
 * Install dependencies: `npm ci`
-* Lint: `npm test`
-* Build the per-browser folders `dist/chrome/` and `dist/firefox/` from `extension/`: `npm run build:dist` (or just one: `npm run build:chrome` / `npm run build:firefox`)
+* Lint (ESLint and Firefox add-on lint): `npm test`
+* Build the per-browser folders `dist/chrome/` and `dist/firefox/` from `extension/`: `npm run build:dist` (or just one: `npm run build:chrome` / `npm run build:firefox`; the scripts below build what they need)
 * Rebuild both folders on every change under `extension/` (press Ctrl+C to stop): `npm start`
 * Load the extension in Chrome: "Load unpacked" on `chrome://extensions`, then choose `dist/chrome/`. Chrome and other Chromium-based browsers can also load `extension/` directly, without any build
+* Try the extension in Firefox (profile kept in `web-ext-profile/`): `npm run start:firefox`; for live reload while editing, also run `npm start` in a second terminal
+* Try the extension in Chrome (temporary profile): `npm run start:chrome`; for live reload while editing, also run `npm start` in a second terminal
+* Build the store upload zips, one per browser (into `web-ext-artifacts/`): `npm run build`
 
 **Inspirations:**
 * The idea of this extension is inspired by "Rights To Close" legacy extension for Mozilla Firefox.

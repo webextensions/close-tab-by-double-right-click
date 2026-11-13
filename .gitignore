@@ -12,5 +12,11 @@ node_modules
 # Optional npm cache directory
 .npm
 
+# web-ext build output
+web-ext-artifacts
+
 # Generated per-browser builds ("npm run build:dist")
 dist
+
+# Firefox profile kept between "npm run start:firefox" runs
+web-ext-profile

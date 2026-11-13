@@ -9,18 +9,23 @@
         "version": "node scripts/build-and-release/prepare-version/prepare-version.js && git add extension/manifest.json",
         "postversion": "git push --follow-tags",
         "lint": "eslint .",
+        "lint:firefox": "npm run build:firefox && web-ext lint",
         "start": "npm run build:dist:watch",
+        "start:firefox": "npm run build:firefox && web-ext run --firefox-profile ./web-ext-profile --profile-create-if-missing --keep-profile-changes",
+        "start:chrome": "npm run build:chrome && web-ext run --target chromium --source-dir dist/chrome",
+        "build": "npm run build:dist && web-ext build --source-dir dist/chrome --filename \"{name}-{version}-chrome.zip\" && web-ext build --filename \"{name}-{version}-firefox.zip\"",
         "build:dist": "node scripts/build-and-release/build-dist/build-dist.js",
         "build:dist:watch": "node --watch-path=extension scripts/build-and-release/build-dist/build-dist.js",
         "build:chrome": "node scripts/build-and-release/build-dist/build-dist.js chrome",
         "build:firefox": "node scripts/build-and-release/build-dist/build-dist.js firefox",
-        "test": "npm run lint"
+        "test": "npm run lint && npm run lint:firefox"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "@stylistic/eslint-plugin": "^5.10.0",
         "eslint": "^10.14.0",
-        "globals": "^17.14.0"
+        "globals": "^17.14.0",
+        "web-ext": "^10.8.0"
     },
     "engines": {
         "node": ">=26"

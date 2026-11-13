@@ -8,7 +8,6 @@
         "16": "images/double-click-16x16.png",
         "128": "images/double-click-128x128.png"
     },
-    "offline_enabled": true,
     "permissions": [
         "contextMenus",
         "scripting",

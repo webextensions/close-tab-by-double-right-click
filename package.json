@@ -1,7 +1,8 @@
 {
     "name": "close-tab-by-double-right-click",
     "version": "2.3.0",
-    "description": "Chrome extension \"Close Tab by Double Right Click\"",
+    "private": true,
+    "description": "Browser extension \"Close Tab by Double Right Click\" for Google Chrome and Mozilla Firefox",
     "type": "module",
     "scripts": {
         "preversion": "npm test",
@@ -24,14 +25,12 @@
         "url": "git+https://github.com/webextensions/close-tab-by-double-right-click.git"
     },
     "keywords": [
-        "Chrome",
-        "extension",
-        "Close",
-        "Tab",
-        "by",
-        "Double",
-        "Right",
-        "Click"
+        "browser-extension",
+        "chrome-extension",
+        "close-tab",
+        "double-right-click",
+        "firefox-addon",
+        "webextension"
     ],
     "author": "Priyank Parashar",
     "license": "MIT",

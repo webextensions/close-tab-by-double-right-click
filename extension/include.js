@@ -98,8 +98,6 @@
     }
 
     function closeTabByTabId(tabId) {
-        // chrome.tabs.remove(tabId);
-
         if (removedTabs[tabId]) {
             return;
         } else {
@@ -135,16 +133,11 @@
             id: 'close-tab-' + tabId,
             title: 'Close Tab',
             contexts: ['all']
-            // onclick: function (info, tab) {
-            //     closeTab(tab);
-            // }
         });
 
         // eslint-disable-next-line no-unused-vars
         chrome.contextMenus.onClicked.addListener(function (info, tab) {
             if (info.menuItemId.startsWith('close-tab-')) {
-                // closeTab(tab);
-
                 const tabId = parseInt(info.menuItemId.split('-')[2], 10);
                 closeTabByTabId(tabId);
             }
@@ -196,34 +189,12 @@
         });
     });
 
-    // // Run this also when the extension is turned from disabled to enabled in chrome://extensions
-    // // Note: chrome.management needs "management" permission in manifest.json
-    // chrome.management.onEnabled.addListener(function (extensionInfo) { // eslint-disable-line no-unused-vars
-    //     // console.log('extensionInfo', extensionInfo);
-    //     chrome.tabs.query({}, function (tabs) {
-    //         tabs.forEach(function (tab) {
-    //             runScript(tab, true);
-    //         });
-    //     });
-    // });
-
-    // // Run this only once (on extension install/update)
-    // chrome.runtime.onInstalled.addListener(function (details) {
-    //     if (details.reason === 'install' || details.reason === 'update') {
-    //         chrome.tabs.query({}, function (tabs) {
-    //             tabs.forEach(function (tab) {
-    //                 runScript(tab, true);
-    //             });
-    //         });
-    //     }
-    // });
-
     chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
         // Run the script as quickly as possible (changeInfo.status === 'loading')
         runScript(tab);
 
         // Without this Undoing close tab (Ctrl + Shift + T) would re-open the closed tab and the context menu entry would exist in the file
-        // This probably can't be added/called directly to/from the content script (through message-passing) because runScript might be called on multiple tabs at once (currently it happens on "onInstalled")
+        // This probably can't be added/called directly to/from the content script (through message-passing) because runScript might be called on multiple tabs at once (currently it happens when the background script starts)
         addContextMenuEntryIfRequired(tabId);
     });
 

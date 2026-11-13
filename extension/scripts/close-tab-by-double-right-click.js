@@ -109,11 +109,6 @@ if (window.DRCsetup === undefined) {
 
         var interval = setInterval(function () {
             if (document.body) {
-                // document.body events seem to be getting affected by prevention of event bubbling
-                // document.body.onmouseup = function (e) {
-                //     recieveRightClick(e);
-                // };
-
                 // Not 100% sure, but it seems that if we register "document.onmouseup"
                 // without checking for "document.body", then it may not behave properly.
                 // In that case, it seems to be providing a delayed execution of closing the tab

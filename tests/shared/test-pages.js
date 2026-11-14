@@ -20,6 +20,13 @@ const SVG_PAGE = (
     '<script>document.addEventListener("contextmenu", (e) => e.preventDefault());</script></svg>'
 );
 
+// A page which shows another page of its site in a frame, away from its own top left corner
+const FRAME_PATH = '/frame';
+const OFFSET_FRAME_PAGE = TEST_PAGE.replace(
+    '</body>',
+    `<iframe src="${FRAME_PATH}" style="position:fixed;left:200px;top:100px;width:800px;height:500px;border:0"></iframe></body>`
+);
+
 // Requests below this path never get an answer, so a page which uses one of them never finishes loading
 const STALLED_PATH = '/stalled/';
 
@@ -70,6 +77,8 @@ const isContentScriptReady = async function (serviceWorker, url) {
 export {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
+    FRAME_PATH,
+    OFFSET_FRAME_PAGE,
     STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE,
     STALLED_HEAD_PAGE,
     STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE,

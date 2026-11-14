@@ -26,6 +26,8 @@ import { chromium } from '@playwright/test';
 import { findMiddleOfElement, openRealSite, sitesFor } from '../../tests/shared/real-sites.js';
 import {
     CANCEL_CONTEXT_MENU_PAGE,
+    FRAME_PATH,
+    OFFSET_FRAME_PAGE,
     STALLED_HEAD_PAGE,
     STALLED_IMAGE_PAGE,
     STALLED_PATH,
@@ -50,6 +52,8 @@ const TEST_ORIGIN = 'https://drc.test';
 const TEST_URL = `${TEST_ORIGIN}/verify-chrome`;
 // A page which shows its own context menu cancels the browser's one, so nothing swallows parts of a right click there
 const CANCEL_CONTEXT_MENU_URL = `${TEST_ORIGIN}/cancel-context-menu`;
+// A page which shows another page of its site in a frame, which covers the spot which gets clicked
+const OFFSET_FRAME_URL = `${TEST_ORIGIN}/offset-frame`;
 // Pages which never finish loading: the first one stalls before it gets a body, the second one shows its content
 const STALLED_HEAD_URL = `${TEST_ORIGIN}/stalled-head`;
 const STALLED_IMAGE_URL = `${TEST_ORIGIN}/stalled-image`;
@@ -81,6 +85,18 @@ const checks = [
         true,
         ['right-hold', 0.12, 'sleep', 0.15, 'right-hold', 0.12, 'sleep', 1.2],
         CANCEL_CONTEXT_MENU_URL
+    ],
+    [
+        'single right click inside a frame which is not at the top left corner of its page keeps the tab open',
+        false,
+        ['right', 'sleep', 1.2],
+        OFFSET_FRAME_URL
+    ],
+    [
+        'double right click inside a frame which is not at the top left corner of its page closes the tab',
+        true,
+        ['right', 'sleep', 0.15, 'right', 'sleep', 1.2],
+        OFFSET_FRAME_URL
     ],
     [
         'single right click on a page which shows its content while it keeps loading keeps the tab open',
@@ -224,6 +240,8 @@ const runChecks = async function (displayMode) {
         await context.route(CANCEL_CONTEXT_MENU_URL, (route) => {
             return route.fulfill({ contentType: 'text/html', body: CANCEL_CONTEXT_MENU_PAGE });
         });
+        await context.route(OFFSET_FRAME_URL, (route) => route.fulfill({ contentType: 'text/html', body: OFFSET_FRAME_PAGE }));
+        await context.route(`${TEST_ORIGIN}${FRAME_PATH}`, (route) => route.fulfill({ contentType: 'text/html', body: TEST_PAGE }));
         await context.route(STALLED_HEAD_URL, (route) => route.fulfill({ contentType: 'text/html', body: STALLED_HEAD_PAGE }));
         await context.route(STALLED_IMAGE_URL, (route) => route.fulfill({ contentType: 'text/html', body: STALLED_IMAGE_PAGE }));
         // Never answered

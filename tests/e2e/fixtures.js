@@ -5,6 +5,7 @@ import { test as base, chromium, expect } from '@playwright/test';
 import {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
+    OFFSET_FRAME_PAGE,
     STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE,
     STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE,
     STALLED_PATH,
@@ -20,6 +21,7 @@ const TEST_ORIGIN = 'https://drc.test';
 
 const CANCEL_CONTEXT_MENU_PATH = '/cancel-context-menu/';
 const ASK_BEFORE_LEAVING_PATH = '/ask-before-leaving/';
+const OFFSET_FRAME_PATH = '/offset-frame/';
 const STALLED_HEAD_PATH = '/stalled-head/';
 const STALLED_IMAGE_PATH = '/stalled-image/';
 const SVG_PATH = '/svg/';
@@ -53,6 +55,8 @@ const test = base.extend({
                 body = CANCEL_CONTEXT_MENU_PAGE;
             } else if (pathname.startsWith(ASK_BEFORE_LEAVING_PATH)) {
                 body = ASK_BEFORE_LEAVING_PAGE;
+            } else if (pathname.startsWith(OFFSET_FRAME_PATH)) {
+                body = OFFSET_FRAME_PAGE;
             } else if (pathname.startsWith(STALLED_HEAD_PATH)) {
                 body = STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE;
             } else if (pathname.startsWith(STALLED_IMAGE_PATH)) {
@@ -148,6 +152,7 @@ const clickContextMenuEntry = async function (serviceWorker, url) {
 export {
     ASK_BEFORE_LEAVING_PATH,
     CANCEL_CONTEXT_MENU_PATH,
+    OFFSET_FRAME_PATH,
     STALLED_HEAD_PATH,
     STALLED_IMAGE_PATH,
     SVG_PATH,

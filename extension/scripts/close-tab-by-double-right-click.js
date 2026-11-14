@@ -157,6 +157,8 @@ if (window.DRCattachListeners) {
     // a page which has not rendered anything yet (eg: it waits for a slow stylesheet or script in its <head>).
     // "pointerrawupdate" arrives without that delay. It costs the page some performance, so it is only listened for
     // while a right press waits for its second click, and it only exists on pages served over https.
+    // The pointer positions are compared in screen coordinates: inside a frame of the same site, Chromium gives
+    // "pointerrawupdate" the position within the top page, and "mousedown" and "mousemove" the one within the frame.
     if (isLinux && isChromium) {
         const MAX_POINTER_SHIFT = 4; // In pixels
         const CONFIRMATION_DELAY = 150; // In milliseconds
@@ -175,14 +177,14 @@ if (window.DRCattachListeners) {
         };
         const hasPointerShifted = function (e) {
             return (
-                Math.abs(e.clientX - rightPress.x) > MAX_POINTER_SHIFT ||
-                Math.abs(e.clientY - rightPress.y) > MAX_POINTER_SHIFT
+                Math.abs(e.screenX - rightPress.x) > MAX_POINTER_SHIFT ||
+                Math.abs(e.screenY - rightPress.y) > MAX_POINTER_SHIFT
             );
         };
         listen(document, 'mousedown', function (e) {
             forget();
             if (e.button === 2) {
-                rightPress = { x: e.clientX, y: e.clientY, time: Date.now() };
+                rightPress = { x: e.screenX, y: e.screenY, time: Date.now() };
                 document.addEventListener('pointerrawupdate', receivePointerRawUpdate, true);
             }
         });

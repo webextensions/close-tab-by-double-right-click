@@ -1,4 +1,5 @@
 import {
+    OFFSET_FRAME_PATH,
     STALLED_HEAD_PATH,
     expect,
     openTestPage,
@@ -65,6 +66,19 @@ test('context menu closed quickly on a page which has not rendered anything yet 
             throw err;
         }
     });
+
+    await closed;
+    expect(page.isClosed()).toBe(true);
+});
+
+test('context menu closed quickly inside a frame which is not at the top left corner of its page closes the tab', async ({ context, serviceWorker }) => {
+    const page = await openTestPage({ context, serviceWorker }, `${OFFSET_FRAME_PATH}menu-closed-quickly`);
+    // The content script runs in a frame before the frame gets its body
+    await page.frameLocator('iframe').locator('body').waitFor();
+    const closed = page.waitForEvent('close');
+
+    // The clicked spot is inside the frame, where the frame and the page count the pixels from different corners
+    await rightClickThenCloseContextMenu(page, { closedAfter: 200 });
 
     await closed;
     expect(page.isClosed()).toBe(true);

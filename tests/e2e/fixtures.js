@@ -34,14 +34,17 @@ const SVG_PATH = '/svg/';
 const test = base.extend({
     // The extension folder to load; "npm run test:e2e" builds dist/chrome first
     extensionPath: [pathToChromeBuild, { option: true }],
-    context: async ({ headless, extensionPath, userAgent }, use) => {
+    // More command line arguments for the browser
+    extraBrowserArgs: [[], { option: true }],
+    context: async ({ headless, extensionPath, extraBrowserArgs, userAgent }, use) => {
         const context = await chromium.launchPersistentContext('', {
             channel: 'chromium',
             headless,
             userAgent,
             args: [
                 `--disable-extensions-except=${extensionPath}`,
-                `--load-extension=${extensionPath}`
+                `--load-extension=${extensionPath}`,
+                ...extraBrowserArgs
             ]
         });
 

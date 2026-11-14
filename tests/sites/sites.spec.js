@@ -1,3 +1,5 @@
+import { resolve4 } from 'node:dns/promises';
+
 import { sitesFor } from '../shared/real-sites.js';
 import {
     DEFAULT_POSITION,
@@ -28,10 +30,26 @@ const expectTabToStayOpen = async function ({ page }) {
     expect(page.isClosed()).toBe(false);
 };
 
-for (const site of sitesFor('chrome')) {
+// amazon.com gets answered by one of two networks, which its DNS picks for a minute at a time. The less common one
+// (Akamai) starts with a bot check which makes a synchronous request. This entry tells the browser to reach amazon.com
+// through that network, so that the page gets tested in every run and not only in the rare one where DNS picks it.
+const AMAZON_AKAMAI_HOST = 'www.amazon.com.edgekey.net';
+const [amazonAkamaiAddress] = await resolve4(AMAZON_AKAMAI_HOST).catch(() => []);
+const amazonThroughAkamai = {
+    name: 'amazon.com through Akamai (a bot check which makes a synchronous request)',
+    url: 'https://www.amazon.com/',
+    browserArgs: [`--host-resolver-rules=MAP www.amazon.com ${amazonAkamaiAddress}`],
+    unavailable: amazonAkamaiAddress ? undefined : `Could not look up ${AMAZON_AKAMAI_HOST}`
+};
+
+for (const site of [...sitesFor('chrome'), amazonThroughAkamai]) {
     test.describe(site.name, () => {
         // The tests of one site run one after the other, so no site gets opened by two of them at once
         test.describe.configure({ mode: 'default' });
+        test.skip(!!site.unavailable, site.unavailable);
+        if (site.browserArgs) {
+            test.use({ extraBrowserArgs: site.browserArgs });
+        }
 
         if (site.kind === 'menu-entry') {
             test('"Close Tab" context menu entry is there and closes the tab', async ({ context, serviceWorker }) => {
@@ -82,8 +100,8 @@ for (const site of sitesFor('chrome')) {
             await stallSubresources(context);
             const sitePage = await openSite({ context, serviceWorker }, site.url, { waitUntil: 'commit' });
 
-            // Most pages have not rendered anything at this point (see movePointer)
-            await doubleRightClickAsDelivered(sitePage, DEFAULT_POSITION, { movePointer: false });
+            // Most pages have not rendered anything at this point
+            await doubleRightClickAsDelivered(sitePage, DEFAULT_POSITION, { awaitPointerMove: false });
 
             await expectTabToClose(sitePage);
         });

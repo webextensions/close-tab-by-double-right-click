@@ -14,6 +14,9 @@
         "start:firefox": "npm run build:firefox && web-ext run --firefox-profile ./web-ext-profile --profile-create-if-missing --keep-profile-changes",
         "start:chrome": "npm run build:chrome && web-ext run --target chromium --source-dir dist/chrome",
         "build": "npm run build:dist && web-ext build --source-dir dist/chrome --filename \"{name}-{version}-chrome.zip\" && web-ext build --filename \"{name}-{version}-firefox.zip\"",
+        "build:source": "node scripts/build-and-release/build-source/build-source.js",
+        "release:check": "node scripts/build-and-release/release-check/release-check.js",
+        "release:check:zips": "node scripts/build-and-release/release-check/release-check-zips.js",
         "build:dist": "node scripts/build-and-release/build-dist/build-dist.js",
         "build:dist:watch": "node --watch-path=extension --watch-preserve-output scripts/build-and-release/build-dist/build-dist.js",
         "build:chrome": "node scripts/build-and-release/build-dist/build-dist.js chrome",
@@ -35,6 +38,7 @@
         "@stylistic/eslint-plugin": "^5.10.0",
         "eslint": "^10.14.0",
         "globals": "^17.14.0",
+        "jszip": "^3.10.2",
         "web-ext": "^10.8.0"
     },
     "engines": {

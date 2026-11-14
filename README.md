@@ -49,6 +49,7 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 * Check the double right click on the same real sites with real mouse and keyboard input: `npm run verify:chrome:sites` (about 10 minutes) and `npm run verify:firefox:sites` (about 5 minutes); same requirements as the two checks above, plus internet access
 * Pick which of the checks above to run, with a rough time for each: `npm run test:custom` (builds what the picks need once, keeps going when one fails and prints which passed; remembers the picks in `.test-custom.json`, and `npm run test:custom -- --last` runs them again without asking)
 * Build the store upload zips, one per browser (into `web-ext-artifacts/`): `npm run build`
+* Publish a new version on the Chrome Web Store and Firefox Add-ons: see [RELEASING.md](RELEASING.md)
 
 **Inspirations:**
 * The idea of this extension is inspired by "Rights To Close" legacy extension for Mozilla Firefox.

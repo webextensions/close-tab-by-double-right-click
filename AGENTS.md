@@ -52,7 +52,9 @@ is.
 
 ## Commands With Side Effects
 
-- `npm version` tags and pushes: leave releases to a human.
+- `npm version` tags and pushes: leave releases to a human. The steps of a release are in
+  [RELEASING.md](RELEASING.md).
+- `npm run release:check` runs `git fetch origin` (needs internet access; it updates only the remote-tracking refs).
 - `npm start` rebuilds `dist/chrome` and `dist/firefox` on every change and never exits on its own.
 - `npm run start:chrome` / `npm run start:firefox` open a browser and block until it is closed.
 - `npm run verify:firefox` (about a minute) and `npm run verify:chrome` (about two minutes) take over the real mouse

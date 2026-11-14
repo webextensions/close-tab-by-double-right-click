@@ -9,22 +9,11 @@ import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { manifestTransforms } from './manifest-transforms.js';
+
 const projectRoot = path.join(import.meta.dirname, '..', '..', '..');
 const sourceDir = path.join(projectRoot, 'extension');
 const sourceManifestPath = path.join(sourceDir, 'manifest.json');
-
-const manifestTransforms = {
-    chrome: function (manifest) {
-        delete manifest.browser_specific_settings;
-    },
-    firefox: function (manifest) {
-        const { service_worker: backgroundScript, ...background } = manifest.background;
-        if (!backgroundScript) {
-            throw new Error('extension/manifest.json must declare "background.service_worker"');
-        }
-        manifest.background = { ...background, scripts: [backgroundScript] };
-    }
-};
 
 const build = async function (browser) {
     const outputDir = path.join(projectRoot, 'dist', browser);

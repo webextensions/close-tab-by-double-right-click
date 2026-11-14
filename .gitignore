@@ -27,3 +27,6 @@ playwright-report
 
 # Python bytecode cache
 __pycache__
+
+# Last picks of "npm run test:custom"
+.test-custom.json

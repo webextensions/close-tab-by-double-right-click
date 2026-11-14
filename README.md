@@ -47,6 +47,7 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 * Check the extension in Firefox with real mouse and keyboard input: `npm run verify:firefox` (Linux with GNOME only; needs `geckodriver`, `python3-gi` and `gir1.2-atspi-2.0`; takes over the mouse and keyboard for about a minute; one check needs internet access and is skipped without it)
 * Check the double right click in Chromium with real mouse and keyboard input: `npm run verify:chrome` (Linux with GNOME only; needs `python3-gi`; opens Chromium in Wayland and X11 modes and takes over the mouse and keyboard for about two minutes)
 * Check the double right click on the same real sites with real mouse and keyboard input: `npm run verify:chrome:sites` (about 10 minutes) and `npm run verify:firefox:sites` (about 5 minutes); same requirements as the two checks above, plus internet access
+* Pick which of the checks above to run, with a rough time for each: `npm run test:custom` (builds what the picks need once, keeps going when one fails and prints which passed; remembers the picks in `.test-custom.json`, and `npm run test:custom -- --last` runs them again without asking)
 * Build the store upload zips, one per browser (into `web-ext-artifacts/`): `npm run build`
 
 **Inspirations:**

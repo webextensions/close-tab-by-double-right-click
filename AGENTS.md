@@ -61,6 +61,10 @@ is.
   as well, and need internet access.
 - `npm run test:sites` opens Chromium windows, four at a time, for about 4 minutes and needs internet access.
   `npm run test:sites:headless` shows no windows.
+- `npm run test:custom` asks which checks to run, then runs them, including the `verify:*` checks which take over
+  the mouse and keyboard. It keeps its own copy of their commands (without the build step) in
+  [scripts/test-custom/test-custom.js](scripts/test-custom/test-custom.js): update it when adding or changing a test
+  or verify script, or an e2e spec file (it shows a rough time for each).
 
 ## Testing
 

@@ -15,7 +15,7 @@
         "start:chrome": "npm run build:chrome && web-ext run --target chromium --source-dir dist/chrome",
         "build": "npm run build:dist && web-ext build --source-dir dist/chrome --filename \"{name}-{version}-chrome.zip\" && web-ext build --filename \"{name}-{version}-firefox.zip\"",
         "build:dist": "node scripts/build-and-release/build-dist/build-dist.js",
-        "build:dist:watch": "node --watch-path=extension scripts/build-and-release/build-dist/build-dist.js",
+        "build:dist:watch": "node --watch-path=extension --watch-preserve-output scripts/build-and-release/build-dist/build-dist.js",
         "build:chrome": "node scripts/build-and-release/build-dist/build-dist.js chrome",
         "build:firefox": "node scripts/build-and-release/build-dist/build-dist.js firefox",
         "test": "npm run lint && npm run lint:firefox",

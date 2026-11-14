@@ -59,3 +59,5 @@ for (const browser of browsers) {
 for (const browser of browsers) {
     await build(browser);
 }
+const builtDirs = browsers.map((browser) => `dist/${browser}`).join(', ');
+console.log(`Built ${builtDirs} at ${new Date().toLocaleTimeString('en-GB')}`);

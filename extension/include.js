@@ -1,6 +1,4 @@
 (function () {
-    const scheduledTimerForTabs = {};
-
     const removedTabs = {};
 
     const CONTEXT_MENU_ENTRY_ID = 'close-tab';
@@ -34,88 +32,49 @@
         return isFirefox && URL.canParse(url) && FIREFOX_RESTRICTED_DOMAINS.includes(new URL(url).hostname);
     }
 
-    function runScriptByTabId(tabId, pageAlreadyLoaded) {
-        chrome.tabs.get(tabId, function (tab) {
-            if (!tab) {
-                return;
-            }
+    // The browser runs the content script (declared in the manifest) in every page which gets loaded. Only the tabs
+    // which were open before that need it from here: Chrome does not run it in those when the extension gets
+    // installed, updated or enabled.
+    async function runScript(tab) {
+        var url = tab.url;
+        if (isScriptingBlocked(url)) {
+            return;
+        } else if (
+            url.indexOf('http://')  === 0 ||
+            url.indexOf('https://') === 0
+        ) {
+            // Do nothing
+        } else {
+            // URLs might begin with:
+            //     file:/// (not covered by the host permissions in the manifest)
+            //     chrome://
+            //     chrome-devtools://
+            //     chrome-error://
+            //     view-source:
+            return;
+        }
 
-            var url = tab.url;
-            if (isScriptingBlocked(url)) {
-                return;
-            } else if (
-                url.indexOf('http://')  === 0 ||
-                url.indexOf('https://') === 0
-            ) {
-                // Do nothing
-            } else {
-                // URLs might begin with:
-                //     file:/// (not covered by the host permissions in the manifest)
-                //     chrome://
-                //     chrome-devtools://
-                //     chrome-error://
-                //     view-source:
-                return;
-            }
+        // A discarded tab has no page; it gets the content script when the browser loads it again
+        if (tab.discarded) {
+            return;
+        }
 
-            if (scheduledTimerForTabs[tabId]) {
-                clearInterval(scheduledTimerForTabs[tabId]);
-                delete scheduledTimerForTabs[tabId];
-            }
-
-            var limit = 20;
-            var fn = function () {
-                limit -= 1;
-                if (limit <= 0) {
-                    clearInterval(t);
-                }
-
-                chrome.tabs.get(tabId, async function (tab) {
-                    if (chrome.runtime.lastError) {
-                        // do nothing
-                    }
-
-                    // Chrome unnecessarily logs an error if
-                    // the tab with "tabId" is not found for chrome.tabs.get().
-                    // Note: Even in such cases, chrome.tabs.get() does call the callback
-                    // function with the undefined value for "tab"
-                    if (tab) {
-                        if (tab.status === 'complete') {
-                            try {
-                                await chrome.scripting.executeScript({
-                                    target: {
-                                        tabId,
-                                        allFrames: true
-                                    },
-                                    files: [
-                                        'scripts/close-tab-by-double-right-click.js'
-                                    ]
-                                });
-                            } catch (e) {
-                                // Expected for pages which cannot be scripted (error pages, no access, closed tabs)
-                                console.debug('Could not inject the content script', e, tab);
-                            }
-                        }
-                    } else {
-                        clearInterval(t);
-                    }
-                });
-            };
-
-            fn();
-
-            var t;
-            if (pageAlreadyLoaded) {
-                // do nothing
-            } else {
-                t = setInterval(fn, 2500); // Handling dynamic iframes added to the page
-                scheduledTimerForTabs[tabId] = t;
-            }
-        });
-    }
-
-    function runScript(tab, pageAlreadyLoaded) {
-        runScriptByTabId(tab.id, pageAlreadyLoaded);
+        try {
+            await chrome.scripting.executeScript({
+                target: {
+                    tabId: tab.id,
+                    allFrames: true
+                },
+                files: [
+                    'scripts/close-tab-by-double-right-click.js'
+                ],
+                // Otherwise a tab which is still loading would only get the script once it has loaded
+                injectImmediately: true
+            });
+        } catch (e) {
+            // Expected for pages which cannot be scripted (error pages, no access, closed tabs)
+            console.debug('Could not inject the content script', e, tab);
+        }
     }
 
     function closeTabByTabId(tabId) {
@@ -191,14 +150,11 @@
     // Apply the script to all tabs
     chrome.tabs.query({}, function (tabs) {
         tabs.forEach(function (tab) {
-            runScript(tab, true);
+            runScript(tab);
         });
     });
 
-    chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-        // Called on every update of the tab; the script gets injected once the tab's status is "complete"
-        runScript(tab);
-
+    chrome.tabs.onUpdated.addListener(function (tabId) {
         // Without this Undoing close tab (Ctrl + Shift + T) would re-open the closed tab and the context menu entry would exist in the file
         // This probably can't be added/called directly to/from the content script (through message-passing) because runScript might be called on multiple tabs at once (currently it happens when the background script starts)
         addContextMenuEntryIfRequired(tabId);
@@ -206,8 +162,7 @@
 
     // chrome.tabs.onUpdated does not fire on new tabs for cached pages
     // https://code.google.com/p/chromium/issues/detail?id=154631
-    chrome.tabs.onReplaced.addListener(function (addedTabId) {
-        runScriptByTabId(addedTabId);
+    chrome.tabs.onReplaced.addListener(function () {
         removeContextMenuEntry();
     });
 

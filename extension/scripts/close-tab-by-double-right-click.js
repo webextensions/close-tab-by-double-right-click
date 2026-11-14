@@ -12,6 +12,12 @@ if (window.DRCattachListeners) {
         });
     };
 
+    // document.open() erases the listeners and then replaces the root element, which is the only change this observer
+    // gets told about. It survives that, so it attaches the listeners again.
+    new MutationObserver(function () {
+        window.DRCattachListeners();
+    }).observe(document, { childList: true });
+
     // Note: The "on<event>" properties (eg: document.onmouseup) must not be used, since Firefox shares them with the page
     const listen = function (target, type, handler) {
         const listener = function (e) {

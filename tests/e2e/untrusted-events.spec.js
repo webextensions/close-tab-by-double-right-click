@@ -33,8 +33,8 @@ test('a double right click faked by a frame keeps the tab open', async ({ contex
         document.body.append(frame);
     });
     const frame = page.frame({ url: `${TEST_ORIGIN}/frame` }) || await page.waitForEvent('framenavigated');
-    // The background script injects the content script into new frames within 2.5 seconds
-    await page.waitForTimeout(3500);
+    // The content script runs in a frame before the frame gets its body
+    await frame.locator('body').waitFor();
 
     await frame.evaluate(dispatchFakeDoubleRightClick).catch(() => {});
     await page.waitForTimeout(1000);

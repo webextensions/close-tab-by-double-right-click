@@ -38,7 +38,7 @@ const test = base.extend({
             ]
         });
 
-        // The background script only injects into http(s) pages, so serve the test pages from a fake https origin
+        // The content script only runs in http(s) pages, so serve the test pages from a fake https origin
         await context.route(`${TEST_ORIGIN}/**`, (route) => {
             const { pathname } = new URL(route.request().url());
             if (pathname.startsWith(STALLED_PATH)) {

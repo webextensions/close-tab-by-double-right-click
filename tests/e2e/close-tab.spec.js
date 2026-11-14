@@ -85,8 +85,8 @@ test('double right click inside a frame closes the tab', async ({ context, servi
         frame.style.cssText = 'position:fixed;top:0;left:0;width:400px;height:300px;border:0';
         document.body.append(frame);
     }, `${CANCEL_CONTEXT_MENU_PATH}frame`);
-    // The background script injects the content script into new frames within 2.5 seconds
-    await page.waitForTimeout(3500);
+    // The content script runs in a frame before the frame gets its body
+    await page.frameLocator('iframe').locator('body').waitFor();
     const closed = page.waitForEvent('close');
 
     await holdRightClick(page, 120);

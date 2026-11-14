@@ -1,6 +1,7 @@
 import {
     TEST_ORIGIN,
     expect,
+    stopServiceWorker,
     test
 } from './fixtures.js';
 
@@ -15,6 +16,10 @@ test('failing to inject the content script into a browser error page is not logg
     await context.route(url, (route) => route.abort('connectionrefused'));
     const page = await context.newPage();
     await expect(page.goto(url)).rejects.toThrow();
+
+    // On starting, the background script injects the content script into all open tabs. Opening a tab starts it again.
+    await stopServiceWorker({ context, serviceWorker }, page);
+    await context.newPage();
 
     await expect.poll(() => {
         return messages.some((message) => message.type === 'debug' && message.text.includes('Could not inject the content script'));

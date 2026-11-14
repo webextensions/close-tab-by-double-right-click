@@ -24,8 +24,7 @@ test('double right click works again after the page rewrote itself', async ({ co
         document.write(html);
         document.close();
     }, CANCEL_CONTEXT_MENU_PAGE);
-    // The background script injects the content script again every 2.5 seconds for a while after the page loaded
-    await page.waitForTimeout(3500);
+    // The content script notices that and attaches its listeners again
     await doubleRightClick(page);
 
     await closed;

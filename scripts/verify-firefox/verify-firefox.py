@@ -17,7 +17,11 @@ It takes over the mouse and keyboard for about a minute: do not touch them while
 
 Usage: npm run verify:firefox (generates dist/firefox first), or
 python3 scripts/verify-firefox/verify-firefox.py [path/to/extension]
+
+With --sites (npm run verify:firefox:sites), it checks the gesture on the real sites of tests/shared/real-sites.json
+instead. That needs internet access and takes about 6 minutes.
 """
+import argparse
 import base64
 import http.server
 import io
@@ -45,7 +49,14 @@ from real_input import (  # noqa: E402
     BTN_LEFT, BTN_RIGHT, KEYSYM_CONTROL_L, KEYSYM_ESCAPE, KEYSYM_F5, KEYSYM_RETURN, KEYSYM_SHIFT_L, Input
 )
 
-EXTENSION_DIR = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(REPO_ROOT, 'dist', 'firefox')
+ARGUMENT_PARSER = argparse.ArgumentParser(description='Check the extension in a real Firefox window with real input.')
+ARGUMENT_PARSER.add_argument('extension_dir', nargs='?', default=os.path.join(REPO_ROOT, 'dist', 'firefox'),
+                             help='the extension folder to load (default: dist/firefox)')
+ARGUMENT_PARSER.add_argument('--sites', action='store_true',
+                             help='check the gesture on the real sites of tests/shared/real-sites.json instead')
+ARGUMENTS = ARGUMENT_PARSER.parse_args()
+
+EXTENSION_DIR = os.path.abspath(ARGUMENTS.extension_dir)
 
 with open(os.path.join(EXTENSION_DIR, 'manifest.json')) as manifest_file:
     ADDON_ID = json.load(manifest_file)['browser_specific_settings']['gecko']['id']
@@ -86,6 +97,44 @@ with socket.socket() as free_port_probe:
     free_port_probe.bind(('127.0.0.1', 0))
     GECKODRIVER_PORT = free_port_probe.getsockname()[1]
 BASE_URL = f'http://127.0.0.1:{GECKODRIVER_PORT}'
+
+# The real sites to check with --sites; the Playwright tests and verify-chrome.js read the same list
+with open(os.path.join(REPO_ROOT, 'tests', 'shared', 'real-sites.json')) as sites_file:
+    REAL_SITES = [site for site in json.load(sites_file) if 'firefox' in site.get('browsers', ['firefox'])]
+
+# A spot inside the page of the full screen window
+POINTER = (600, 450)
+
+# Returns the middle of the first element which matches the selector (given as the argument), as far as it is inside
+# the viewport, or null when no such element is showing. Also looks inside the shadow trees of the page.
+FIND_MIDDLE_OF_ELEMENT = """
+const find = (root) => {
+    const found = root.querySelector(arguments[0]);
+    if (found) {
+        return found;
+    }
+    for (const element of root.querySelectorAll('*')) {
+        const foundInShadowTree = element.shadowRoot && find(element.shadowRoot);
+        if (foundInShadowTree) {
+            return foundInShadowTree;
+        }
+    }
+    return null;
+};
+const element = find(document);
+if (!element) {
+    return null;
+}
+element.scrollIntoView({ block: 'center' });
+const box = element.getBoundingClientRect();
+if (!box.width || !box.height) {
+    return null;
+}
+return [
+    Math.round(Math.min(box.x + box.width / 2, window.innerWidth - 1)),
+    Math.round(Math.min(box.y + box.height / 2, window.innerHeight - 1))
+];
+"""
 
 # Records the mouse events a page receives, to explain a failure
 EVENT_LOGGER = """
@@ -187,8 +236,8 @@ class Browser:
             self.cmd('POST', '/url', {'url': url})
         return handle
 
-    def run(self, script):
-        return self.cmd('POST', '/execute/sync', {'script': script, 'args': []})
+    def run(self, script, args=()):
+        return self.cmd('POST', '/execute/sync', {'script': script, 'args': list(args)})
 
     def quit(self):
         try:
@@ -271,7 +320,7 @@ def open_stalled_page(browser, url):
 
 
 def focus_page(mouse):
-    mouse.move_to(600, 450)
+    mouse.move_to(*POINTER)
     mouse.click(BTN_LEFT)  # focuses the window; the extension ignores left clicks
     time.sleep(0.8)
 
@@ -473,6 +522,88 @@ def check_restricted_domain(browser, mouse, keep):
     close_tab_if_open(browser, mouse, target, keep)
 
 
+def open_real_site(browser, url):
+    """Opens the URL in a new tab. Returns the tab and, if the site could not be reached in two attempts, the reason."""
+    handle = browser.new_tab()
+    state = None
+    for _ in range(2):
+        # Not through WebDriver's navigation command, which would wait for the page to finish loading
+        browser.run(f'window.location.href = {json.dumps(url)};')
+        deadline = time.time() + 30
+        while time.time() < deadline:
+            time.sleep(0.5)
+            try:
+                # An error page of the browser keeps the URL of the site, but not as its "documentURI"
+                state = browser.run('return [document.documentURI, document.readyState];')
+            except RuntimeError:
+                continue  # the document is being replaced
+            if state[0] != 'about:blank' and state[1] != 'loading':
+                break
+        if state and not state[0].startswith('about:') and state[1] != 'loading':
+            # Lets the page settle, and the content script read its setting
+            time.sleep(3)
+            return handle, None
+    return handle, f'Could not open {url}: {json.dumps(state)}'
+
+
+def check_real_site(browser, mouse, keep, site):
+    name = site['name']
+    if site.get('kind') == 'menu-entry':
+        # The content script cannot run there, so the site gets the "Close Tab" context-menu entry
+        target = browser.new_tab(site['url'])
+        time.sleep(3)
+        mouse.move_to(*POINTER)
+        choose_close_tab_entry(mouse)
+        check(f'{name}: "Close Tab" context-menu entry closes the tab', target not in browser.handles())
+        close_tab_if_open(browser, mouse, target, keep)
+        return
+
+    target, failure = open_real_site(browser, site['url'])
+    if failure:
+        print(f'SKIP  {name}: not checked  ({failure})', flush=True)
+        close_tab_if_open(browser, mouse, target, keep)
+        return
+    served_page = browser.run('return document.URL;')
+    selector = site.get('target') or site.get('frame')
+    # The window is full screen, so a position inside the page is the same position on the screen
+    position = browser.run(FIND_MIDDLE_OF_ELEMENT, [selector]) if selector else None
+    detail = f'{served_page}, "{selector}" is not showing' if selector and not position else served_page
+
+    mouse.move_to(*(position or POINTER))
+    mouse.click(BTN_RIGHT)
+    time.sleep(1.2)
+    still_open = target in browser.handles()
+    check(f'{name}: single right click keeps the tab open', still_open, detail)
+    if still_open:
+        mouse.key(KEYSYM_ESCAPE)
+        time.sleep(1)
+        right_clicks(mouse, 0.15)
+        time.sleep(1.5)
+        check(f'{name}: double right click closes the tab', target not in browser.handles(), detail)
+    close_tab_if_open(browser, mouse, target, keep)
+
+
+def check_real_sites(browser, mouse, keep):
+    # The gesture on real sites. Whatever a site serves gets checked (a bot check, a login page and a consent screen
+    # are pages too), and each result tells which page that was.
+    # The tab which stays open gets the left click which focuses the window: on a real site it could follow a link.
+    browser.switch_to(keep)
+    focus_page(mouse)
+
+    for site in REAL_SITES:
+        try:
+            check_real_site(browser, mouse, keep, site)
+        except Exception as err:
+            # The next sites still get checked
+            check(f'{site["name"]}: could not be checked', False, str(err))
+            mouse.key(KEYSYM_ESCAPE)
+            for handle in browser.handles():
+                if handle != keep:
+                    browser.switch_to(handle)
+                    browser.cmd('DELETE', '/window')
+            browser.switch_to(keep)
+
+
 def open_options_page(browser, mouse):
     # WebDriver refuses to navigate to moz-extension:// URLs, so type the URL into the address bar instead
     browser.new_tab()
@@ -538,9 +669,10 @@ def main():
         time.sleep(1.5)
         mouse = Input()
 
-        steps = (check_clicks, check_held_clicks, check_shift_clicks, check_own_handlers, check_loading_pages,
-                 check_rewritten_page, check_context_menu_entry, check_error_page, check_restricted_domain,
-                 check_options_page)
+        steps = (check_real_sites,) if ARGUMENTS.sites else (
+            check_clicks, check_held_clicks, check_shift_clicks, check_own_handlers, check_loading_pages,
+            check_rewritten_page, check_context_menu_entry, check_error_page, check_restricted_domain,
+            check_options_page)
         for step in steps:
             try:
                 step(browser, mouse, keep)

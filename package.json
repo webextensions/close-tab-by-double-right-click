@@ -23,6 +23,7 @@
         "test:sites": "npm run build:chrome && playwright test --config playwright.sites.config.js --headed",
         "test:sites:headless": "npm run build:chrome && playwright test --config playwright.sites.config.js",
         "verify:firefox": "npm run build:firefox && python3 scripts/verify-firefox/verify-firefox.py",
+        "verify:firefox:sites": "npm run build:firefox && python3 scripts/verify-firefox/verify-firefox.py --sites",
         "verify:chrome": "npm run build:chrome && node scripts/verify-chrome/verify-chrome.js",
         "verify:chrome:sites": "npm run build:chrome && node scripts/verify-chrome/verify-chrome.js --sites"
     },

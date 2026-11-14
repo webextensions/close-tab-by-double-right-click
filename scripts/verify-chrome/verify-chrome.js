@@ -12,27 +12,37 @@
 //
 // Usage: npm run verify:chrome (generates dist/chrome first), or
 // node scripts/verify-chrome/verify-chrome.js [path/to/extension]
+//
+// With --sites (npm run verify:chrome:sites), it checks the gesture on the real sites of tests/shared/real-sites.json
+// instead. That needs internet access and takes about 6 minutes per display mode.
 
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { promisify } from 'node:util';
+import { parseArgs, promisify } from 'node:util';
 
 import { chromium } from '@playwright/test';
 
+import { findMiddleOfElement, openRealSite, sitesFor } from '../../tests/shared/real-sites.js';
 import {
     CANCEL_CONTEXT_MENU_PAGE,
     STALLED_HEAD_PAGE,
     STALLED_IMAGE_PAGE,
     STALLED_PATH,
     TEST_PAGE,
-    isContentScriptReady
+    isContentScriptReady,
+    isContentScriptReadyInTab
 } from '../../tests/shared/test-pages.js';
 
 const execFileAsync = promisify(execFile);
 
+const { values: { sites: checkRealSites }, positionals } = parseArgs({
+    options: { sites: { type: 'boolean' } },
+    allowPositionals: true
+});
+
 const projectRoot = path.join(import.meta.dirname, '..', '..');
-const extensionPath = path.resolve(process.argv[2] ?? path.join(projectRoot, 'dist', 'chrome'));
+const extensionPath = path.resolve(positionals[0] ?? path.join(projectRoot, 'dist', 'chrome'));
 const realInputScript = path.join(projectRoot, 'scripts', 'real-input', 'real_input.py');
 
 // The content script only runs in http(s) pages, so serve the test pages from a fake https origin
@@ -99,6 +109,7 @@ const checks = [
 ];
 
 const results = [];
+let skipped = 0;
 
 const realInput = async function (...commands) {
     await execFileAsync('python3', [realInputScript, ...commands.map(String)]);
@@ -133,6 +144,68 @@ const undoPointerShifts = function (commands) {
     return undo;
 };
 
+// The gesture on real sites. Whatever a site serves gets checked (a bot check, a login page and a consent screen are
+// pages too), and each result tells which page that was.
+const runSiteChecks = async function (context, serviceWorker, displayMode) {
+    // Stays open, so that the window outlives the tabs which get closed. Its left click focuses the window; the real
+    // sites get none, since it could follow a link there.
+    await openTestPage(context, serviceWorker, TEST_URL);
+
+    // The entries without a content script are left out: nothing here can choose an entry of the native context menu
+    for (const site of sitesFor('chrome').filter((site) => site.kind !== 'menu-entry')) {
+        const report = function (outcome, name, detail) {
+            console.log(`${outcome}  [${displayMode}] ${site.name}: ${name}  (${detail})`);
+        };
+        const check = function (name, passed, detail) {
+            results.push(passed);
+            report(passed ? 'PASS' : 'FAIL', name, detail);
+        };
+
+        const page = await context.newPage();
+        // A page can ask for a confirmation before it gets closed, which would keep the tab open
+        page.on('dialog', (dialog) => dialog.accept().catch(() => {}));
+        try {
+            const failure = await openRealSite(page, site.url);
+            if (failure) {
+                skipped += 1;
+                report('SKIP', 'not checked', failure);
+                continue;
+            }
+            await page.bringToFront();
+            const servedPage = page.url();
+
+            const deadline = Date.now() + 15000;
+            while (!(await isContentScriptReadyInTab(serviceWorker, { active: true })) && Date.now() < deadline) {
+                await sleep(200);
+            }
+
+            // The window is full screen, so a position inside the page is the same position on the screen
+            const selector = site.target || site.frame;
+            const pointer = (selector && await findMiddleOfElement(page, selector)) || POINTER;
+            const clickedAt = selector && pointer === POINTER ? `${servedPage}, "${selector}" is not showing` : servedPage;
+
+            await realInput('move', pointer.x, pointer.y, 'right', 'sleep', 1.2);
+            await sleep(400);
+            check('single right click keeps the tab open', !page.isClosed(), clickedAt);
+            if (page.isClosed()) {
+                continue;
+            }
+
+            await realInput('esc', 'sleep', 0.6, 'right', 'sleep', 0.15, 'right', 'sleep', 1.2);
+            await sleep(400);
+            check('double right click closes the tab', page.isClosed(), clickedAt);
+        } catch (err) {
+            // The next sites still get checked
+            check('could not be checked', false, err.message.split('\n')[0]);
+        } finally {
+            if (!page.isClosed()) {
+                await realInput('esc', 'sleep', 0.4);
+                await page.close();
+            }
+        }
+    }
+};
+
 const runChecks = async function (displayMode) {
     const context = await chromium.launchPersistentContext('', {
         channel: 'chromium',
@@ -159,6 +232,11 @@ const runChecks = async function (displayMode) {
         let [serviceWorker] = context.serviceWorkers();
         if (!serviceWorker) {
             serviceWorker = await context.waitForEvent('serviceworker');
+        }
+
+        if (checkRealSites) {
+            await runSiteChecks(context, serviceWorker, displayMode);
+            return;
         }
 
         let page;
@@ -201,5 +279,5 @@ for (const displayMode of displayModes) {
 }
 
 const failed = results.filter((passed) => !passed).length;
-console.log(`\n${results.length - failed} passed, ${failed} failed`);
+console.log(`\n${results.length - failed} passed, ${failed} failed${skipped ? `, ${skipped} skipped` : ''}`);
 process.exitCode = failed ? 1 : 0;

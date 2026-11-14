@@ -68,7 +68,8 @@
                                     ]
                                 });
                             } catch (e) {
-                                console.error('Error executing script', e, tab);
+                                // Expected for pages which cannot be scripted (error pages, no access, closed tabs)
+                                console.debug('Could not inject the content script', e, tab);
                             }
                         }
                     } else {

@@ -24,3 +24,6 @@ web-ext-profile
 # Playwright output
 test-results
 playwright-report
+
+# Python bytecode cache
+__pycache__

@@ -101,9 +101,13 @@ if (window.DRCsetup === undefined) {
 
         var interval = setInterval(function () {
             if (document.body) {
-                // Only used on Linux: whether the "mousedown" of the latest right click was counted, and the
-                // "contextmenu" event received since then
+                var isLinux = navigator.platform.toUpperCase().indexOf('LINUX') >= 0;
+                var isFirefox = !!chrome.runtime && chrome.runtime.getURL('').startsWith('moz-extension://');
+
+                // Only used on Linux: whether the "mousedown" of the latest right click was counted, whether Shift was
+                // held during it, and the "contextmenu" event received since then
                 var rightPressCounted = false,
+                    rightPressWithShift = false,
                     lastContextMenuEvent = null;
 
                 // Not 100% sure, but it seems that if we register "document.onmouseup"
@@ -115,27 +119,30 @@ if (window.DRCsetup === undefined) {
                 document.onmouseup = function (e) {
                     if (e.which === 3 && rightPressCounted) {
                         rightPressCounted = false;
+                        var nativeContextMenuOpened = lastContextMenuEvent ?
+                            !lastContextMenuEvent.defaultPrevented :
+                            // On Shift + right click, Firefox opens its context menu without sending "contextmenu" to the page
+                            (isFirefox && rightPressWithShift);
                         // Without a native context menu (eg: the page shows its own one), nothing swallows this
                         // "mouseup", and it belongs to the right click which was already counted on "mousedown"
-                        if (!lastContextMenuEvent || lastContextMenuEvent.defaultPrevented) {
+                        if (!nativeContextMenuOpened) {
                             return;
                         }
                     }
                     recieveRightClick(e);
                 };
 
-                var isLinux = navigator.platform.toUpperCase().indexOf('LINUX') >= 0,
-                    isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-
                 // HACK:
                 //       * Attaching "document.onmousedown" as a hack for Linux due to the following Chromium bug, which is marked as Won't Fix:
                 //         https://bugs.chromium.org/p/chromium/issues/detail?id=506801 (Right-click should fire mouseup event after contextmenu)
-                //       * Like Chromium for Linux, similar effect/browser-behavior seems to happen for Firefox 102 onwards
+                //       * Firefox for Linux behaves the same way (since Firefox 102, still the case in Firefox 160): the context menu swallows
+                //         the "mouseup" of the first right click and the "mousedown" of the second one
                 //         (https://github.com/webextensions/close-tab-by-double-right-click/issues/12)
-                if (isLinux && isChrome) {
+                if (isLinux) {
                     document.onmousedown = function (e) {
                         if (e.which === 3) {
                             rightPressCounted = true;
+                            rightPressWithShift = e.shiftKey;
                             lastContextMenuEvent = null;
                         }
                         recieveRightClick(e);

@@ -153,15 +153,25 @@ if (window.DRCattachListeners) {
     // through the keyboard) or another mouse event follows shortly. A left click on the same spot cannot be
     // told apart and counts as well. So does a key which closes the menu and is released later than
     // CONFIRMATION_DELAY, since the page only receives its "keyup".
+    // Chromium holds a "mousemove" back until it renders the next frame of the page, which takes up to 5 seconds on
+    // a page which has not rendered anything yet (eg: it waits for a slow stylesheet or script in its <head>).
+    // "pointerrawupdate" arrives without that delay. It costs the page some performance, so it is only listened for
+    // while a right press waits for its second click, and it only exists on pages served over https.
     if (isLinux && isChromium) {
         const MAX_POINTER_SHIFT = 4; // In pixels
         const CONFIRMATION_DELAY = 150; // In milliseconds
         let rightPress = null;
         let confirmationTimer = null;
+        const receivePointerRawUpdate = function (e) {
+            if (e.isTrusted) {
+                receivePointerMove(e);
+            }
+        };
         const forget = function () {
             rightPress = null;
             clearTimeout(confirmationTimer);
             confirmationTimer = null;
+            document.removeEventListener('pointerrawupdate', receivePointerRawUpdate, true);
         };
         const hasPointerShifted = function (e) {
             return (
@@ -173,13 +183,14 @@ if (window.DRCattachListeners) {
             forget();
             if (e.button === 2) {
                 rightPress = { x: e.clientX, y: e.clientY, time: Date.now() };
+                document.addEventListener('pointerrawupdate', receivePointerRawUpdate, true);
             }
         });
         // A "mouseup" means that no context menu is swallowing the events
         listen(document, 'mouseup', forget);
         listen(document, 'keydown', forget);
         listen(document, 'keyup', forget);
-        listen(document, 'mousemove', function (e) {
+        const receivePointerMove = function (e) {
             if (!rightPress) {
                 return;
             }
@@ -199,7 +210,8 @@ if (window.DRCattachListeners) {
                 forget();
                 requestTabClose();
             }, CONFIRMATION_DELAY);
-        });
+        };
+        listen(document, 'mousemove', receivePointerMove);
     }
 
     // Keep this as the last statement: Firefox rejects the injection unless the file ends on a value which can be cloned

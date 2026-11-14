@@ -1,4 +1,5 @@
 import {
+    STALLED_HEAD_PATH,
     expect,
     openTestPage,
     test
@@ -12,7 +13,7 @@ test.skip(process.platform !== 'linux', 'The content script only watches for the
 
 const RIGHT_CLICK_POSITION = { x: 300, y: 200 };
 
-const rightClickThenCloseContextMenu = async function (page, { closedAfter, pointerAt = RIGHT_CLICK_POSITION, followedBy }) {
+const rightClickThenCloseContextMenu = async function (page, { closedAfter, pointerAt = RIGHT_CLICK_POSITION, followedBy, moveFirst = true }) {
     const client = await page.context().newCDPSession(page);
     const sendMouseEvent = async function (type, position, button) {
         await client.send('Input.dispatchMouseEvent', {
@@ -25,7 +26,9 @@ const rightClickThenCloseContextMenu = async function (page, { closedAfter, poin
         });
     };
 
-    await sendMouseEvent('mouseMoved', RIGHT_CLICK_POSITION, 'none');
+    if (moveFirst) {
+        await sendMouseEvent('mouseMoved', RIGHT_CLICK_POSITION, 'none');
+    }
     // Never released: the context menu swallows the "mouseup"
     await sendMouseEvent('mousePressed', RIGHT_CLICK_POSITION, 'right');
     await page.waitForTimeout(closedAfter);
@@ -46,6 +49,22 @@ test('context menu closed quickly without moving the pointer closes the tab', as
     const closed = page.waitForEvent('close');
 
     await rightClickThenCloseContextMenu(page, { closedAfter: 200 });
+
+    await closed;
+    expect(page.isClosed()).toBe(true);
+});
+
+test('context menu closed quickly on a page which has not rendered anything yet closes the tab', async ({ context, serviceWorker }) => {
+    const page = await openTestPage({ context, serviceWorker }, `${STALLED_HEAD_PATH}menu-closed-quickly`, { waitUntil: 'commit' });
+    const closed = page.waitForEvent('close');
+
+    // Chromium only delivers a "mousemove" (and tells the sender so) with the next frame it renders, which takes 5
+    // seconds on such a page. By then the tab is closed, which makes the pending call fail.
+    await rightClickThenCloseContextMenu(page, { closedAfter: 200, moveFirst: false }).catch((err) => {
+        if (!page.isClosed()) {
+            throw err;
+        }
+    });
 
     await closed;
     expect(page.isClosed()).toBe(true);

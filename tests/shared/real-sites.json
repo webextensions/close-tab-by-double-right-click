@@ -1,0 +1,39 @@
+[
+    { "name": "amazon.com", "url": "https://www.amazon.com/" },
+    { "name": "bing.com", "url": "https://www.bing.com/" },
+    { "name": "chatgpt.com", "url": "https://chatgpt.com/" },
+    { "name": "claude.ai", "url": "https://claude.ai/" },
+    { "name": "developer.mozilla.org", "url": "https://developer.mozilla.org/en-US/" },
+    { "name": "ebay.com", "url": "https://www.ebay.com/" },
+    { "name": "en.wikipedia.org", "url": "https://en.wikipedia.org/wiki/Main_Page" },
+    { "name": "example.com", "url": "https://example.com/" },
+    { "name": "facebook.com", "url": "https://www.facebook.com/" },
+    { "name": "github.com", "url": "https://github.com/" },
+    { "name": "google.com", "url": "https://www.google.com/" },
+    { "name": "imdb.com", "url": "https://www.imdb.com/" },
+    { "name": "instagram.com", "url": "https://www.instagram.com/" },
+    { "name": "linkedin.com", "url": "https://www.linkedin.com/" },
+    { "name": "netflix.com", "url": "https://www.netflix.com/" },
+    { "name": "nytimes.com", "url": "https://www.nytimes.com/" },
+    { "name": "reddit.com", "url": "https://www.reddit.com/" },
+    { "name": "stackoverflow.com", "url": "https://stackoverflow.com/questions" },
+    { "name": "twitch.tv", "url": "https://www.twitch.tv/" },
+    { "name": "x.com", "url": "https://x.com/" },
+    { "name": "youtube.com", "url": "https://www.youtube.com/" },
+
+    { "name": "youtube.com video player (own context menu)", "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw", "target": "#movie_player" },
+    { "name": "openstreetmap.org map (own context menu)", "url": "https://www.openstreetmap.org/#map=12/51.5074/-0.1278", "target": "#map" },
+    { "name": "vscode.dev workbench (own context menu)", "url": "https://vscode.dev/", "target": ".monaco-workbench" },
+
+    { "name": "developer.mozilla.org live sample (cross-origin frame)", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe", "frame": "iframe[src*=\"mdnplay.dev\"]" },
+    { "name": "w3schools.com Try it editor (frame written by a script)", "url": "https://www.w3schools.com/html/tryit.asp?filename=tryhtml_default", "frame": "#iframeResult" },
+
+    { "name": "upload.wikimedia.org image file", "url": "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png" },
+    { "name": "rfc-editor.org text file", "url": "https://www.rfc-editor.org/rfc/rfc2606.txt" },
+    { "name": "rfc-editor.org PDF file", "url": "https://www.rfc-editor.org/rfc/rfc9110.pdf" },
+
+    { "name": "httpforever.com (not served over https)", "url": "http://httpforever.com/", "insecureContext": true },
+
+    { "name": "chromewebstore.google.com (no content script)", "url": "https://chromewebstore.google.com/", "kind": "menu-entry", "browsers": ["chrome"] },
+    { "name": "addons.mozilla.org (no content script)", "url": "https://addons.mozilla.org/robots.txt", "kind": "menu-entry", "browsers": ["firefox"] }
+]

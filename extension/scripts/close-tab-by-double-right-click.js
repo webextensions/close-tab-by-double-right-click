@@ -54,12 +54,12 @@ if (window.DRCsetup === undefined) {
             maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
         }
 
-        var recieveRightClick = (function () {
+        var receiveRightClick = (function () {
             var counter = 0,
                 lastTime = new Date(),
                 tabRemoveAlreadyRequested = false;
             return function (e) {
-                if (e.which !== 3) {
+                if (e.button !== 2) {
                     return;
                 }
 
@@ -117,7 +117,7 @@ if (window.DRCsetup === undefined) {
                 // might be received by other tabs as the current tab closes),
                 // probably due to the architecture of the browser.
                 document.onmouseup = function (e) {
-                    if (e.which === 3 && rightPressCounted) {
+                    if (e.button === 2 && rightPressCounted) {
                         rightPressCounted = false;
                         var nativeContextMenuOpened = lastContextMenuEvent ?
                             !lastContextMenuEvent.defaultPrevented :
@@ -129,7 +129,7 @@ if (window.DRCsetup === undefined) {
                             return;
                         }
                     }
-                    recieveRightClick(e);
+                    receiveRightClick(e);
                 };
 
                 // HACK:
@@ -140,12 +140,12 @@ if (window.DRCsetup === undefined) {
                 //         (https://github.com/webextensions/close-tab-by-double-right-click/issues/12)
                 if (isLinux) {
                     document.onmousedown = function (e) {
-                        if (e.which === 3) {
+                        if (e.button === 2) {
                             rightPressCounted = true;
                             rightPressWithShift = e.shiftKey;
                             lastContextMenuEvent = null;
                         }
-                        recieveRightClick(e);
+                        receiveRightClick(e);
                     };
                     // "defaultPrevented" is read on "mouseup", by when the page has had its chance to cancel the event
                     window.addEventListener('contextmenu', function (e) {

@@ -20,12 +20,12 @@
                 return;
             } else if (
                 url.indexOf('http://')  === 0 ||
-                url.indexOf('https://') === 0 ||
-                url.indexOf('file:///') === 0
+                url.indexOf('https://') === 0
             ) {
                 // Do nothing
             } else {
                 // URLs might begin with:
+                //     file:/// (not covered by the host permissions in the manifest)
                 //     chrome://
                 //     chrome-devtools://
                 //     chrome-error://
@@ -149,13 +149,13 @@
                             addContextMenuEntry();
                         } else if (
                             url.indexOf('http://') === 0 ||
-                            url.indexOf('https://') === 0 ||
-                            url.indexOf('file:///') === 0
+                            url.indexOf('https://') === 0
                         ) {
                             // TODO: If it is a native error page (eg: "This site can't be reached"), then add the context menu entry
                             removeContextMenuEntry();
                         } else {
                             // URLs might begin with:
+                            //     file:/// (not covered by the host permissions in the manifest)
                             //     chrome://
                             //     chrome-devtools://
                             //     chrome-error://

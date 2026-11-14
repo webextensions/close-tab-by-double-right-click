@@ -2,6 +2,7 @@ import {
     TEST_ORIGIN,
     expect,
     hasServiceWorkerRestarted,
+    pathToSource,
     stopServiceWorker,
     test
 } from './fixtures.js';
@@ -77,4 +78,15 @@ test('"Close Tab" context menu entry closes the tab which was clicked', async ({
 
     await closed;
     expect(specialPage.isClosed()).toBe(false);
+});
+
+test('local file pages get the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+    const page = await context.newPage();
+    await page.goto(`${TEST_ORIGIN}/before-local-file`);
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+
+    // The host permissions in the manifest do not cover local files, so the content script cannot run there
+    await page.goto(`file://${pathToSource}/options.html`);
+
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(true);
 });

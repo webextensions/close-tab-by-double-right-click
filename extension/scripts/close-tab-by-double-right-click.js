@@ -1,6 +1,5 @@
-/* global utils */
-
 if (window.DRCsetup === undefined) {
+    // Keep this as the last statement: Firefox rejects the injection unless the file ends on a value which can be cloned
     setTimeout(async function () {
         const MAXIMUM_TIME_BETWEEN_CLICKS_TYPE = 'MAXIMUM_TIME_BETWEEN_CLICKS_TYPE';
         const MAXIMUM_TIME_BETWEEN_CLICKS_VALUE = 'MAXIMUM_TIME_BETWEEN_CLICKS_VALUE';
@@ -15,7 +14,7 @@ if (window.DRCsetup === undefined) {
         let maxTimeBetweenClicksValue;
 
         try {
-            let fromStorageMaxTimeBetweenClicksType = await utils.chromeStorageGet(chromeStorageForExtensionData, MAXIMUM_TIME_BETWEEN_CLICKS_TYPE);
+            let fromStorageMaxTimeBetweenClicksType = (await chromeStorageForExtensionData.get(MAXIMUM_TIME_BETWEEN_CLICKS_TYPE))[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE];
             if (
                 fromStorageMaxTimeBetweenClicksType === 'default' ||
                 fromStorageMaxTimeBetweenClicksType === 'custom'
@@ -32,7 +31,7 @@ if (window.DRCsetup === undefined) {
 
         if (maxTimeBetweenClicksType === 'custom') {
             try {
-                let fromStorageMaxTimeBetweenClicksValue = await utils.chromeStorageGet(chromeStorageForExtensionData, MAXIMUM_TIME_BETWEEN_CLICKS_VALUE);
+                let fromStorageMaxTimeBetweenClicksValue = (await chromeStorageForExtensionData.get(MAXIMUM_TIME_BETWEEN_CLICKS_VALUE))[MAXIMUM_TIME_BETWEEN_CLICKS_VALUE];
                 if (fromStorageMaxTimeBetweenClicksValue) {
                     maxTimeBetweenClicksValue = parseInt(fromStorageMaxTimeBetweenClicksValue, 10);
                 }

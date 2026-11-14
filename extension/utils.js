@@ -4,80 +4,6 @@ window.utils = utils;
 if (!utils.defined) {
     utils.defined = true;
 
-    utils.chromeStorageGet = function (storageObject, prop) {
-        if (typeof browser === 'undefined') { // If Chromium based
-            return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
-                storageObject.get(prop, function (values) {
-                    resolve(values[prop]);
-                });
-            });
-        } else { // Else Firefox based
-            return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
-                let promiseGettingItem = storageObject.get(prop);
-                promiseGettingItem.then(function (values) {
-                    resolve(values[prop]);
-                });
-            });
-        }
-    };
-
-    utils.chromeStorageSet = function (storageObject, prop, value) {
-        if (typeof browser === 'undefined') { // If Chromium based
-            return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
-                storageObject.set(
-                    {
-                        [prop]: value
-                    },
-                    function () {
-                        resolve();
-                    }
-                );
-            });
-        } else { // Else Firefox based
-            let promiseSettingItem = storageObject.set({
-                [prop]: value
-            });
-            return promiseSettingItem;
-        }
-
-    };
-
-    utils.chromeStorageRemove = function (storageObject, prop) {
-        if (typeof browser === 'undefined') { // If Chromium based
-            return new Promise(function (resolve, reject) {     // eslint-disable-line no-unused-vars
-                storageObject.remove(prop, function () {
-                    resolve();
-                });
-            });
-        } else { // Else Firefox based
-            let promiseRemovingItem = storageObject.remove(prop);
-            return promiseRemovingItem;
-        }
-    };
-
-    utils.chromeStorageLocalGet = async function (prop) {
-        const value = await utils.chromeStorageGet(chrome.storage.local, prop);
-        return value;
-    };
-    utils.chromeStorageSyncGet = async function (prop) {
-        const value = await utils.chromeStorageGet(chrome.storage.sync, prop);
-        return value;
-    };
-
-    utils.chromeStorageLocalSet = async function (prop, value) {
-        await utils.chromeStorageSet(chrome.storage.local, prop, value);
-    };
-    utils.chromeStorageSyncSet = async function (prop, value) {
-        await utils.chromeStorageSet(chrome.storage.sync, prop, value);
-    };
-
-    utils.chromeStorageLocalRemove = async function (prop, value) {
-        await utils.chromeStorageRemove(chrome.storage.local, prop, value);
-    };
-    utils.chromeStorageSyncRemove = async function (prop, value) {
-        await utils.chromeStorageRemove(chrome.storage.sync, prop, value);
-    };
-
     utils.alertNote = (function () {
         var w = window,
             d = document,
@@ -226,5 +152,3 @@ if (!utils.defined) {
         return alertNote;
     }());
 }
-
-'This string is added to the end of this file to handle a weird bug/behavior for Firefox. Without this, it is observed in extension "Live editor for CSS" that some JS code would not work and an error would occur in the background script. Reference: https://stackoverflow.com/questions/44567525/inject-scripts-error-script-returned-non-structured-clonable-data-on-firefox-ex/56597154#56597154';

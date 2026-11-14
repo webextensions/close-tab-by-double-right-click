@@ -88,7 +88,6 @@
                                         allFrames: true
                                     },
                                     files: [
-                                        'utils.js',
                                         'scripts/close-tab-by-double-right-click.js'
                                     ]
                                 });

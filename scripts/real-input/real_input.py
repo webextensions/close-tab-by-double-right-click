@@ -1,8 +1,22 @@
+#!/usr/bin/env python3
 """Send real mouse and keyboard input through GNOME's RemoteDesktop D-Bus API (org.gnome.Mutter.RemoteDesktop).
 
-Imported by the real-input check verify-firefox.py.
+Shared by the real-input checks: verify-chrome.js runs it as a command, verify-firefox.py imports it.
 Requirements: Linux with GNOME (Wayland or X11) and python3-gi.
+
+Usage: python3 scripts/real-input/real_input.py <command> [arguments] [<command> [arguments] ...]
+
+Commands, run in the given order:
+
+- move X Y - move the pointer to X, Y on the screen
+- rel DX DY - move the pointer by DX, DY
+- left - left click
+- right - right click
+- right-hold S - right click which keeps the button down for S seconds
+- esc - press Escape
+- sleep S - wait S seconds
 """
+import sys
 import time
 
 import gi
@@ -61,3 +75,39 @@ class Input:
         except Exception:
             pass
 
+
+def run(commands):
+    real_input = Input()
+    try:
+        index = 0
+        while index < len(commands):
+            command = commands[index]
+            if command == 'move':
+                real_input.move_to(commands[index + 1], commands[index + 2])
+                index += 3
+            elif command == 'rel':
+                real_input.move_by(commands[index + 1], commands[index + 2])
+                index += 3
+            elif command == 'left':
+                real_input.click(BTN_LEFT)
+                index += 1
+            elif command == 'right':
+                real_input.click(BTN_RIGHT)
+                index += 1
+            elif command == 'right-hold':
+                real_input.click(BTN_RIGHT, float(commands[index + 1]))
+                index += 2
+            elif command == 'esc':
+                real_input.key(KEYSYM_ESCAPE)
+                index += 1
+            elif command == 'sleep':
+                time.sleep(float(commands[index + 1]))
+                index += 2
+            else:
+                raise SystemExit(f'Unknown command "{command}"')
+    finally:
+        real_input.stop()
+
+
+if __name__ == '__main__':
+    run(sys.argv[1:])

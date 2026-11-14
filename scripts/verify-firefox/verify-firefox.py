@@ -38,7 +38,7 @@ from gi.repository import Atspi  # noqa: E402
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-# Real input through GNOME's RemoteDesktop D-Bus API
+# Real input through GNOME's RemoteDesktop D-Bus API, shared with verify-chrome.js
 sys.path.insert(0, os.path.join(REPO_ROOT, 'scripts', 'real-input'))
 from real_input import (  # noqa: E402
     BTN_LEFT, BTN_RIGHT, KEYSYM_CONTROL_L, KEYSYM_ESCAPE, KEYSYM_F5, KEYSYM_RETURN, KEYSYM_SHIFT_L, Input

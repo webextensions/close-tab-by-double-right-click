@@ -20,7 +20,8 @@
         "build:firefox": "node scripts/build-and-release/build-dist/build-dist.js firefox",
         "test": "npm run lint && npm run lint:firefox",
         "test:e2e": "npm run build:chrome && playwright test",
-        "verify:firefox": "npm run build:firefox && python3 scripts/verify-firefox/verify-firefox.py"
+        "verify:firefox": "npm run build:firefox && python3 scripts/verify-firefox/verify-firefox.py",
+        "verify:chrome": "npm run build:chrome && node scripts/verify-chrome/verify-chrome.js"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",

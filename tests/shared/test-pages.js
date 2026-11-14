@@ -1,4 +1,4 @@
-// Test pages and the readiness probe for the checks which load the extension into a browser
+// Test pages and the readiness probe shared by the Playwright e2e tests and scripts/verify-chrome/verify-chrome.js
 
 const TEST_PAGE = '<!doctype html><html><head><title>Test page</title></head><body style="height:100vh">Test page</body></html>';
 

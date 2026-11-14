@@ -90,9 +90,9 @@ if (window.DRCattachListeners) {
                     tabRemoveAlreadyRequested = false;
                 }, 2500);
 
-                // Note: Ideally, `chrome.runtime` should be available in all cases, but if the extension instance is disabled
-                //       due to disabling / reloading extension, then `chrome.runtime` wouldn't be available.
-                if (chrome.runtime) {
+                // Note: Once the extension got disabled, removed or reloaded, this script is left behind without a working
+                //       extension context: `chrome.runtime` is then missing or has no `id`, and sending a message would throw.
+                if (chrome.runtime && chrome.runtime.id) {
                     chrome.runtime.sendMessage({closeTab: true});
                 }
             }

@@ -47,3 +47,24 @@ test('double right click works in a tab which was open before the extension got 
     await closed;
     expect(page.isClosed()).toBe(true);
 });
+
+test('double right click in a tab which outlived the extension does not throw', async ({ context, serviceWorker, extensionId }) => {
+    const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}extension-disabled`);
+    const pageErrors = [];
+    page.on('pageerror', (err) => pageErrors.push(String(err)));
+
+    // Disabling the extension leaves its content script behind in the open tabs, without a working extension context
+    const extensionsPage = await context.newPage();
+    await extensionsPage.goto('chrome://extensions/');
+    await extensionsPage.evaluate((extensionId) => chrome.management.setEnabled(extensionId, false), extensionId);
+    await extensionsPage.close();
+    await page.bringToFront();
+
+    await holdRightClick(page, 120);
+    await page.waitForTimeout(150);
+    await holdRightClick(page, 120);
+    await page.waitForTimeout(1000);
+
+    expect(pageErrors).toEqual([]);
+    expect(page.isClosed()).toBe(false);
+});

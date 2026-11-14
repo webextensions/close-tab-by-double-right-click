@@ -5,7 +5,8 @@ Playwright cannot load extensions into Firefox, and synthetic page events never 
 is what breaks double right click on Linux. This script instead:
 
 - launches Firefox through geckodriver and installs the extension as a temporary add-on
-- serves the test pages from a local web server, so it needs no internet access
+- serves the test pages from a local web server; only the check on one of Firefox's restricted domains needs internet
+  access, and it is skipped without it
 - sends OS-level clicks and key presses through scripts/real-input/real_input.py (GNOME's RemoteDesktop D-Bus API)
 - reads the outcome (open tabs, page events) back through WebDriver, and the options page state through the AT-SPI
   accessibility tree (WebDriver cannot read extension pages)
@@ -52,6 +53,8 @@ with open(os.path.join(EXTENSION_DIR, 'manifest.json')) as manifest_file:
 ADDON_UUID = '0d7c4a5e-3b1f-4c62-9a8e-5f2b7c1d9e40'
 OPTIONS_URL = f'moz-extension://{ADDON_UUID}/options.html'
 OPTIONS_TITLE = 'Close Tab by Double Right Click'
+# A plain text page on one of the domains where Firefox runs no extension scripts
+RESTRICTED_DOMAIN_URL = 'https://support.mozilla.org/robots.txt'
 TEST_PAGE = ('<!doctype html><html><head><title>Test page</title></head>'
              '<body style="height:100vh">Test page</body></html>')
 # A page which shows its own context menu cancels the browser's one, so nothing swallows parts of a right click there
@@ -340,6 +343,30 @@ def check_context_menu_entry(browser, mouse, keep):
     close_tab_if_open(browser, mouse, blank, keep)
 
 
+def is_online():
+    try:
+        with urllib.request.urlopen(RESTRICTED_DOMAIN_URL, timeout=5):
+            return True
+    except urllib.error.HTTPError:
+        return True  # the server answered
+    except OSError:
+        return False
+
+
+def check_restricted_domain(browser, mouse, keep):
+    # The content script cannot run on Firefox's restricted domains, so they get the "Close Tab" context-menu entry
+    name = '"Close Tab" context-menu entry on a restricted domain closes the tab'
+    if not is_online():
+        print(f'SKIP  {name}  (no internet access)', flush=True)
+        return
+    target = browser.new_tab(RESTRICTED_DOMAIN_URL)
+    time.sleep(3)
+    focus_page(mouse)
+    choose_close_tab_entry(mouse)
+    check(name, target not in browser.handles())
+    close_tab_if_open(browser, mouse, target, keep)
+
+
 def open_options_page(browser, mouse):
     # WebDriver refuses to navigate to moz-extension:// URLs, so type the URL into the address bar instead
     browser.new_tab()
@@ -405,7 +432,8 @@ def main():
         time.sleep(1.5)
         mouse = Input()
 
-        steps = (check_clicks, check_held_clicks, check_shift_clicks, check_context_menu_entry, check_options_page)
+        steps = (check_clicks, check_held_clicks, check_shift_clicks, check_context_menu_entry, check_restricted_domain,
+                 check_options_page)
         for step in steps:
             try:
                 step(browser, mouse, keep)

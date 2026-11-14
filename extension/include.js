@@ -5,6 +5,35 @@
 
     const CONTEXT_MENU_ENTRY_ID = 'close-tab';
 
+    // Firefox runs no extension scripts on these domains (its default "extensions.webextensions.restrictedDomains")
+    const FIREFOX_RESTRICTED_DOMAINS = [
+        'accounts-static.cdn.mozilla.net',
+        'accounts.firefox.com',
+        'addons.cdn.mozilla.net',
+        'addons.mozilla.org',
+        'api.accounts.firefox.com',
+        'content.cdn.mozilla.net',
+        'discovery.addons.mozilla.org',
+        'oauth.accounts.firefox.com',
+        'profile.accounts.firefox.com',
+        'support.mozilla.org',
+        'sync.services.mozilla.com'
+    ];
+    const isFirefox = chrome.runtime.getURL('').startsWith('moz-extension://');
+
+    // Web pages which do not get the content script (the browser blocks it on most of them), so they get the
+    // "Close Tab" context menu entry instead
+    function isScriptingBlocked(url) {
+        if (
+            url.indexOf('https://chromewebstore.google.com/') === 0 ||
+            url.indexOf('https://chrome.google.com/webstore/') === 0 ||
+            url.indexOf('https://addons.mozilla.org/') === 0
+        ) {
+            return true;
+        }
+        return isFirefox && URL.canParse(url) && FIREFOX_RESTRICTED_DOMAINS.includes(new URL(url).hostname);
+    }
+
     function runScriptByTabId(tabId, pageAlreadyLoaded) {
         chrome.tabs.get(tabId, function (tab) {
             if (!tab) {
@@ -12,11 +41,7 @@
             }
 
             var url = tab.url;
-            if (
-                url.indexOf('https://chromewebstore.google.com/') === 0 ||
-                url.indexOf('https://chrome.google.com/webstore/') === 0 ||
-                url.indexOf('https://addons.mozilla.org/') === 0
-            ) {
+            if (isScriptingBlocked(url)) {
                 return;
             } else if (
                 url.indexOf('http://')  === 0 ||
@@ -141,11 +166,7 @@
             if (url && tab.active) {
                 chrome.windows.getLastFocused(function (win) {
                     if (tab.windowId === win.id) {
-                        if (
-                            url.indexOf('https://chromewebstore.google.com/') === 0 ||
-                            url.indexOf('https://chrome.google.com/webstore/') === 0 ||
-                            url.indexOf('https://addons.mozilla.org/') === 0
-                        ) {
+                        if (isScriptingBlocked(url)) {
                             addContextMenuEntry();
                         } else if (
                             url.indexOf('http://') === 0 ||

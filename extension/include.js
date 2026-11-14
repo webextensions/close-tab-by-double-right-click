@@ -5,6 +5,8 @@
 
     const removedTabs = {};
 
+    const CONTEXT_MENU_ENTRY_ID = 'close-tab';
+
     function runScriptByTabId(tabId, pageAlreadyLoaded) {
         chrome.tabs.get(tabId, function (tab) {
             if (!tab) {
@@ -123,20 +125,19 @@
         }
     }
 
-    function addContextMenuEntry(tabId) {
+    function addContextMenuEntry() {
         removeContextMenuEntry();
 
         contextMenuEntry = chrome.contextMenus.create({
-            id: 'close-tab-' + tabId,
+            id: CONTEXT_MENU_ENTRY_ID,
             title: 'Close Tab',
             contexts: ['all']
         });
 
-        // eslint-disable-next-line no-unused-vars
         chrome.contextMenus.onClicked.addListener(function (info, tab) {
-            if (info.menuItemId.startsWith('close-tab-')) {
-                const tabId = parseInt(info.menuItemId.split('-')[2], 10);
-                closeTabByTabId(tabId);
+            // The entry is shared by all tabs, so close the tab which was clicked
+            if (info.menuItemId === CONTEXT_MENU_ENTRY_ID && tab) {
+                closeTab(tab);
             }
         });
     }
@@ -156,7 +157,7 @@
                             url.indexOf('https://chrome.google.com/webstore/') === 0 ||
                             url.indexOf('https://addons.mozilla.org/') === 0
                         ) {
-                            addContextMenuEntry(tabId);
+                            addContextMenuEntry();
                         } else if (
                             url.indexOf('http://') === 0 ||
                             url.indexOf('https://') === 0 ||
@@ -170,7 +171,7 @@
                             //     chrome-devtools://
                             //     chrome-error://
                             //     view-source:
-                            addContextMenuEntry(tabId);
+                            addContextMenuEntry();
                         }
                     }
                 });

@@ -34,7 +34,7 @@ const waitForContentScript = async function ({ serviceWorker }) {
 // Opens a real site in a new tab. Whatever the site serves gets tested (a bot check, a login page and a consent screen
 // are pages too), and the report tells which page that was.
 // Pass { waitUntil: 'commit' } to get the page while it is still loading, and { contentScript: false } for a site
-// where the content script cannot run.
+// which gets the "Close Tab" context menu entry instead.
 const openSite = async function ({ context, serviceWorker }, url, { waitUntil = 'domcontentloaded', contentScript = true } = {}) {
     const page = await context.newPage();
     // A page can ask for a confirmation before it gets closed, which would keep the tab open

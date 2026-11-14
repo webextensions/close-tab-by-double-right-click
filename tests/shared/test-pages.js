@@ -27,6 +27,15 @@ const OFFSET_FRAME_PAGE = TEST_PAGE.replace(
     `<iframe src="${FRAME_PATH}" style="position:fixed;left:200px;top:100px;width:800px;height:500px;border:0"></iframe></body>`
 );
 
+// A PDF file with one empty page
+const PDF_FILE = (
+    '%PDF-1.4\n' +
+    '1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n' +
+    '2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n' +
+    '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]>>endobj\n' +
+    'trailer<</Root 1 0 R>>\n'
+);
+
 // Requests below this path never get an answer, so a page which uses one of them never finishes loading
 const STALLED_PATH = '/stalled/';
 
@@ -79,6 +88,7 @@ export {
     CANCEL_CONTEXT_MENU_PAGE,
     FRAME_PATH,
     OFFSET_FRAME_PAGE,
+    PDF_FILE,
     STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE,
     STALLED_HEAD_PAGE,
     STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE,

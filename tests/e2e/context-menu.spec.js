@@ -1,5 +1,6 @@
 import { TEST_PAGE } from '../shared/test-pages.js';
 import {
+    PDF_PATH,
     TEST_ORIGIN,
     clickContextMenuEntry,
     contextMenuEntryExists,
@@ -109,5 +110,18 @@ test('a browser error page gets the "Close Tab" context menu entry', async ({ co
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(true);
 
     await page.goto(`${TEST_ORIGIN}/after-error-page`);
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+});
+
+test('a PDF file gets the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+    const page = await context.newPage();
+    await page.goto(`${TEST_ORIGIN}/before-pdf`);
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+
+    // The PDF viewer of the browser gets the clicks there, so the content script never sees them
+    await page.goto(`${TEST_ORIGIN}${PDF_PATH}file.pdf`);
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(true);
+
+    await page.goto(`${TEST_ORIGIN}/after-pdf`);
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
 });

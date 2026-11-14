@@ -30,10 +30,10 @@
 
     { "name": "upload.wikimedia.org image file", "url": "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png" },
     { "name": "rfc-editor.org text file", "url": "https://www.rfc-editor.org/rfc/rfc2606.txt" },
-    { "name": "rfc-editor.org PDF file", "url": "https://www.rfc-editor.org/rfc/rfc9110.pdf" },
 
     { "name": "httpforever.com (not served over https)", "url": "http://httpforever.com/", "insecureContext": true },
 
+    { "name": "rfc-editor.org PDF file (the PDF viewer gets the clicks)", "url": "https://www.rfc-editor.org/rfc/rfc9110.pdf", "kind": "menu-entry" },
     { "name": "chromewebstore.google.com (no content script)", "url": "https://chromewebstore.google.com/", "kind": "menu-entry", "browsers": ["chrome"] },
     { "name": "addons.mozilla.org (no content script)", "url": "https://addons.mozilla.org/robots.txt", "kind": "menu-entry", "browsers": ["firefox"] }
 ]

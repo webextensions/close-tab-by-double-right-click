@@ -6,6 +6,7 @@ import {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
     OFFSET_FRAME_PAGE,
+    PDF_FILE,
     STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE,
     STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE,
     STALLED_PATH,
@@ -22,6 +23,7 @@ const TEST_ORIGIN = 'https://drc.test';
 const CANCEL_CONTEXT_MENU_PATH = '/cancel-context-menu/';
 const ASK_BEFORE_LEAVING_PATH = '/ask-before-leaving/';
 const OFFSET_FRAME_PATH = '/offset-frame/';
+const PDF_PATH = '/pdf/';
 const STALLED_HEAD_PATH = '/stalled-head/';
 const STALLED_IMAGE_PATH = '/stalled-image/';
 const SVG_PATH = '/svg/';
@@ -49,6 +51,9 @@ const test = base.extend({
             }
             if (pathname.startsWith(SVG_PATH)) {
                 return route.fulfill({ contentType: 'image/svg+xml', body: SVG_PAGE });
+            }
+            if (pathname.startsWith(PDF_PATH)) {
+                return route.fulfill({ contentType: 'application/pdf', body: PDF_FILE });
             }
             let body = TEST_PAGE;
             if (pathname.startsWith(CANCEL_CONTEXT_MENU_PATH)) {
@@ -153,6 +158,7 @@ export {
     ASK_BEFORE_LEAVING_PATH,
     CANCEL_CONTEXT_MENU_PATH,
     OFFSET_FRAME_PATH,
+    PDF_PATH,
     STALLED_HEAD_PATH,
     STALLED_IMAGE_PATH,
     SVG_PATH,

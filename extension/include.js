@@ -141,16 +141,22 @@
                         ) {
                             // A page of the browser itself can be showing under such a URL (eg: "This site can't be
                             // reached"), where the content script cannot run. Trying to run a script tells.
+                            // In the PDF viewer of the browser, the script runs (in Chrome) but the viewer gets
+                            // the clicks instead of the content script, so the script reports the type of the document.
                             chrome.scripting.executeScript({
                                 target: { tabId },
                                 func: function () {
-                                    return true;
+                                    return document.contentType;
                                 },
                                 // Otherwise the answer would only come once the page has loaded
                                 injectImmediately: true
-                            }).then(function () {
+                            }).then(function (results) {
                                 if (contextMenuCheck === latestContextMenuCheck) {
-                                    removeContextMenuEntry();
+                                    if (results[0] && results[0].result === 'application/pdf') {
+                                        addContextMenuEntry();
+                                    } else {
+                                        removeContextMenuEntry();
+                                    }
                                 }
                             }, function () {
                                 if (contextMenuCheck === latestContextMenuCheck) {

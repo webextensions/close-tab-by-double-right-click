@@ -1,6 +1,4 @@
 (function () {
-    var contextMenuEntry;
-
     const scheduledTimerForTabs = {};
 
     const removedTabs = {};
@@ -114,31 +112,22 @@
     }
 
     function removeContextMenuEntry() {
-        if (contextMenuEntry) {
-            /*
-                Note:
-                Ideally, we would want to use "chrome.contextMenus.remove(contextMenuEntry);", but, due to lack of
-                ability to add checks if the "contextMenuEntry" still exists, there can be some unwanted error logs
-                under some scenario. Hence, using "chrome.contextMenus.removeAll();".
-            */
-            chrome.contextMenus.removeAll(); // chrome.contextMenus.remove(contextMenuEntry);
-        }
+        /*
+            Note:
+            Ideally, we would want to remove only the entry which was added earlier, but the background script can
+            get restarted at any time, which loses track of that entry (and there is no API to check which entries
+            exist). Hence, using "chrome.contextMenus.removeAll();".
+        */
+        chrome.contextMenus.removeAll();
     }
 
     function addContextMenuEntry() {
         removeContextMenuEntry();
 
-        contextMenuEntry = chrome.contextMenus.create({
+        chrome.contextMenus.create({
             id: CONTEXT_MENU_ENTRY_ID,
             title: 'Close Tab',
             contexts: ['all']
-        });
-
-        chrome.contextMenus.onClicked.addListener(function (info, tab) {
-            // The entry is shared by all tabs, so close the tab which was clicked
-            if (info.menuItemId === CONTEXT_MENU_ENTRY_ID && tab) {
-                closeTab(tab);
-            }
         });
     }
 
@@ -209,6 +198,14 @@
             }
         }
     );
+
+    // Registered at the top level, otherwise the click which wakes up an idle background script would have no listener
+    chrome.contextMenus.onClicked.addListener(function (info, tab) {
+        // The entry is shared by all tabs, so close the tab which was clicked
+        if (info.menuItemId === CONTEXT_MENU_ENTRY_ID && tab) {
+            closeTab(tab);
+        }
+    });
 
     chrome.tabs.onActivated.addListener(function (activeInfo) {
         addContextMenuEntryIfRequired(activeInfo.tabId);

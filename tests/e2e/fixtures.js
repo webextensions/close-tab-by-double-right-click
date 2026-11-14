@@ -78,13 +78,32 @@ const holdRightClick = async function (page, holdMs) {
     }
 };
 
+// Simulates the browser stopping the idle extension service worker. The next extension event starts it again, and
+// Playwright keeps using the same Worker object for the restarted service worker.
+const stopServiceWorker = async function ({ context, serviceWorker }, page) {
+    await serviceWorker.evaluate(() => {
+        globalThis.setBeforeServiceWorkerStop = true;
+    });
+
+    const client = await context.newCDPSession(page);
+    await client.send('ServiceWorker.enable');
+    await client.send('ServiceWorker.stopAllWorkers');
+    await client.detach();
+};
+
+const hasServiceWorkerRestarted = async function (serviceWorker) {
+    return await serviceWorker.evaluate(() => globalThis.setBeforeServiceWorkerStop === undefined);
+};
+
 export {
     CANCEL_CONTEXT_MENU_PATH,
     TEST_ORIGIN,
     expect,
+    hasServiceWorkerRestarted,
     holdRightClick,
     openTestPage,
     pathToChromeBuild,
     pathToSource,
+    stopServiceWorker,
     test
 };

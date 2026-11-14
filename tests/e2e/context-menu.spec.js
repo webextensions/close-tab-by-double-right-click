@@ -1,6 +1,8 @@
 import {
     TEST_ORIGIN,
     expect,
+    hasServiceWorkerRestarted,
+    stopServiceWorker,
     test
 } from './fixtures.js';
 
@@ -35,6 +37,33 @@ const openSpecialPage = async function ({ context, serviceWorker, extensionId })
 
     return page;
 };
+
+test('"Close Tab" context menu entry closes the tab after the service worker restarts', async ({ context, serviceWorker, extensionId }) => {
+    const page = await openSpecialPage({ context, serviceWorker, extensionId });
+    const closed = page.waitForEvent('close');
+
+    await stopServiceWorker({ context, serviceWorker }, page);
+    // Wake the service worker up without a tab event, the way a click on the context menu entry would
+    await page.evaluate(() => chrome.runtime.sendMessage({}));
+    expect(await hasServiceWorkerRestarted(serviceWorker)).toBe(true);
+
+    expect(await serviceWorker.evaluate(() => chrome.contextMenus.onClicked.hasListeners())).toBe(true);
+    await clickContextMenuEntry(serviceWorker, page.url());
+
+    await closed;
+    expect(page.isClosed()).toBe(true);
+});
+
+test('"Close Tab" context menu entry is removed on navigating to a regular page after the service worker restarts', async ({ context, serviceWorker, extensionId }) => {
+    const page = await openSpecialPage({ context, serviceWorker, extensionId });
+
+    await stopServiceWorker({ context, serviceWorker }, page);
+    // The navigation wakes the service worker up through chrome.tabs.onUpdated
+    await page.goto(`${TEST_ORIGIN}/after-service-worker-restart`);
+    expect(await hasServiceWorkerRestarted(serviceWorker)).toBe(true);
+
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+});
 
 test('"Close Tab" context menu entry closes the tab which was clicked', async ({ context, serviceWorker, extensionId }) => {
     const specialPage = await openSpecialPage({ context, serviceWorker, extensionId });

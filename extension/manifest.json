@@ -23,6 +23,19 @@
     "background": {
         "service_worker": "include.js"
     },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*/*"
+            ],
+            "js": [
+                "scripts/close-tab-by-double-right-click.js"
+            ],
+            "run_at": "document_start",
+            "all_frames": true,
+            "match_origin_as_fallback": true
+        }
+    ],
     "browser_specific_settings": {
         "gecko": {
             "id": "{6f6ede9c-d2e0-4c2c-b77d-eb98b801892c}",

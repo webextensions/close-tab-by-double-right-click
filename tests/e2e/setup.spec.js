@@ -33,7 +33,6 @@ test('double right click works again after the page rewrote itself', async ({ co
 });
 
 test('double right click closes a document without a body', async ({ context, serviceWorker }) => {
-    // The content script stops waiting for a body after 10 seconds
     const page = await openTestPage({ context, serviceWorker }, `${SVG_PATH}image.svg`);
     const closed = page.waitForEvent('close');
 

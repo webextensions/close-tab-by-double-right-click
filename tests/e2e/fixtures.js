@@ -5,6 +5,9 @@ import { test as base, chromium, expect } from '@playwright/test';
 import {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
+    STALLED_HEAD_PAGE,
+    STALLED_IMAGE_PAGE,
+    STALLED_PATH,
     SVG_PAGE,
     TEST_PAGE,
     isContentScriptReady
@@ -17,6 +20,8 @@ const TEST_ORIGIN = 'https://drc.test';
 
 const CANCEL_CONTEXT_MENU_PATH = '/cancel-context-menu/';
 const ASK_BEFORE_LEAVING_PATH = '/ask-before-leaving/';
+const STALLED_HEAD_PATH = '/stalled-head/';
+const STALLED_IMAGE_PATH = '/stalled-image/';
 const SVG_PATH = '/svg/';
 
 const test = base.extend({
@@ -36,6 +41,10 @@ const test = base.extend({
         // The background script only injects into http(s) pages, so serve the test pages from a fake https origin
         await context.route(`${TEST_ORIGIN}/**`, (route) => {
             const { pathname } = new URL(route.request().url());
+            if (pathname.startsWith(STALLED_PATH)) {
+                // Never answered
+                return;
+            }
             if (pathname.startsWith(SVG_PATH)) {
                 return route.fulfill({ contentType: 'image/svg+xml', body: SVG_PAGE });
             }
@@ -44,6 +53,10 @@ const test = base.extend({
                 body = CANCEL_CONTEXT_MENU_PAGE;
             } else if (pathname.startsWith(ASK_BEFORE_LEAVING_PATH)) {
                 body = ASK_BEFORE_LEAVING_PAGE;
+            } else if (pathname.startsWith(STALLED_HEAD_PATH)) {
+                body = STALLED_HEAD_PAGE;
+            } else if (pathname.startsWith(STALLED_IMAGE_PATH)) {
+                body = STALLED_IMAGE_PAGE;
             }
             return route.fulfill({ contentType: 'text/html', body });
         });
@@ -63,10 +76,11 @@ const test = base.extend({
     }
 });
 
-const openTestPage = async function ({ context, serviceWorker }, pathname) {
+// For a page which never finishes loading, pass { waitUntil: 'commit' }
+const openTestPage = async function ({ context, serviceWorker }, pathname, { waitUntil } = {}) {
     const url = `${TEST_ORIGIN}${pathname}`;
     const page = await context.newPage();
-    await page.goto(url);
+    await page.goto(url, { waitUntil });
     await expect.poll(() => isContentScriptReady(serviceWorker, url), { timeout: 15000 }).toBe(true);
     return page;
 };
@@ -74,8 +88,12 @@ const openTestPage = async function ({ context, serviceWorker }, pathname) {
 // A real click keeps the button down for a while, unlike Playwright's click(), which releases it at once. Only use it
 // on a page which cancels the context menu: elsewhere Playwright fires "contextmenu" without opening a native menu,
 // so the "mouseup" which that menu would swallow arrives and gets counted.
-const holdRightClick = async function (page, holdMs) {
-    await page.mouse.move(100, 100);
+// Pass { movePointer: false } on a page which has not rendered anything yet: Chromium holds each "mousemove" back for
+// 5 seconds there (unlike "mousedown" and "mouseup"), so the click then happens wherever the pointer already is.
+const holdRightClick = async function (page, holdMs, { movePointer = true } = {}) {
+    if (movePointer) {
+        await page.mouse.move(100, 100);
+    }
     try {
         await page.mouse.down({ button: 'right' });
         await page.waitForTimeout(holdMs);
@@ -108,6 +126,8 @@ const hasServiceWorkerRestarted = async function (serviceWorker) {
 export {
     ASK_BEFORE_LEAVING_PATH,
     CANCEL_CONTEXT_MENU_PATH,
+    STALLED_HEAD_PATH,
+    STALLED_IMAGE_PATH,
     SVG_PATH,
     TEST_ORIGIN,
     expect,

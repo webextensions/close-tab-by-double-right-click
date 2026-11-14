@@ -101,6 +101,11 @@ if (window.DRCsetup === undefined) {
 
         var interval = setInterval(function () {
             if (document.body) {
+                // Only used on Linux: whether the "mousedown" of the latest right click was counted, and the
+                // "contextmenu" event received since then
+                var rightPressCounted = false,
+                    lastContextMenuEvent = null;
+
                 // Not 100% sure, but it seems that if we register "document.onmouseup"
                 // without checking for "document.body", then it may not behave properly.
                 // In that case, it seems to be providing a delayed execution of closing the tab
@@ -108,6 +113,14 @@ if (window.DRCsetup === undefined) {
                 // might be received by other tabs as the current tab closes),
                 // probably due to the architecture of the browser.
                 document.onmouseup = function (e) {
+                    if (e.which === 3 && rightPressCounted) {
+                        rightPressCounted = false;
+                        // Without a native context menu (eg: the page shows its own one), nothing swallows this
+                        // "mouseup", and it belongs to the right click which was already counted on "mousedown"
+                        if (!lastContextMenuEvent || lastContextMenuEvent.defaultPrevented) {
+                            return;
+                        }
+                    }
                     recieveRightClick(e);
                 };
 
@@ -121,8 +134,16 @@ if (window.DRCsetup === undefined) {
                 //         (https://github.com/webextensions/close-tab-by-double-right-click/issues/12)
                 if (isLinux && isChrome) {
                     document.onmousedown = function (e) {
+                        if (e.which === 3) {
+                            rightPressCounted = true;
+                            lastContextMenuEvent = null;
+                        }
                         recieveRightClick(e);
                     };
+                    // "defaultPrevented" is read on "mouseup", by when the page has had its chance to cancel the event
+                    window.addEventListener('contextmenu', function (e) {
+                        lastContextMenuEvent = e;
+                    }, true);
                 }
 
                 clearInterval(interval);

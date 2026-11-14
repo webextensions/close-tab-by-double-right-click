@@ -1,5 +1,8 @@
 import {
+    CANCEL_CONTEXT_MENU_PATH,
     expect,
+    holdRightClick,
+    openTestPage,
     test
 } from './fixtures.js';
 
@@ -26,4 +29,18 @@ test('choosing a custom maximum time persists across reloads', async ({ context,
 
     await expect(optionsPage.getByRole('radio', { name: /Custom/ })).toBeChecked();
     await expect(optionsPage.getByRole('combobox')).toHaveValue('1000');
+});
+
+test('custom maximum time of 1000 ms closes the tab on right clicks 800 ms apart', async ({ context, serviceWorker, extensionId }) => {
+    await setCustomMaxTimeBetweenClicks({ context, serviceWorker, extensionId }, '1000');
+
+    const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}custom-max-time`);
+    const closed = page.waitForEvent('close');
+
+    await holdRightClick(page, 120);
+    await page.waitForTimeout(680);
+    await holdRightClick(page, 120);
+
+    await closed;
+    expect(page.isClosed()).toBe(true);
 });

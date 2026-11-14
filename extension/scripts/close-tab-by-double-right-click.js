@@ -110,7 +110,9 @@ if (window.DRCsetup === undefined) {
 
         var interval = setInterval(function () {
             if (document.body) {
-                var isLinux = navigator.platform.toUpperCase().indexOf('LINUX') >= 0;
+                // Also true on ChromeOS ("CrOS") and Android ("Linux; Android"). The user agent can be overridden, so
+                // navigator.platform is checked as well.
+                var isLinux = /Linux|CrOS/.test(navigator.userAgent) || /Linux/i.test(navigator.platform);
                 var isFirefox = !!chrome.runtime && chrome.runtime.getURL('').startsWith('moz-extension://');
                 var isChromium = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
 

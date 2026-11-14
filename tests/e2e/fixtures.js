@@ -20,10 +20,11 @@ const ASK_BEFORE_LEAVING_PATH = '/ask-before-leaving/';
 const test = base.extend({
     // The extension folder to load; "npm run test:e2e" builds dist/chrome first
     extensionPath: [pathToChromeBuild, { option: true }],
-    context: async ({ headless, extensionPath }, use) => {
+    context: async ({ headless, extensionPath, userAgent }, use) => {
         const context = await chromium.launchPersistentContext('', {
             channel: 'chromium',
             headless,
+            userAgent,
             args: [
                 `--disable-extensions-except=${extensionPath}`,
                 `--load-extension=${extensionPath}`

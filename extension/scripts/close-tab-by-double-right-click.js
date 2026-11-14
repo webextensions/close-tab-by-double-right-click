@@ -14,7 +14,13 @@ if (window.DRCattachListeners) {
     };
 
     // Note: The "on<event>" properties (eg: document.onmouseup) must not be used, since Firefox shares them with the page
-    const listen = function (target, type, listener) {
+    const listen = function (target, type, handler) {
+        const listener = function (e) {
+            // Ignores the events which scripts create: otherwise any frame of a page could close the tab
+            if (e.isTrusted) {
+                handler(e);
+            }
+        };
         listeners.push([target, type, listener]);
         target.addEventListener(type, listener, true);
     };

@@ -217,7 +217,12 @@
                 // do nothing
             } else {
                 chrome.windows.get(windowId, {populate: true}, function (win) {
-                    var tabs = win.tabs;
+                    if (chrome.runtime.lastError) {
+                        // do nothing
+                    }
+
+                    // The window can already be gone, in which case "win" is undefined
+                    var tabs = win && win.tabs;
                     if (tabs) {
                         var i;
                         for (i = 0; i < tabs.length; i += 1) {

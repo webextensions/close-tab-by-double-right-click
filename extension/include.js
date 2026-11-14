@@ -121,10 +121,14 @@
             }
 
             var url = tab && tab.url;
-            if (url && tab.active) {
+            if (tab && tab.active) {
                 chrome.windows.getLastFocused(function (win) {
                     if (tab.windowId === win.id) {
-                        if (isScriptingBlocked(url)) {
+                        if (!url) {
+                            // Nothing got loaded into the tab so far (eg: a link opened in a new tab, while the
+                            // server has not answered yet), so there is no page for the content script to run in
+                            addContextMenuEntry();
+                        } else if (isScriptingBlocked(url)) {
                             addContextMenuEntry();
                         } else if (
                             url.indexOf('http://') === 0 ||

@@ -1,3 +1,4 @@
+import { TEST_PAGE } from '../shared/test-pages.js';
 import {
     TEST_ORIGIN,
     expect,
@@ -89,4 +90,29 @@ test('local file pages get the "Close Tab" context menu entry', async ({ context
     await page.goto(`file://${pathToSource}/options.html`);
 
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(true);
+});
+
+test('a tab which waits for the first response of its page gets the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+    const page = await context.newPage();
+    await page.goto(`${TEST_ORIGIN}/before-slow-server`);
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+
+    const url = `${TEST_ORIGIN}/slow-server`;
+    let answer;
+    const answered = new Promise((resolve) => {
+        answer = resolve;
+    });
+    await context.route(url, async (route) => {
+        await answered;
+        await route.fulfill({ contentType: 'text/html', body: TEST_PAGE });
+    });
+
+    // Like a link which opens in a new tab: the tab stays blank, without any page in it, until the server answers
+    const tabId = await serviceWorker.evaluate(async (url) => (await chrome.tabs.create({ url })).id, url);
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(true);
+    const tab = await serviceWorker.evaluate((tabId) => chrome.tabs.get(tabId), tabId);
+    expect({ url: tab.url, pendingUrl: tab.pendingUrl }).toEqual({ url: '', pendingUrl: url });
+
+    answer();
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
 });

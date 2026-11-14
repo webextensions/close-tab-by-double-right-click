@@ -44,3 +44,21 @@ test('custom maximum time of 1000 ms closes the tab on right clicks 800 ms apart
     await closed;
     expect(page.isClosed()).toBe(true);
 });
+
+test('choosing "Default" again brings back the default 500 ms', async ({ context, serviceWorker, extensionId }) => {
+    const optionsPage = await setCustomMaxTimeBetweenClicks({ context, serviceWorker, extensionId }, '1000');
+
+    await optionsPage.getByRole('radio', { name: /Default/ }).check();
+    await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get('MAXIMUM_TIME_BETWEEN_CLICKS_TYPE'))).toEqual({
+        MAXIMUM_TIME_BETWEEN_CLICKS_TYPE: 'default'
+    });
+
+    const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}default-again`);
+
+    await holdRightClick(page, 120);
+    await page.waitForTimeout(680);
+    await holdRightClick(page, 120);
+    await page.waitForTimeout(1000);
+
+    expect(page.isClosed()).toBe(false);
+});

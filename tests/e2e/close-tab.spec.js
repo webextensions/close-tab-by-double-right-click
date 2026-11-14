@@ -42,3 +42,41 @@ test('right clicks slower than the default 500 ms keep the tab open', async ({ c
 
     expect(page.isClosed()).toBe(false);
 });
+
+test('double right click inside a frame closes the tab', async ({ context, serviceWorker }) => {
+    const page = await openTestPage({ context, serviceWorker }, '/with-frame');
+    await page.evaluate((src) => {
+        const frame = document.createElement('iframe');
+        frame.src = src;
+        // Covers the spot which gets clicked, so the clicks only reach the frame's document
+        frame.style.cssText = 'position:fixed;top:0;left:0;width:400px;height:300px;border:0';
+        document.body.append(frame);
+    }, `${CANCEL_CONTEXT_MENU_PATH}frame`);
+    // The background script injects the content script into new frames within 2.5 seconds
+    await page.waitForTimeout(3500);
+    const closed = page.waitForEvent('close');
+
+    await holdRightClick(page, 120);
+    await page.waitForTimeout(150);
+    await holdRightClick(page, 120);
+
+    await closed;
+    expect(page.isClosed()).toBe(true);
+});
+
+for (const button of ['left', 'middle']) {
+    test(`double ${button} click keeps the tab open`, async ({ context, serviceWorker }) => {
+        const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}double-${button}-click`);
+
+        for (let click = 0; click < 2; click++) {
+            await page.mouse.move(100, 100);
+            await page.mouse.down({ button });
+            await page.waitForTimeout(120);
+            await page.mouse.up({ button });
+            await page.waitForTimeout(150);
+        }
+        await page.waitForTimeout(1000);
+
+        expect(page.isClosed()).toBe(false);
+    });
+}

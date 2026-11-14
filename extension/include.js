@@ -114,6 +114,9 @@
         });
     }
 
+    // How long the scripting probe below may take to answer on a page which has started to arrive (in milliseconds)
+    const PROBE_ANSWER_TIME = 300;
+
     // Counts the checks below, so that a slow answer of an older check cannot undo the outcome of a newer one. Nothing
     // is lost when a restart of the background script resets it.
     let latestContextMenuCheck = 0;
@@ -143,6 +146,16 @@
                             // reached"), where the content script cannot run. Trying to run a script tells.
                             // In the PDF viewer of the browser, the script runs (in Chrome) but the viewer gets
                             // the clicks instead of the content script, so the script reports the type of the document.
+                            // The script gets no answer while the page has not started to arrive: a slow server can
+                            // send the headers of its answer long before the page itself. Chrome then already shows
+                            // the new document, still without anything in it, where the content script cannot run
+                            // yet either, so the entry stands in until the answer comes. (Firefox keeps the previous
+                            // page until the new one starts to arrive.)
+                            const probeUnanswered = setTimeout(function () {
+                                if (contextMenuCheck === latestContextMenuCheck) {
+                                    addContextMenuEntry();
+                                }
+                            }, PROBE_ANSWER_TIME);
                             chrome.scripting.executeScript({
                                 target: { tabId },
                                 func: function () {
@@ -151,6 +164,7 @@
                                 // Otherwise the answer would only come once the page has loaded
                                 injectImmediately: true
                             }).then(function (results) {
+                                clearTimeout(probeUnanswered);
                                 if (contextMenuCheck === latestContextMenuCheck) {
                                     if (results[0] && results[0].result === 'application/pdf') {
                                         addContextMenuEntry();
@@ -159,6 +173,7 @@
                                     }
                                 }
                             }, function () {
+                                clearTimeout(probeUnanswered);
                                 if (contextMenuCheck === latestContextMenuCheck) {
                                     addContextMenuEntry();
                                 }

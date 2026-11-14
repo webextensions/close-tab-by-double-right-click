@@ -1,3 +1,4 @@
+import http from 'node:http';
 import path from 'node:path';
 
 import { test as base, chromium, expect } from '@playwright/test';
@@ -132,6 +133,27 @@ const hasServiceWorkerRestarted = async function (serviceWorker) {
     return await serviceWorker.evaluate(() => globalThis.setBeforeServiceWorkerStop === undefined);
 };
 
+// A local server which sends the headers of its answer at once, and the page itself only when sendPage() gets called.
+// Until then the tab shows the new document without anything in it. (A routed request cannot do that:
+// route.fulfill() sends the whole answer at once.)
+const startLatePageServer = async function () {
+    let sendPage;
+    const server = http.createServer((request, response) => {
+        response.writeHead(200, { 'Content-Type': 'text/html' });
+        response.flushHeaders();
+        sendPage = () => response.end(CANCEL_CONTEXT_MENU_PAGE);
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    return {
+        url: `http://127.0.0.1:${server.address().port}/`,
+        sendPage: () => sendPage(),
+        close: () => {
+            server.closeAllConnections();
+            server.close();
+        }
+    };
+};
+
 const CONTEXT_MENU_ENTRY_ID = 'close-tab';
 
 // chrome.contextMenus has no API to read the entries, but update() rejects for an id which does not exist
@@ -171,6 +193,7 @@ export {
     openTestPage,
     pathToChromeBuild,
     pathToSource,
+    startLatePageServer,
     stopServiceWorker,
     test
 };

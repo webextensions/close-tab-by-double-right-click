@@ -7,6 +7,7 @@ import {
     expect,
     hasServiceWorkerRestarted,
     pathToSource,
+    startLatePageServer,
     stopServiceWorker,
     test
 } from './fixtures.js';
@@ -124,4 +125,22 @@ test('a PDF file gets the "Close Tab" context menu entry', async ({ context, ser
 
     await page.goto(`${TEST_ORIGIN}/after-pdf`);
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+});
+
+test('a tab whose page has not started to arrive gets the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+    const page = await context.newPage();
+    await page.goto(`${TEST_ORIGIN}/before-late-page`);
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+
+    const server = await startLatePageServer();
+    try {
+        // The server has answered, so the tab shows its (still empty) document, where the content script cannot run yet
+        await page.goto(server.url, { waitUntil: 'commit' });
+        await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(true);
+
+        server.sendPage();
+        await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+    } finally {
+        server.close();
+    }
 });

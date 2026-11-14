@@ -537,7 +537,7 @@ def open_real_site(browser, url):
                 state = browser.run('return [document.documentURI, document.readyState];')
             except RuntimeError:
                 continue  # the document is being replaced
-            if state[0] != 'about:blank' and state[1] != 'loading':
+            if state and state[0] != 'about:blank' and state[1] != 'loading':
                 break
         if state and not state[0].startswith('about:') and state[1] != 'loading':
             # Lets the page settle, and the content script read its setting

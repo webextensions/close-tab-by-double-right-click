@@ -8,6 +8,12 @@ const CANCEL_CONTEXT_MENU_PAGE = TEST_PAGE.replace(
     '<script>document.addEventListener("contextmenu", (e) => e.preventDefault());</script></body>'
 );
 
+// A page which asks for a confirmation before it gets closed (and cancels the context menu as well)
+const ASK_BEFORE_LEAVING_PAGE = CANCEL_CONTEXT_MENU_PAGE.replace(
+    '</body>',
+    '<script>window.addEventListener("beforeunload", (e) => e.preventDefault());</script></body>'
+);
+
 // Whether the content script has finished setting up in the latest tab which shows the given URL
 const isContentScriptReady = async function (serviceWorker, url) {
     return await serviceWorker.evaluate(async (url) => {
@@ -30,6 +36,7 @@ const isContentScriptReady = async function (serviceWorker, url) {
 };
 
 export {
+    ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
     TEST_PAGE,
     isContentScriptReady

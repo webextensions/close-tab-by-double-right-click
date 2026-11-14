@@ -59,6 +59,12 @@ if (window.DRCsetup === undefined) {
             if (!tabRemoveAlreadyRequested) {
                 tabRemoveAlreadyRequested = true;
 
+                // Lets the gesture work again if the tab stays open (eg: the user chose to stay on a page which asks
+                // before leaving). The background script ignores repeated requests for the same duration.
+                setTimeout(function () {
+                    tabRemoveAlreadyRequested = false;
+                }, 2500);
+
                 // Note: Ideally, `chrome.runtime` should be available in all cases, but if the extension instance is disabled
                 //       due to disabling / reloading extension, then `chrome.runtime` wouldn't be available.
                 if (chrome.runtime) {

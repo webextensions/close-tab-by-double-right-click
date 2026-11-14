@@ -3,6 +3,7 @@ import path from 'node:path';
 import { test as base, chromium, expect } from '@playwright/test';
 
 import {
+    ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
     TEST_PAGE,
     isContentScriptReady
@@ -14,6 +15,7 @@ const pathToSource = path.join(import.meta.dirname, '..', '..', 'extension');
 const TEST_ORIGIN = 'https://drc.test';
 
 const CANCEL_CONTEXT_MENU_PATH = '/cancel-context-menu/';
+const ASK_BEFORE_LEAVING_PATH = '/ask-before-leaving/';
 
 const test = base.extend({
     // The extension folder to load; "npm run test:e2e" builds dist/chrome first
@@ -34,6 +36,8 @@ const test = base.extend({
             let body = TEST_PAGE;
             if (pathname.startsWith(CANCEL_CONTEXT_MENU_PATH)) {
                 body = CANCEL_CONTEXT_MENU_PAGE;
+            } else if (pathname.startsWith(ASK_BEFORE_LEAVING_PATH)) {
+                body = ASK_BEFORE_LEAVING_PAGE;
             }
             return route.fulfill({ contentType: 'text/html', body });
         });
@@ -96,6 +100,7 @@ const hasServiceWorkerRestarted = async function (serviceWorker) {
 };
 
 export {
+    ASK_BEFORE_LEAVING_PATH,
     CANCEL_CONTEXT_MENU_PATH,
     TEST_ORIGIN,
     expect,

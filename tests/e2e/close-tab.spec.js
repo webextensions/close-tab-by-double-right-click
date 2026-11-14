@@ -1,4 +1,5 @@
 import {
+    ASK_BEFORE_LEAVING_PATH,
     CANCEL_CONTEXT_MENU_PATH,
     expect,
     holdRightClick,
@@ -41,6 +42,38 @@ test('right clicks slower than the default 500 ms keep the tab open', async ({ c
     await page.waitForTimeout(1000);
 
     expect(page.isClosed()).toBe(false);
+});
+
+test('double right click works again after the user chose to stay on the page', async ({ context, serviceWorker }) => {
+    const page = await openTestPage({ context, serviceWorker }, `${ASK_BEFORE_LEAVING_PATH}stay-then-leave`);
+    // The browser only asks before leaving a page which the user has interacted with
+    await page.mouse.click(100, 100);
+
+    let dialogs = 0;
+    page.on('dialog', async (dialog) => {
+        dialogs += 1;
+        if (dialogs === 1) {
+            await dialog.dismiss(); // Stay on the page
+        } else {
+            await dialog.accept();
+        }
+    });
+
+    await holdRightClick(page, 120);
+    await page.waitForTimeout(150);
+    await holdRightClick(page, 120);
+    await expect.poll(() => dialogs).toBe(1);
+    expect(page.isClosed()).toBe(false);
+
+    // Both the content script and the background script ignore repeated close requests for 2.5 seconds
+    await page.waitForTimeout(3000);
+    const closed = page.waitForEvent('close');
+    await holdRightClick(page, 120);
+    await page.waitForTimeout(150);
+    await holdRightClick(page, 120);
+
+    await closed;
+    expect(dialogs).toBe(2);
 });
 
 test('double right click inside a frame closes the tab', async ({ context, serviceWorker }) => {

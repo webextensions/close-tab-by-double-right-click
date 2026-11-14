@@ -38,6 +38,14 @@ is.
   web stores), a tab without a committed URL (it waits for the first response of its page), http(s) tabs which fail
   the scripting probe in [extension/include.js](extension/include.js) (the browser's error pages), and PDF files. The
   browser's PDF viewer gets the clicks there; in Chrome the probe passes on it, so the probe reports the document type.
+  Chrome shows the empty document of a page as soon as its headers came, and neither the content script nor the probe
+  runs before the `<html>` tag arrives, so a probe without an answer adds the entry as well. (Firefox keeps the
+  previous page until then.)
+- A frame which still waits for its own page shows an empty placeholder document, in which the browser runs no
+  declared content script. The content script of the page around the frame attaches its listeners to that placeholder
+  on `mouseover`; keep that. Injecting into the placeholder from the background script breaks same-site frames: the
+  browser reuses the placeholder's window for the page, so the script finds itself already there and attaches its
+  listeners to the old document.
 - The version lives in both package.json and the manifest. Never edit it by hand; `npm version` syncs both.
 - `web-ext lint` should report 0 errors and exactly 3 known warnings:
   `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`, `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`, `UNSAFE_VAR_ASSIGNMENT`.
@@ -80,6 +88,12 @@ is.
 - A double right click cannot span two documents. A real page which reloads itself, or which puts a frame under the
   pointer between the two clicks, fails a test without any bug in the extension: `openRealSite` lets a page settle
   first, and `stallSubresources` holds a loading page in place.
+- `stallSubresources` fails the requests which scripts make (`xhr`, `fetch`) instead of leaving them unanswered: a
+  synchronous one without an answer freezes the page for good, and then no script answers and no click arrives. The
+  bot check which Akamai puts in front of amazon.com makes one. Amazon's DNS only picks Akamai for a minute at a time,
+  so [tests/sites/sites.spec.js](tests/sites/sites.spec.js) has an entry which pins the browser to it.
+- `route.fulfill()` sends a whole answer at once. For a page whose headers come before the page itself, use
+  `startLatePageServer` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js).
 - A page which is still loading: use the `STALLED_*` pages in [tests/shared/test-pages.js](tests/shared/test-pages.js)
   and open them with `waitUntil: 'commit'`. Whatever waits for the page to load never returns there (`page.goto` by
   default, `executeScript` without `injectImmediately`, WebDriver's navigation command). On a page which has not

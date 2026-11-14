@@ -45,6 +45,12 @@ const STALLED_HEAD_PAGE = TEST_PAGE.replace('</head>', `<script src="${STALLED_P
 // A page which shows its content while an image keeps it loading
 const STALLED_IMAGE_PAGE = TEST_PAGE.replace('</body>', `<img src="${STALLED_PATH}image.png"></body>`);
 
+// A page which is covered by a frame whose own page never arrives. Such a frame shows an empty placeholder document.
+const LATE_FRAME_PAGE = TEST_PAGE.replace(
+    '</body>',
+    `<iframe src="${STALLED_PATH}frame" style="position:fixed;left:0;top:0;width:100%;height:100%;border:0"></iframe></body>`
+);
+
 // The same two pages, cancelling the context menu (before they stall)
 const STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE = STALLED_HEAD_PAGE.replace(
     '<script src',
@@ -87,6 +93,7 @@ export {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
     FRAME_PATH,
+    LATE_FRAME_PAGE,
     OFFSET_FRAME_PAGE,
     PDF_FILE,
     STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE,

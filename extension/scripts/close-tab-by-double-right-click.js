@@ -216,6 +216,35 @@ if (window.DRCattachListeners) {
         listen(document, 'mousemove', receivePointerMove);
     }
 
+    // A frame which still waits for its own page shows an empty placeholder document, in which the browser does not run
+    // this script, so a double right click on such a frame would do nothing. The placeholder belongs to this page
+    // (whatever site the frame is loading), so this page listens there itself, and counts the clicks on the frame
+    // together with its own. Those listeners go away with the placeholder: once the page of the frame arrives, it gets
+    // this script by itself.
+    // "mouseover" tells that the pointer is on a frame, which it is before any click there. The browser also sends it
+    // for a pointer which rests where a frame shows up.
+    const placeholdersListenedTo = new WeakSet();
+    listen(document, 'mouseover', function (e) {
+        const frame = e.target;
+        if (!frame || (frame.localName !== 'iframe' && frame.localName !== 'frame')) {
+            return;
+        }
+        // A frame without a page to load keeps its empty document, where the browser does run this script
+        const src = frame.getAttribute('src');
+        if (!src || /^(about|javascript):/i.test(src)) {
+            return;
+        }
+        // Not available once the frame shows a page of another site
+        const placeholder = frame.contentDocument;
+        if (!placeholder || placeholder.URL !== 'about:blank' || placeholdersListenedTo.has(placeholder)) {
+            return;
+        }
+        placeholdersListenedTo.add(placeholder);
+        listeners.forEach(function ([, type, listener]) {
+            placeholder.addEventListener(type, listener, true);
+        });
+    });
+
     // Keep this as the last statement: Firefox rejects the injection unless the file ends on a value which can be cloned
     setTimeout(async function () {
         var chromeStorageForExtensionData = chrome.storage.sync || chrome.storage.local;

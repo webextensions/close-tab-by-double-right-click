@@ -87,6 +87,12 @@ STALLED_HEAD_PAGE = TEST_PAGE.replace('</head>', f'<script src="{STALLED_PATH}sc
 # A page which shows its content while an image keeps it loading
 STALLED_IMAGE_PATH = '/stalled-image'
 STALLED_IMAGE_PAGE = TEST_PAGE.replace('</body>', f'<img src="{STALLED_PATH}image.png"></body>')
+# A page covered by a frame whose own page does not arrive. Such a frame shows an empty placeholder document.
+LATE_FRAME_PATH = '/late-frame'
+LATE_FRAME_PAGE = TEST_PAGE.replace(
+    '</body>',
+    f'<iframe src="{STALLED_PATH}frame" style="position:fixed;left:0;top:0;width:100%;height:100%;border:0"></iframe>'
+    '</body>')
 STALLED_REQUESTS_RELEASED = threading.Event()
 # Bound without listening: the port refuses connections, so a tab which opens it shows one of the browser's error pages
 REFUSING_SOCKET = socket.socket()
@@ -157,7 +163,8 @@ class TestPageHandler(http.server.BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'text/html')
         self.end_headers()
         pages = {CANCEL_CONTEXT_MENU_PATH: CANCEL_CONTEXT_MENU_PAGE, OWN_HANDLERS_PATH: OWN_HANDLERS_PAGE,
-                 STALLED_HEAD_PATH: STALLED_HEAD_PAGE, STALLED_IMAGE_PATH: STALLED_IMAGE_PAGE}
+                 STALLED_HEAD_PATH: STALLED_HEAD_PAGE, STALLED_IMAGE_PATH: STALLED_IMAGE_PAGE,
+                 LATE_FRAME_PATH: LATE_FRAME_PAGE}
         self.wfile.write(pages.get(self.path, TEST_PAGE).encode())
 
     def log_message(self, *args):
@@ -171,6 +178,7 @@ CANCEL_CONTEXT_MENU_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{CANCEL_CO
 OWN_HANDLERS_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{OWN_HANDLERS_PATH}'
 STALLED_HEAD_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{STALLED_HEAD_PATH}'
 STALLED_IMAGE_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{STALLED_IMAGE_PATH}'
+LATE_FRAME_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{LATE_FRAME_PATH}'
 
 
 # ---- WebDriver (geckodriver) ----
@@ -427,7 +435,9 @@ def check_own_handlers(browser, mouse, keep):
 def check_loading_pages(browser, mouse, keep):
     # A slow page can take minutes to load, and the double right click has to work in the meantime
     pages = (('a page which shows its content while it keeps loading', STALLED_IMAGE_URL, ['interactive', True]),
-             ('a page which is stalled in its <head>', STALLED_HEAD_URL, ['loading', False]))
+             ('a page which is stalled in its <head>', STALLED_HEAD_URL, ['loading', False]),
+             # The clicks go to the frame, where the content script of the page around it listens
+             ('a frame which still waits for its own page', LATE_FRAME_URL, ['interactive', True]))
     for name, url, expected_state in pages:
         target = open_stalled_page(browser, url)
         focus_page(mouse)

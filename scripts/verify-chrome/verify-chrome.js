@@ -27,6 +27,7 @@ import { findMiddleOfElement, openRealSite, sitesFor } from '../../tests/shared/
 import {
     CANCEL_CONTEXT_MENU_PAGE,
     FRAME_PATH,
+    LATE_FRAME_PAGE,
     OFFSET_FRAME_PAGE,
     STALLED_HEAD_PAGE,
     STALLED_IMAGE_PAGE,
@@ -57,7 +58,9 @@ const OFFSET_FRAME_URL = `${TEST_ORIGIN}/offset-frame`;
 // Pages which never finish loading: the first one stalls before it gets a body, the second one shows its content
 const STALLED_HEAD_URL = `${TEST_ORIGIN}/stalled-head`;
 const STALLED_IMAGE_URL = `${TEST_ORIGIN}/stalled-image`;
-const STALLED_URLS = [STALLED_HEAD_URL, STALLED_IMAGE_URL];
+// A page covered by a frame whose own page never arrives, so the page never finishes loading either
+const LATE_FRAME_URL = `${TEST_ORIGIN}/late-frame`;
+const STALLED_URLS = [STALLED_HEAD_URL, STALLED_IMAGE_URL, LATE_FRAME_URL];
 
 // A spot inside the page of the full screen window
 const POINTER = { x: 600, y: 450 };
@@ -109,6 +112,18 @@ const checks = [
         true,
         ['right', 'sleep', 0.15, 'right', 'sleep', 1.2],
         STALLED_IMAGE_URL
+    ],
+    [
+        'single right click on a frame which still waits for its own page keeps the tab open',
+        false,
+        ['right', 'sleep', 1.2],
+        LATE_FRAME_URL
+    ],
+    [
+        'double right click on a frame which still waits for its own page closes the tab',
+        true,
+        ['right', 'sleep', 0.15, 'right', 'sleep', 1.2],
+        LATE_FRAME_URL
     ],
     [
         'single right click on a page which is stalled in its <head> keeps the tab open',
@@ -243,6 +258,7 @@ const runChecks = async function (displayMode) {
         });
         await context.route(OFFSET_FRAME_URL, (route) => route.fulfill({ contentType: 'text/html', body: OFFSET_FRAME_PAGE }));
         await context.route(`${TEST_ORIGIN}${FRAME_PATH}`, (route) => route.fulfill({ contentType: 'text/html', body: TEST_PAGE }));
+        await context.route(LATE_FRAME_URL, (route) => route.fulfill({ contentType: 'text/html', body: LATE_FRAME_PAGE }));
         await context.route(STALLED_HEAD_URL, (route) => route.fulfill({ contentType: 'text/html', body: STALLED_HEAD_PAGE }));
         await context.route(STALLED_IMAGE_URL, (route) => route.fulfill({ contentType: 'text/html', body: STALLED_IMAGE_PAGE }));
         // Never answered

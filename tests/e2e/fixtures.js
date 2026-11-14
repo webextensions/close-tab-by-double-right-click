@@ -6,6 +6,7 @@ import { test as base, chromium, expect } from '@playwright/test';
 import {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
+    LATE_FRAME_PAGE,
     OFFSET_FRAME_PAGE,
     PDF_FILE,
     STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE,
@@ -23,6 +24,7 @@ const TEST_ORIGIN = 'https://drc.test';
 
 const CANCEL_CONTEXT_MENU_PATH = '/cancel-context-menu/';
 const ASK_BEFORE_LEAVING_PATH = '/ask-before-leaving/';
+const LATE_FRAME_PATH = '/late-frame/';
 const OFFSET_FRAME_PATH = '/offset-frame/';
 const PDF_PATH = '/pdf/';
 const STALLED_HEAD_PATH = '/stalled-head/';
@@ -63,6 +65,8 @@ const test = base.extend({
                 body = ASK_BEFORE_LEAVING_PAGE;
             } else if (pathname.startsWith(OFFSET_FRAME_PATH)) {
                 body = OFFSET_FRAME_PAGE;
+            } else if (pathname.startsWith(LATE_FRAME_PATH)) {
+                body = LATE_FRAME_PAGE;
             } else if (pathname.startsWith(STALLED_HEAD_PATH)) {
                 body = STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE;
             } else if (pathname.startsWith(STALLED_IMAGE_PATH)) {
@@ -179,6 +183,7 @@ const clickContextMenuEntry = async function (serviceWorker, url) {
 export {
     ASK_BEFORE_LEAVING_PATH,
     CANCEL_CONTEXT_MENU_PATH,
+    LATE_FRAME_PATH,
     OFFSET_FRAME_PATH,
     PDF_PATH,
     STALLED_HEAD_PATH,

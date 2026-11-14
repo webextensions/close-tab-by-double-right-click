@@ -68,6 +68,15 @@ OWN_HANDLERS_PAGE = TEST_PAGE.replace(
     '<script>window.__ownHandlerCalls = [];'
     'document.onmousedown = () => window.__ownHandlerCalls.push("mousedown");'
     'document.onmouseup = () => window.__ownHandlerCalls.push("mouseup");</script></body>')
+# Requests below this path get no answer while the checks run, so a page which uses one of them does not finish loading
+STALLED_PATH = '/stalled/'
+# A page which stalls inside its <head>, so its document never gets a body
+STALLED_HEAD_PATH = '/stalled-head'
+STALLED_HEAD_PAGE = TEST_PAGE.replace('</head>', f'<script src="{STALLED_PATH}script.js"></script></head>')
+# A page which shows its content while an image keeps it loading
+STALLED_IMAGE_PATH = '/stalled-image'
+STALLED_IMAGE_PAGE = TEST_PAGE.replace('</body>', f'<img src="{STALLED_PATH}image.png"></body>')
+STALLED_REQUESTS_RELEASED = threading.Event()
 
 with socket.socket() as free_port_probe:
     free_port_probe.bind(('127.0.0.1', 0))
@@ -87,21 +96,28 @@ for (const type of ['mousedown', 'mouseup', 'contextmenu']) {
 
 class TestPageHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith(STALLED_PATH):
+            # Released once the checks are over, when nothing waits for the answer any more
+            STALLED_REQUESTS_RELEASED.wait()
+            return
         self.send_response(200)
         self.send_header('Content-Type', 'text/html')
         self.end_headers()
-        pages = {CANCEL_CONTEXT_MENU_PATH: CANCEL_CONTEXT_MENU_PAGE, OWN_HANDLERS_PATH: OWN_HANDLERS_PAGE}
+        pages = {CANCEL_CONTEXT_MENU_PATH: CANCEL_CONTEXT_MENU_PAGE, OWN_HANDLERS_PATH: OWN_HANDLERS_PAGE,
+                 STALLED_HEAD_PATH: STALLED_HEAD_PAGE, STALLED_IMAGE_PATH: STALLED_IMAGE_PAGE}
         self.wfile.write(pages.get(self.path, TEST_PAGE).encode())
 
     def log_message(self, *args):
         pass
 
 
-# The background script only injects into http(s) pages, so the test pages are served from a local web server
+# The content script only runs in http(s) pages, so the test pages are served from a local web server
 TEST_SERVER = http.server.ThreadingHTTPServer(('127.0.0.1', 0), TestPageHandler)
 TEST_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}/'
 CANCEL_CONTEXT_MENU_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{CANCEL_CONTEXT_MENU_PATH}'
 OWN_HANDLERS_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{OWN_HANDLERS_PATH}'
+STALLED_HEAD_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{STALLED_HEAD_PATH}'
+STALLED_IMAGE_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{STALLED_IMAGE_PATH}'
 
 
 # ---- WebDriver (geckodriver) ----
@@ -238,7 +254,15 @@ def check(name, passed, detail=''):
 def open_test_page(browser, url=TEST_URL):
     handle = browser.new_tab(url)
     browser.run(EVENT_LOGGER)
-    time.sleep(3)  # the background script injects the content script once the tab has loaded
+    time.sleep(1)  # lets the content script read its setting
+    return handle
+
+
+def open_stalled_page(browser, url):
+    handle = browser.new_tab()
+    # Not through WebDriver's navigation command, which would wait for the page to finish loading
+    browser.run(f'window.location.href = {json.dumps(url)};')
+    time.sleep(1.5)
     return handle
 
 
@@ -344,6 +368,48 @@ def check_own_handlers(browser, mouse, keep):
     right_clicks(mouse, 0.15)
     time.sleep(1.5)
     check('double right click closes the tab after the page reset its own handlers', target not in browser.handles())
+    close_tab_if_open(browser, mouse, target, keep)
+
+
+def check_loading_pages(browser, mouse, keep):
+    # A slow page can take minutes to load, and the double right click has to work in the meantime
+    pages = (('a page which shows its content while it keeps loading', STALLED_IMAGE_URL, ['interactive', True]),
+             ('a page which is stalled in its <head>', STALLED_HEAD_URL, ['loading', False]))
+    for name, url, expected_state in pages:
+        target = open_stalled_page(browser, url)
+        focus_page(mouse)
+        state = browser.run('return [document.URL, document.readyState, !!document.body];')
+        if state != [url] + expected_state:
+            raise RuntimeError(f'Expected {name}, got {json.dumps(state)}')
+
+        mouse.click(BTN_RIGHT)
+        time.sleep(1.2)
+        still_open = target in browser.handles()
+        check(f'single right click on {name} keeps the tab open', still_open)
+        if still_open:
+            mouse.key(KEYSYM_ESCAPE)
+            time.sleep(1)
+        else:
+            browser.switch_to(keep)
+            target = open_stalled_page(browser, url)
+            focus_page(mouse)
+
+        right_clicks(mouse, 0.15)
+        time.sleep(1.5)
+        check(f'double right click on {name} closes the tab', target not in browser.handles())
+        close_tab_if_open(browser, mouse, target, keep)
+
+
+def check_rewritten_page(browser, mouse, keep):
+    # document.open() erases every event listener of the document and its window; the content script has to notice
+    # that and attach its listeners again
+    target = open_test_page(browser)
+    focus_page(mouse)
+    browser.run(f'document.open(); document.write({json.dumps(TEST_PAGE)}); document.close();')
+    time.sleep(0.5)
+    right_clicks(mouse, 0.15)
+    time.sleep(1.5)
+    check('double right click closes the tab after the page rewrote itself', target not in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
 
 
@@ -455,8 +521,8 @@ def main():
         time.sleep(1.5)
         mouse = Input()
 
-        steps = (check_clicks, check_held_clicks, check_shift_clicks, check_own_handlers, check_context_menu_entry,
-                 check_restricted_domain, check_options_page)
+        steps = (check_clicks, check_held_clicks, check_shift_clicks, check_own_handlers, check_loading_pages,
+                 check_rewritten_page, check_context_menu_entry, check_restricted_domain, check_options_page)
         for step in steps:
             try:
                 step(browser, mouse, keep)
@@ -464,6 +530,7 @@ def main():
                 check(step.__name__, False, str(err))
                 browser.switch_to(keep)
     finally:
+        STALLED_REQUESTS_RELEASED.set()
         if mouse:
             mouse.stop()
         if browser:

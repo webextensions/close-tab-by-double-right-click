@@ -5,8 +5,8 @@ import { test as base, chromium, expect } from '@playwright/test';
 import {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
-    STALLED_HEAD_PAGE,
-    STALLED_IMAGE_PAGE,
+    STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE,
+    STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE,
     STALLED_PATH,
     SVG_PAGE,
     TEST_PAGE,
@@ -54,9 +54,9 @@ const test = base.extend({
             } else if (pathname.startsWith(ASK_BEFORE_LEAVING_PATH)) {
                 body = ASK_BEFORE_LEAVING_PAGE;
             } else if (pathname.startsWith(STALLED_HEAD_PATH)) {
-                body = STALLED_HEAD_PAGE;
+                body = STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE;
             } else if (pathname.startsWith(STALLED_IMAGE_PATH)) {
-                body = STALLED_IMAGE_PAGE;
+                body = STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE;
             }
             return route.fulfill({ contentType: 'text/html', body });
         });

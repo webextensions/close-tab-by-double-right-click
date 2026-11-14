@@ -20,7 +20,14 @@ import { promisify } from 'node:util';
 
 import { chromium } from '@playwright/test';
 
-import { CANCEL_CONTEXT_MENU_PAGE, TEST_PAGE, isContentScriptReady } from '../../tests/shared/test-pages.js';
+import {
+    CANCEL_CONTEXT_MENU_PAGE,
+    STALLED_HEAD_PAGE,
+    STALLED_IMAGE_PAGE,
+    STALLED_PATH,
+    TEST_PAGE,
+    isContentScriptReady
+} from '../../tests/shared/test-pages.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -28,10 +35,15 @@ const projectRoot = path.join(import.meta.dirname, '..', '..');
 const extensionPath = path.resolve(process.argv[2] ?? path.join(projectRoot, 'dist', 'chrome'));
 const realInputScript = path.join(projectRoot, 'scripts', 'real-input', 'real_input.py');
 
-// The background script only injects into http(s) pages, so serve the test pages from a fake https origin
-const TEST_URL = 'https://drc.test/verify-chrome';
+// The content script only runs in http(s) pages, so serve the test pages from a fake https origin
+const TEST_ORIGIN = 'https://drc.test';
+const TEST_URL = `${TEST_ORIGIN}/verify-chrome`;
 // A page which shows its own context menu cancels the browser's one, so nothing swallows parts of a right click there
-const CANCEL_CONTEXT_MENU_URL = 'https://drc.test/cancel-context-menu';
+const CANCEL_CONTEXT_MENU_URL = `${TEST_ORIGIN}/cancel-context-menu`;
+// Pages which never finish loading: the first one stalls before it gets a body, the second one shows its content
+const STALLED_HEAD_URL = `${TEST_ORIGIN}/stalled-head`;
+const STALLED_IMAGE_URL = `${TEST_ORIGIN}/stalled-image`;
+const STALLED_URLS = [STALLED_HEAD_URL, STALLED_IMAGE_URL];
 
 // A spot inside the page of the full screen window
 const POINTER = { x: 600, y: 450 };
@@ -59,6 +71,30 @@ const checks = [
         true,
         ['right-hold', 0.12, 'sleep', 0.15, 'right-hold', 0.12, 'sleep', 1.2],
         CANCEL_CONTEXT_MENU_URL
+    ],
+    [
+        'single right click on a page which shows its content while it keeps loading keeps the tab open',
+        false,
+        ['right', 'sleep', 1.2],
+        STALLED_IMAGE_URL
+    ],
+    [
+        'double right click on a page which shows its content while it keeps loading closes the tab',
+        true,
+        ['right', 'sleep', 0.15, 'right', 'sleep', 1.2],
+        STALLED_IMAGE_URL
+    ],
+    [
+        'single right click on a page which is stalled in its <head> keeps the tab open',
+        false,
+        ['right', 'sleep', 1.2],
+        STALLED_HEAD_URL
+    ],
+    [
+        'double right click on a page which is stalled in its <head> closes the tab',
+        true,
+        ['right', 'sleep', 0.15, 'right', 'sleep', 1.2],
+        STALLED_HEAD_URL
     ]
 ];
 
@@ -70,7 +106,8 @@ const realInput = async function (...commands) {
 
 const openTestPage = async function (context, serviceWorker, url) {
     const page = await context.newPage();
-    await page.goto(url);
+    // A stalled page never fires its "load" event
+    await page.goto(url, { waitUntil: STALLED_URLS.includes(url) ? 'commit' : 'load' });
 
     const deadline = Date.now() + 15000;
     while (!(await isContentScriptReady(serviceWorker, url))) {
@@ -114,6 +151,10 @@ const runChecks = async function (displayMode) {
         await context.route(CANCEL_CONTEXT_MENU_URL, (route) => {
             return route.fulfill({ contentType: 'text/html', body: CANCEL_CONTEXT_MENU_PAGE });
         });
+        await context.route(STALLED_HEAD_URL, (route) => route.fulfill({ contentType: 'text/html', body: STALLED_HEAD_PAGE }));
+        await context.route(STALLED_IMAGE_URL, (route) => route.fulfill({ contentType: 'text/html', body: STALLED_IMAGE_PAGE }));
+        // Never answered
+        await context.route(`${TEST_ORIGIN}${STALLED_PATH}**`, () => {});
 
         let [serviceWorker] = context.serviceWorkers();
         if (!serviceWorker) {

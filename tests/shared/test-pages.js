@@ -23,15 +23,21 @@ const SVG_PAGE = (
 // Requests below this path never get an answer, so a page which uses one of them never finishes loading
 const STALLED_PATH = '/stalled/';
 
-// A page which stalls inside its <head>, so its document never gets a body (it also cancels the context menu)
-const STALLED_HEAD_PAGE = (
-    '<!doctype html><html><head><title>Test page</title>' +
-    '<script>document.addEventListener("contextmenu", (e) => e.preventDefault());</script>' +
-    `<script src="${STALLED_PATH}script.js"></script></head><body style="height:100vh">Test page</body></html>`
-);
+// A page which stalls inside its <head>, so its document never gets a body
+const STALLED_HEAD_PAGE = TEST_PAGE.replace('</head>', `<script src="${STALLED_PATH}script.js"></script></head>`);
 
-// A page which shows its content while an image keeps it loading (it also cancels the context menu)
-const STALLED_IMAGE_PAGE = CANCEL_CONTEXT_MENU_PAGE.replace('</body>', `<img src="${STALLED_PATH}image.png"></body>`);
+// A page which shows its content while an image keeps it loading
+const STALLED_IMAGE_PAGE = TEST_PAGE.replace('</body>', `<img src="${STALLED_PATH}image.png"></body>`);
+
+// The same two pages, cancelling the context menu (before they stall)
+const STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE = STALLED_HEAD_PAGE.replace(
+    '<script src',
+    '<script>document.addEventListener("contextmenu", (e) => e.preventDefault());</script><script src'
+);
+const STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE = CANCEL_CONTEXT_MENU_PAGE.replace(
+    '</body>',
+    `<img src="${STALLED_PATH}image.png"></body>`
+);
 
 // Whether the content script has finished setting up in the latest tab which shows the given URL
 const isContentScriptReady = async function (serviceWorker, url) {
@@ -59,7 +65,9 @@ const isContentScriptReady = async function (serviceWorker, url) {
 export {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
+    STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE,
     STALLED_HEAD_PAGE,
+    STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE,
     STALLED_IMAGE_PAGE,
     STALLED_PATH,
     SVG_PAGE,

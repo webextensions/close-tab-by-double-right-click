@@ -116,3 +116,18 @@ test('a tab which waits for the first response of its page gets the "Close Tab" 
     answer();
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
 });
+
+test('a browser error page gets the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+    const page = await context.newPage();
+    await page.goto(`${TEST_ORIGIN}/before-error-page`);
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+
+    // The request fails, so the tab shows a browser error page: it keeps the URL of the page, but cannot be scripted
+    const url = `${TEST_ORIGIN}/unreachable`;
+    await context.route(url, (route) => route.abort('connectionrefused'));
+    await expect(page.goto(url)).rejects.toThrow();
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(true);
+
+    await page.goto(`${TEST_ORIGIN}/after-error-page`);
+    await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
+});

@@ -114,6 +114,10 @@
         });
     }
 
+    // Counts the checks below, so that a slow answer of an older check cannot undo the outcome of a newer one. Nothing
+    // is lost when a restart of the background script resets it.
+    let latestContextMenuCheck = 0;
+
     function addContextMenuEntryIfRequired(tabId) {
         chrome.tabs.get(tabId, function (tab) {
             if (chrome.runtime.lastError) {
@@ -124,6 +128,7 @@
             if (tab && tab.active) {
                 chrome.windows.getLastFocused(function (win) {
                     if (tab.windowId === win.id) {
+                        const contextMenuCheck = ++latestContextMenuCheck;
                         if (!url) {
                             // Nothing got loaded into the tab so far (eg: a link opened in a new tab, while the
                             // server has not answered yet), so there is no page for the content script to run in
@@ -134,8 +139,24 @@
                             url.indexOf('http://') === 0 ||
                             url.indexOf('https://') === 0
                         ) {
-                            // TODO: If it is a native error page (eg: "This site can't be reached"), then add the context menu entry
-                            removeContextMenuEntry();
+                            // A page of the browser itself can be showing under such a URL (eg: "This site can't be
+                            // reached"), where the content script cannot run. Trying to run a script tells.
+                            chrome.scripting.executeScript({
+                                target: { tabId },
+                                func: function () {
+                                    return true;
+                                },
+                                // Otherwise the answer would only come once the page has loaded
+                                injectImmediately: true
+                            }).then(function () {
+                                if (contextMenuCheck === latestContextMenuCheck) {
+                                    removeContextMenuEntry();
+                                }
+                            }, function () {
+                                if (contextMenuCheck === latestContextMenuCheck) {
+                                    addContextMenuEntry();
+                                }
+                            });
                         } else {
                             // URLs might begin with:
                             //     file:/// (not covered by the host permissions in the manifest)

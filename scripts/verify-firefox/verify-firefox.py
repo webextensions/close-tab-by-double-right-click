@@ -77,6 +77,10 @@ STALLED_HEAD_PAGE = TEST_PAGE.replace('</head>', f'<script src="{STALLED_PATH}sc
 STALLED_IMAGE_PATH = '/stalled-image'
 STALLED_IMAGE_PAGE = TEST_PAGE.replace('</body>', f'<img src="{STALLED_PATH}image.png"></body>')
 STALLED_REQUESTS_RELEASED = threading.Event()
+# Bound without listening: the port refuses connections, so a tab which opens it shows one of the browser's error pages
+REFUSING_SOCKET = socket.socket()
+REFUSING_SOCKET.bind(('127.0.0.1', 0))
+ERROR_PAGE_URL = f'http://127.0.0.1:{REFUSING_SOCKET.getsockname()[1]}/'
 
 with socket.socket() as free_port_probe:
     free_port_probe.bind(('127.0.0.1', 0))
@@ -432,6 +436,19 @@ def check_context_menu_entry(browser, mouse, keep):
     close_tab_if_open(browser, mouse, blank, keep)
 
 
+def check_error_page(browser, mouse, keep):
+    # The content script cannot run on the browser's error pages either, so they get the entry as well
+    target = browser.new_tab()
+    try:
+        browser.cmd('POST', '/url', {'url': ERROR_PAGE_URL})
+    except RuntimeError:
+        pass  # WebDriver reports reaching an error page as a failed navigation
+    time.sleep(2)
+    choose_close_tab_entry(mouse)
+    check('"Close Tab" context-menu entry on a browser error page closes the tab', target not in browser.handles())
+    close_tab_if_open(browser, mouse, target, keep)
+
+
 def is_online():
     try:
         with urllib.request.urlopen(RESTRICTED_DOMAIN_URL, timeout=5):
@@ -522,7 +539,8 @@ def main():
         mouse = Input()
 
         steps = (check_clicks, check_held_clicks, check_shift_clicks, check_own_handlers, check_loading_pages,
-                 check_rewritten_page, check_context_menu_entry, check_restricted_domain, check_options_page)
+                 check_rewritten_page, check_context_menu_entry, check_error_page, check_restricted_domain,
+                 check_options_page)
         for step in steps:
             try:
                 step(browser, mouse, keep)

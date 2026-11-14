@@ -54,10 +54,22 @@ if (window.DRCsetup === undefined) {
             maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
         }
 
+        var tabRemoveAlreadyRequested = false;
+        var requestTabClose = function () {
+            if (!tabRemoveAlreadyRequested) {
+                tabRemoveAlreadyRequested = true;
+
+                // Note: Ideally, `chrome.runtime` should be available in all cases, but if the extension instance is disabled
+                //       due to disabling / reloading extension, then `chrome.runtime` wouldn't be available.
+                if (chrome.runtime) {
+                    chrome.runtime.sendMessage({closeTab: true});
+                }
+            }
+        };
+
         var receiveRightClick = (function () {
             var counter = 0,
-                lastTime = new Date(),
-                tabRemoveAlreadyRequested = false;
+                lastTime = new Date();
             return function (e) {
                 if (e.button !== 2) {
                     return;
@@ -86,15 +98,7 @@ if (window.DRCsetup === undefined) {
                         timeDiff >= 50
                     )
                 ) {
-                    if (!tabRemoveAlreadyRequested) {
-                        tabRemoveAlreadyRequested = true;
-
-                        // Note: Ideally, `chrome.runtime` should be available in all cases, but if the extension instance is disabled
-                        //       due to disabling / reloading extension, then `chrome.runtime` wouldn't be available.
-                        if (chrome.runtime) {
-                            chrome.runtime.sendMessage({closeTab: true});
-                        }
-                    }
+                    requestTabClose();
                 }
             };
         }());
@@ -103,6 +107,7 @@ if (window.DRCsetup === undefined) {
             if (document.body) {
                 var isLinux = navigator.platform.toUpperCase().indexOf('LINUX') >= 0;
                 var isFirefox = !!chrome.runtime && chrome.runtime.getURL('').startsWith('moz-extension://');
+                var isChromium = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
 
                 // Only used on Linux: whether the "mousedown" of the latest right click was counted, whether Shift was
                 // held during it, and the "contextmenu" event received since then
@@ -150,6 +155,61 @@ if (window.DRCsetup === undefined) {
                     // "defaultPrevented" is read on "mouseup", by when the page has had its chance to cancel the event
                     window.addEventListener('contextmenu', function (e) {
                         lastContextMenuEvent = e;
+                    }, true);
+                }
+
+                // Chromium on Wayland: while the context menu is open, a second right click on the same spot only closes
+                // the menu and never reaches the page. All the page gets is a "mousemove" without buttons at the unchanged
+                // pointer position, so that is treated as the second right click, unless a key event (menu closed
+                // through the keyboard) or another mouse event follows shortly. A left click on the same spot cannot be
+                // told apart and counts as well. So does a key which closes the menu and is released later than
+                // CONFIRMATION_DELAY, since the page only receives its "keyup".
+                if (isLinux && isChromium) {
+                    const MAX_POINTER_SHIFT = 4; // In pixels
+                    const CONFIRMATION_DELAY = 150; // In milliseconds
+                    let rightPress = null;
+                    let confirmationTimer = null;
+                    const forget = function () {
+                        rightPress = null;
+                        clearTimeout(confirmationTimer);
+                        confirmationTimer = null;
+                    };
+                    const hasPointerShifted = function (e) {
+                        return (
+                            Math.abs(e.clientX - rightPress.x) > MAX_POINTER_SHIFT ||
+                            Math.abs(e.clientY - rightPress.y) > MAX_POINTER_SHIFT
+                        );
+                    };
+                    document.addEventListener('mousedown', function (e) {
+                        forget();
+                        if (e.button === 2) {
+                            rightPress = { x: e.clientX, y: e.clientY, time: Date.now() };
+                        }
+                    }, true);
+                    // A "mouseup" means that no context menu is swallowing the events
+                    document.addEventListener('mouseup', forget, true);
+                    document.addEventListener('keydown', forget, true);
+                    document.addEventListener('keyup', forget, true);
+                    document.addEventListener('mousemove', function (e) {
+                        if (!rightPress) {
+                            return;
+                        }
+                        if (hasPointerShifted(e)) {
+                            forget();
+                            return;
+                        }
+                        if (confirmationTimer || e.buttons !== 0) {
+                            return;
+                        }
+                        const elapsed = Date.now() - rightPress.time;
+                        if (elapsed < 50 || elapsed > maxTimeBetweenClicksValue) {
+                            forget();
+                            return;
+                        }
+                        confirmationTimer = setTimeout(function () {
+                            forget();
+                            requestTabClose();
+                        }, CONFIRMATION_DELAY);
                     }, true);
                 }
 

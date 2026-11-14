@@ -39,10 +39,10 @@ const STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE = CANCEL_CONTEXT_MENU_PAGE.replace(
     `<img src="${STALLED_PATH}image.png"></body>`
 );
 
-// Whether the content script has finished setting up in the latest tab which shows the given URL
-const isContentScriptReady = async function (serviceWorker, url) {
-    return await serviceWorker.evaluate(async (url) => {
-        const tabs = await chrome.tabs.query({ url });
+// Whether the content script has finished setting up in the latest tab which matches the given chrome.tabs query
+const isContentScriptReadyInTab = async function (serviceWorker, queryInfo) {
+    return await serviceWorker.evaluate(async (queryInfo) => {
+        const tabs = await chrome.tabs.query(queryInfo);
         const tab = tabs.at(-1);
         if (!tab) {
             return false;
@@ -59,7 +59,12 @@ const isContentScriptReady = async function (serviceWorker, url) {
         } catch {
             return false;
         }
-    }, url);
+    }, queryInfo);
+};
+
+// Whether the content script has finished setting up in the latest tab which shows the given URL
+const isContentScriptReady = async function (serviceWorker, url) {
+    return await isContentScriptReadyInTab(serviceWorker, { url });
 };
 
 export {
@@ -72,5 +77,6 @@ export {
     STALLED_PATH,
     SVG_PAGE,
     TEST_PAGE,
-    isContentScriptReady
+    isContentScriptReady,
+    isContentScriptReadyInTab
 };

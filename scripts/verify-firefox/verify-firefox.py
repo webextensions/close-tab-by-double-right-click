@@ -61,6 +61,13 @@ TEST_PAGE = ('<!doctype html><html><head><title>Test page</title></head>'
 CANCEL_CONTEXT_MENU_PATH = '/cancel-context-menu'
 CANCEL_CONTEXT_MENU_PAGE = TEST_PAGE.replace(
     '</body>', '<script>document.addEventListener("contextmenu", (e) => e.preventDefault());</script></body>')
+# A page which uses the "on<event>" properties of the document, which Firefox shares with content scripts
+OWN_HANDLERS_PATH = '/own-handlers'
+OWN_HANDLERS_PAGE = TEST_PAGE.replace(
+    '</body>',
+    '<script>window.__ownHandlerCalls = [];'
+    'document.onmousedown = () => window.__ownHandlerCalls.push("mousedown");'
+    'document.onmouseup = () => window.__ownHandlerCalls.push("mouseup");</script></body>')
 
 with socket.socket() as free_port_probe:
     free_port_probe.bind(('127.0.0.1', 0))
@@ -83,7 +90,7 @@ class TestPageHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/html')
         self.end_headers()
-        pages = {CANCEL_CONTEXT_MENU_PATH: CANCEL_CONTEXT_MENU_PAGE}
+        pages = {CANCEL_CONTEXT_MENU_PATH: CANCEL_CONTEXT_MENU_PAGE, OWN_HANDLERS_PATH: OWN_HANDLERS_PAGE}
         self.wfile.write(pages.get(self.path, TEST_PAGE).encode())
 
     def log_message(self, *args):
@@ -94,6 +101,7 @@ class TestPageHandler(http.server.BaseHTTPRequestHandler):
 TEST_SERVER = http.server.ThreadingHTTPServer(('127.0.0.1', 0), TestPageHandler)
 TEST_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}/'
 CANCEL_CONTEXT_MENU_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{CANCEL_CONTEXT_MENU_PATH}'
+OWN_HANDLERS_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{OWN_HANDLERS_PATH}'
 
 
 # ---- WebDriver (geckodriver) ----
@@ -324,6 +332,21 @@ def check_shift_clicks(browser, mouse, keep):
     close_tab_if_open(browser, mouse, target, keep)
 
 
+def check_own_handlers(browser, mouse, keep):
+    # The content script must neither replace the page's own handlers nor depend on that property staying untouched
+    target = open_test_page(browser, OWN_HANDLERS_URL)
+    focus_page(mouse)
+    calls = browser.run('return window.__ownHandlerCalls;')
+    check("the page's own document.onmousedown and document.onmouseup handlers keep working",
+          calls == ['mousedown', 'mouseup'], 'calls: ' + ', '.join(calls))
+
+    browser.run('document.onmousedown = null; document.onmouseup = null;')
+    right_clicks(mouse, 0.15)
+    time.sleep(1.5)
+    check('double right click closes the tab after the page reset its own handlers', target not in browser.handles())
+    close_tab_if_open(browser, mouse, target, keep)
+
+
 def choose_close_tab_entry(mouse):
     mouse.click(BTN_RIGHT)
     time.sleep(0.8)
@@ -432,8 +455,8 @@ def main():
         time.sleep(1.5)
         mouse = Input()
 
-        steps = (check_clicks, check_held_clicks, check_shift_clicks, check_context_menu_entry, check_restricted_domain,
-                 check_options_page)
+        steps = (check_clicks, check_held_clicks, check_shift_clicks, check_own_handlers, check_context_menu_entry,
+                 check_restricted_domain, check_options_page)
         for step in steps:
             try:
                 step(browser, mouse, keep)

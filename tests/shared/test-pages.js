@@ -14,6 +14,12 @@ const ASK_BEFORE_LEAVING_PAGE = CANCEL_CONTEXT_MENU_PAGE.replace(
     '<script>window.addEventListener("beforeunload", (e) => e.preventDefault());</script></body>'
 );
 
+// A document without a body, which also cancels the context menu
+const SVG_PAGE = (
+    '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="white"/>' +
+    '<script>document.addEventListener("contextmenu", (e) => e.preventDefault());</script></svg>'
+);
+
 // Whether the content script has finished setting up in the latest tab which shows the given URL
 const isContentScriptReady = async function (serviceWorker, url) {
     return await serviceWorker.evaluate(async (url) => {
@@ -26,7 +32,7 @@ const isContentScriptReady = async function (serviceWorker, url) {
             // Runs in the same isolated world as the injected content script
             const [{ result }] = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
-                func: () => window.DRCsetup === true && typeof document.onmouseup === 'function'
+                func: () => window.DRCready === true
             });
             return result;
         } catch {
@@ -38,6 +44,7 @@ const isContentScriptReady = async function (serviceWorker, url) {
 export {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
+    SVG_PAGE,
     TEST_PAGE,
     isContentScriptReady
 };

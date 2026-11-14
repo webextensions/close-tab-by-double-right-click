@@ -5,6 +5,7 @@ import { test as base, chromium, expect } from '@playwright/test';
 import {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
+    SVG_PAGE,
     TEST_PAGE,
     isContentScriptReady
 } from '../shared/test-pages.js';
@@ -16,6 +17,7 @@ const TEST_ORIGIN = 'https://drc.test';
 
 const CANCEL_CONTEXT_MENU_PATH = '/cancel-context-menu/';
 const ASK_BEFORE_LEAVING_PATH = '/ask-before-leaving/';
+const SVG_PATH = '/svg/';
 
 const test = base.extend({
     // The extension folder to load; "npm run test:e2e" builds dist/chrome first
@@ -34,6 +36,9 @@ const test = base.extend({
         // The background script only injects into http(s) pages, so serve the test pages from a fake https origin
         await context.route(`${TEST_ORIGIN}/**`, (route) => {
             const { pathname } = new URL(route.request().url());
+            if (pathname.startsWith(SVG_PATH)) {
+                return route.fulfill({ contentType: 'image/svg+xml', body: SVG_PAGE });
+            }
             let body = TEST_PAGE;
             if (pathname.startsWith(CANCEL_CONTEXT_MENU_PATH)) {
                 body = CANCEL_CONTEXT_MENU_PAGE;
@@ -103,6 +108,7 @@ const hasServiceWorkerRestarted = async function (serviceWorker) {
 export {
     ASK_BEFORE_LEAVING_PATH,
     CANCEL_CONTEXT_MENU_PATH,
+    SVG_PATH,
     TEST_ORIGIN,
     expect,
     hasServiceWorkerRestarted,

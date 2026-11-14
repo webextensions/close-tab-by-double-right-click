@@ -1,4 +1,24 @@
-if (window.DRCsetup === undefined) {
+if (window.DRCattachListeners) {
+    // Injected again: a page can erase the listeners (eg: through document.open()), so attach them again. Attaching a
+    // listener which is still there has no effect.
+    window.DRCattachListeners();
+} else {
+    // [target, type, listener] for each listener of this script
+    const listeners = [];
+
+    // Defined right away, since the background script can inject this file again before the setup below finishes
+    window.DRCattachListeners = function () {
+        listeners.forEach(function ([target, type, listener]) {
+            target.addEventListener(type, listener, true);
+        });
+    };
+
+    // Note: The "on<event>" properties (eg: document.onmouseup) must not be used, since Firefox shares them with the page
+    const listen = function (target, type, listener) {
+        listeners.push([target, type, listener]);
+        target.addEventListener(type, listener, true);
+    };
+
     // Keep this as the last statement: Firefox rejects the injection unless the file ends on a value which can be cloned
     setTimeout(async function () {
         const MAXIMUM_TIME_BETWEEN_CLICKS_TYPE = 'MAXIMUM_TIME_BETWEEN_CLICKS_TYPE';
@@ -108,8 +128,11 @@ if (window.DRCsetup === undefined) {
             };
         }());
 
+        var tries = 0;
         var interval = setInterval(function () {
-            if (document.body) {
+            tries++;
+            // Some documents never get a body (eg: an SVG image), so stop waiting for it after 10 seconds
+            if (document.body || tries >= 100) {
                 // Also true on ChromeOS ("CrOS") and Android ("Linux; Android"). The user agent can be overridden, so
                 // navigator.platform is checked as well.
                 var isLinux = /Linux|CrOS/.test(navigator.userAgent) || /Linux/i.test(navigator.platform);
@@ -122,13 +145,13 @@ if (window.DRCsetup === undefined) {
                     rightPressWithShift = false,
                     lastContextMenuEvent = null;
 
-                // Not 100% sure, but it seems that if we register "document.onmouseup"
+                // Not 100% sure, but it seems that if we listen for "mouseup"
                 // without checking for "document.body", then it may not behave properly.
                 // In that case, it seems to be providing a delayed execution of closing the tab
                 // (which may be harmful if user keeps on double-right-clicking and the clicks
                 // might be received by other tabs as the current tab closes),
                 // probably due to the architecture of the browser.
-                document.onmouseup = function (e) {
+                listen(document, 'mouseup', function (e) {
                     if (e.button === 2 && rightPressCounted) {
                         rightPressCounted = false;
                         var nativeContextMenuOpened = lastContextMenuEvent ?
@@ -142,27 +165,27 @@ if (window.DRCsetup === undefined) {
                         }
                     }
                     receiveRightClick(e);
-                };
+                });
 
                 // HACK:
-                //       * Attaching "document.onmousedown" as a hack for Linux due to the following Chromium bug, which is marked as Won't Fix:
+                //       * Listening for "mousedown" as a hack for Linux due to the following Chromium bug, which is marked as Won't Fix:
                 //         https://bugs.chromium.org/p/chromium/issues/detail?id=506801 (Right-click should fire mouseup event after contextmenu)
                 //       * Firefox for Linux behaves the same way (since Firefox 102, still the case in Firefox 160): the context menu swallows
                 //         the "mouseup" of the first right click and the "mousedown" of the second one
                 //         (https://github.com/webextensions/close-tab-by-double-right-click/issues/12)
                 if (isLinux) {
-                    document.onmousedown = function (e) {
+                    listen(document, 'mousedown', function (e) {
                         if (e.button === 2) {
                             rightPressCounted = true;
                             rightPressWithShift = e.shiftKey;
                             lastContextMenuEvent = null;
                         }
                         receiveRightClick(e);
-                    };
+                    });
                     // "defaultPrevented" is read on "mouseup", by when the page has had its chance to cancel the event
-                    window.addEventListener('contextmenu', function (e) {
+                    listen(window, 'contextmenu', function (e) {
                         lastContextMenuEvent = e;
-                    }, true);
+                    });
                 }
 
                 // Chromium on Wayland: while the context menu is open, a second right click on the same spot only closes
@@ -187,17 +210,17 @@ if (window.DRCsetup === undefined) {
                             Math.abs(e.clientY - rightPress.y) > MAX_POINTER_SHIFT
                         );
                     };
-                    document.addEventListener('mousedown', function (e) {
+                    listen(document, 'mousedown', function (e) {
                         forget();
                         if (e.button === 2) {
                             rightPress = { x: e.clientX, y: e.clientY, time: Date.now() };
                         }
-                    }, true);
+                    });
                     // A "mouseup" means that no context menu is swallowing the events
-                    document.addEventListener('mouseup', forget, true);
-                    document.addEventListener('keydown', forget, true);
-                    document.addEventListener('keyup', forget, true);
-                    document.addEventListener('mousemove', function (e) {
+                    listen(document, 'mouseup', forget);
+                    listen(document, 'keydown', forget);
+                    listen(document, 'keyup', forget);
+                    listen(document, 'mousemove', function (e) {
                         if (!rightPress) {
                             return;
                         }
@@ -217,13 +240,12 @@ if (window.DRCsetup === undefined) {
                             forget();
                             requestTabClose();
                         }, CONFIRMATION_DELAY);
-                    }, true);
+                    });
                 }
 
+                window.DRCready = true;
                 clearInterval(interval);
             }
         }, 100);
-
-        window.DRCsetup = true;
     });
 }

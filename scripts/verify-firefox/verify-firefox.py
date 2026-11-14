@@ -19,7 +19,7 @@ Usage: npm run verify:firefox (generates dist/firefox first), or
 python3 scripts/verify-firefox/verify-firefox.py [path/to/extension]
 
 With --sites (npm run verify:firefox:sites), it checks the gesture on the real sites of tests/shared/real-sites.json
-instead. That needs internet access and takes about 6 minutes.
+instead. That needs internet access and takes about 5 minutes.
 """
 import argparse
 import base64
@@ -549,7 +549,7 @@ def open_real_site(browser, url):
 def check_real_site(browser, mouse, keep, site):
     name = site['name']
     if site.get('kind') == 'menu-entry':
-        # The content script cannot run there, so the site gets the "Close Tab" context-menu entry
+        # The content script cannot run or gets no clicks there, so the site gets the "Close Tab" context-menu entry
         target = browser.new_tab(site['url'])
         time.sleep(3)
         mouse.move_to(*POINTER)

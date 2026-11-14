@@ -14,7 +14,7 @@
 // node scripts/verify-chrome/verify-chrome.js [path/to/extension]
 //
 // With --sites (npm run verify:chrome:sites), it checks the gesture on the real sites of tests/shared/real-sites.json
-// instead. That needs internet access and takes about 6 minutes per display mode.
+// instead. That needs internet access and takes about 5 minutes per display mode.
 
 import { execFile } from 'node:child_process';
 import path from 'node:path';
@@ -167,7 +167,8 @@ const runSiteChecks = async function (context, serviceWorker, displayMode) {
     // sites get none, since it could follow a link there.
     await openTestPage(context, serviceWorker, TEST_URL);
 
-    // The entries without a content script are left out: nothing here can choose an entry of the native context menu
+    // The sites which get the "Close Tab" context menu entry are left out: nothing here can choose an entry of the
+    // native context menu
     for (const site of sitesFor('chrome').filter((site) => site.kind !== 'menu-entry')) {
         const report = function (outcome, name, detail) {
             console.log(`${outcome}  [${displayMode}] ${site.name}: ${name}  (${detail})`);

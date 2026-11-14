@@ -1,5 +1,15 @@
 // The real sites, and what the Playwright tests against them and scripts/verify-chrome/verify-chrome.js share for
 // opening them. The list is a JSON file, since scripts/verify-firefox/verify-firefox.py reads it as well.
+//
+// The fields of a site in real-sites.json:
+// - name: shown in the results, and what "--grep" matches
+// - url
+// - target: CSS selector of the element to click on (optional; otherwise a fixed spot of the page gets clicked)
+// - frame: CSS selector of the frame to click in (optional)
+// - insecureContext: true for a site which is not served over https
+// - kind: "menu-entry" for a site where the content script cannot run or gets no clicks, so that the "Close Tab"
+//   context menu entry gets checked instead of the double right click
+// - browsers: ["chrome"] or ["firefox"] for a site which only gets checked in that browser
 
 import sites from './real-sites.json' with { type: 'json' };
 

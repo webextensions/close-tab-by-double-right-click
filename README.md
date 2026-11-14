@@ -23,7 +23,7 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 
 * To enable this extension in "incognito" window mode, you will need to provide permissions for this by going to "chrome://extensions".
 
-* Close Tab by Double Right Click implements an alternative approach for closing "chrome://", "about:blank", "file:///" and other special tabs. This is due to technical limitations of Chrome API. In these tabs, you would find a "Close Tab" context-menu entry which is shown when you right click anywhere on the page. The same entry is shown on a tab which still waits for the first response of a slow site, and on the error pages of the browser (eg: "This site can't be reached").
+* Close Tab by Double Right Click implements an alternative approach for closing "chrome://", "about:blank", "file:///" and other special tabs. This is due to technical limitations of Chrome API. In these tabs, you would find a "Close Tab" context-menu entry which is shown when you right click anywhere on the page. The same entry is shown on a tab which still waits for the first response of a slow site, and on the error pages of the browser (eg: "This site can't be reached"), and on PDF files, where the PDF viewer of the browser receives the clicks.
 
 * In Chrome on Linux, a right click followed by a quick left click on the same spot can also close the tab. On Wayland, the browser does not tell the extension which mouse button closed the context menu.
 
@@ -43,8 +43,10 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 * Try the extension in Firefox (profile kept in `web-ext-profile/`): `npm run start:firefox`; for live reload while editing, also run `npm start` in a second terminal
 * Try the extension in Chrome (temporary profile): `npm run start:chrome`; for live reload while editing, also run `npm start` in a second terminal
 * End-to-end tests in Chromium: `npx playwright install chromium` (once), then `npm run test:e2e` (builds `dist/chrome/` first)
+* Tests against real sites in Chromium (need internet access; about 4 minutes): `npm run test:sites` opens four sites at a time in visible windows, `npm run test:sites:headless` shows no windows (more sites answer with a bot check then). One site: `npm run test:sites -- --grep wikipedia`; fewer at a time: `npm run test:sites -- --workers=2`. The report in `playwright-report/` tells which page each site served. The sites are listed in `tests/shared/real-sites.json`
 * Check the extension in Firefox with real mouse and keyboard input: `npm run verify:firefox` (Linux with GNOME only; needs `geckodriver`, `python3-gi` and `gir1.2-atspi-2.0`; takes over the mouse and keyboard for about a minute; one check needs internet access and is skipped without it)
 * Check the double right click in Chromium with real mouse and keyboard input: `npm run verify:chrome` (Linux with GNOME only; needs `python3-gi`; opens Chromium in Wayland and X11 modes and takes over the mouse and keyboard for about two minutes)
+* Check the double right click on the same real sites with real mouse and keyboard input: `npm run verify:chrome:sites` (about 10 minutes) and `npm run verify:firefox:sites` (about 5 minutes); same requirements as the two checks above, plus internet access
 * Build the store upload zips, one per browser (into `web-ext-artifacts/`): `npm run build`
 
 **Inspirations:**

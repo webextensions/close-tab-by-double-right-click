@@ -28,13 +28,16 @@ is.
   context menu closing (a buttonless `mousemove` on the same spot) as that click. Chromium holds a `mousemove` back for
   up to 5 seconds on a page which has not rendered anything yet, so the content script also listens for
   `pointerrawupdate` (https pages only) while a right press waits for its second click. Keep all three workarounds.
+  Compare the pointer positions of those events in screen coordinates: inside a same-site frame, Chromium gives
+  `pointerrawupdate` the position within the top page, and the mouse events the position within the frame.
 - The content script must attach its handlers with `addEventListener`, never through the `document.on*` properties:
   Firefox shares those with the page, so each side would overwrite the other's handler.
 - A page which cancels `contextmenu` gets no native menu, so both events of one right click reach it. On Linux the
   `mouseup` of a press already counted on `mousedown` must stay ignored there, or a single right click closes the tab.
 - Where no content script can run, the "Close Tab" context menu entry stands in: special URLs (`chrome://`, `file://`,
-  web stores), a tab without a committed URL (it waits for the first response of its page), and http(s) tabs which
-  fail the scripting probe in [extension/include.js](extension/include.js) (the browser's error pages).
+  web stores), a tab without a committed URL (it waits for the first response of its page), http(s) tabs which fail
+  the scripting probe in [extension/include.js](extension/include.js) (the browser's error pages), and PDF files. The
+  browser's PDF viewer gets the clicks there; in Chrome the probe passes on it, so the probe reports the document type.
 - The version lives in both package.json and the manifest. Never edit it by hand; `npm version` syncs both.
 - `web-ext lint` should report 0 errors and exactly 3 known warnings:
   `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`, `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`, `UNSAFE_VAR_ASSIGNMENT`.
@@ -46,6 +49,10 @@ is.
 - `npm run start:chrome` / `npm run start:firefox` open a browser and block until it is closed.
 - `npm run verify:firefox` (about a minute) and `npm run verify:chrome` (about two minutes) take over the real mouse
   and keyboard (Linux with GNOME only): warn the user right before each run.
+- `npm run verify:firefox:sites` (about 5 minutes) and `npm run verify:chrome:sites` (about 10 minutes) take them over
+  as well, and need internet access.
+- `npm run test:sites` opens Chromium windows, four at a time, for about 4 minutes and needs internet access.
+  `npm run test:sites:headless` shows no windows.
 
 ## Testing
 
@@ -62,6 +69,17 @@ is.
   [scripts/verify-firefox/verify-firefox.py](scripts/verify-firefox/verify-firefox.py), which runs against
   `dist/firefox` and sends real clicks and key presses. It finds the options page by its `<title>` and reads the radio
   buttons and dropdown through the accessibility tree, so update the script when changing those.
+- The real-site checks (`test:sites`, `test:sites:headless`, `verify:chrome:sites`, `verify:firefox:sites`) share one
+  site list, [tests/shared/real-sites.json](tests/shared/real-sites.json); its fields are described in
+  [tests/shared/real-sites.js](tests/shared/real-sites.js). They depend on what third-party sites serve, so run them
+  as an extra after changing how the content script gets injected or counts clicks, and investigate a failure before
+  calling it a regression.
+- On a real site, send right clicks with `rightClickAsDelivered` and `doubleRightClickAsDelivered` in
+  [tests/sites/fixtures.js](tests/sites/fixtures.js): they leave out what the native context menu would swallow,
+  unless the page cancels that menu.
+- A double right click cannot span two documents. A real page which reloads itself, or which puts a frame under the
+  pointer between the two clicks, fails a test without any bug in the extension: `openRealSite` lets a page settle
+  first, and `stallSubresources` holds a loading page in place.
 - A page which is still loading: use the `STALLED_*` pages in [tests/shared/test-pages.js](tests/shared/test-pages.js)
   and open them with `waitUntil: 'commit'`. Whatever waits for the page to load never returns there (`page.goto` by
   default, `executeScript` without `injectImmediately`, WebDriver's navigation command). On a page which has not

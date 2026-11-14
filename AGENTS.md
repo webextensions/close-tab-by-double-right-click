@@ -14,13 +14,27 @@ is.
 - The browser stops and restarts the background script at any time. Register every `chrome.*` event listener
   synchronously at the top level of [extension/include.js](extension/include.js), and keep no state in memory that
   must survive a restart.
+- The content script is declared in the manifest (`document_start`, all frames), so the browser runs it in every page
+  before the page loads. The background script injects it only once, at its start, into the tabs which were already
+  open: Chrome does not do that when the extension gets installed, updated or enabled. So the file must stay safe to
+  run twice in one page, and its last statement must stay a value which can be cloned (Firefox rejects the injection
+  otherwise).
+- The content script must attach its listeners at once, never after waiting for the page to load or for
+  `document.body`: a slow page takes minutes to load, and a page which stalls in its `<head>` has no body.
+- `document.open()` erases the listeners of the content script. Its `MutationObserver` on the document attaches them
+  again; keep it.
 - On Linux, the native context menu swallows the `mouseup` of the first right click, so the content script also counts
   `mousedown` there. In Chromium on Wayland it swallows the whole second click as well, so the content script treats the
-  context menu closing (a buttonless `mousemove` on the same spot) as that click. Keep both workarounds.
+  context menu closing (a buttonless `mousemove` on the same spot) as that click. Chromium holds a `mousemove` back for
+  up to 5 seconds on a page which has not rendered anything yet, so the content script also listens for
+  `pointerrawupdate` (https pages only) while a right press waits for its second click. Keep all three workarounds.
 - The content script must attach its handlers with `addEventListener`, never through the `document.on*` properties:
   Firefox shares those with the page, so each side would overwrite the other's handler.
 - A page which cancels `contextmenu` gets no native menu, so both events of one right click reach it. On Linux the
   `mouseup` of a press already counted on `mousedown` must stay ignored there, or a single right click closes the tab.
+- Where no content script can run, the "Close Tab" context menu entry stands in: special URLs (`chrome://`, `file://`,
+  web stores), a tab without a committed URL (it waits for the first response of its page), and http(s) tabs which
+  fail the scripting probe in [extension/include.js](extension/include.js) (the browser's error pages).
 - The version lives in both package.json and the manifest. Never edit it by hand; `npm version` syncs both.
 - `web-ext lint` should report 0 errors and exactly 3 known warnings:
   `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`, `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`, `UNSAFE_VAR_ASSIGNMENT`.
@@ -48,6 +62,11 @@ is.
   [scripts/verify-firefox/verify-firefox.py](scripts/verify-firefox/verify-firefox.py), which runs against
   `dist/firefox` and sends real clicks and key presses. It finds the options page by its `<title>` and reads the radio
   buttons and dropdown through the accessibility tree, so update the script when changing those.
+- A page which is still loading: use the `STALLED_*` pages in [tests/shared/test-pages.js](tests/shared/test-pages.js)
+  and open them with `waitUntil: 'commit'`. Whatever waits for the page to load never returns there (`page.goto` by
+  default, `executeScript` without `injectImmediately`, WebDriver's navigation command). On a page which has not
+  rendered anything yet, Chromium also holds each `mousemove` back for 5 seconds, so pass `{ movePointer: false }` to
+  `holdRightClick`.
 - The content script ignores events which scripts create (`isTrusted` is false), so tests must send browser-level
   input (Playwright's `mouse` API or a CDP session, as in
   [tests/e2e/context-menu-dismissal.spec.js](tests/e2e/context-menu-dismissal.spec.js)), never `dispatchEvent`.

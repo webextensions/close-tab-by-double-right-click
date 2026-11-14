@@ -23,11 +23,13 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 
 * To enable this extension in "incognito" window mode, you will need to provide permissions for this by going to "chrome://extensions".
 
-* Close Tab by Double Right Click implements an alternative approach for closing "chrome://", "about:blank", "file:///" and other special tabs. This is due to technical limitations of Chrome API. In these tabs, you would find a "Close Tab" context-menu entry which is shown when you right click anywhere on the page.
+* Close Tab by Double Right Click implements an alternative approach for closing "chrome://", "about:blank", "file:///" and other special tabs. This is due to technical limitations of Chrome API. In these tabs, you would find a "Close Tab" context-menu entry which is shown when you right click anywhere on the page. The same entry is shown on a tab which still waits for the first response of a slow site, and on the error pages of the browser (eg: "This site can't be reached").
 
 * In Chrome on Linux, a right click followed by a quick left click on the same spot can also close the tab. On Wayland, the browser does not tell the extension which mouse button closed the context menu.
 
 * In Chrome on Linux, closing the context menu from the keyboard (eg: with Escape) shortly after a right click can also close the tab, if the key is held down for longer than a quick tap. The browser only tells the extension about that key when it is released.
+
+* In Chrome on Linux (Wayland), double right click does not close the tab on a page which is not served over "https" and has not shown anything yet (eg: it waits for a slow stylesheet). The browser tells the extension about the second click too late there.
 
 * In Firefox on Linux, with "dom.event.contextmenu.enabled" turned off in "about:config", double right click does not close the tab on pages which show their own context menu. The browser does not tell the extension that it opened its own context menu there anyway.
 

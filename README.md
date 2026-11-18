@@ -1,10 +1,10 @@
 # Double Right Click - close tab & more
 Extension **Double Right Click - close tab & more** for Google Chrome and Mozilla Firefox.
 
-| Double right click anywhere on the page | Chrome             | Firefox (128+)     |
-| :---                                    |        :----:      |               ---: |
-| Closes the active tab                   | :heavy_check_mark: | :heavy_check_mark: |
-| With Shift: reopens the last closed tab | :heavy_check_mark: | :heavy_check_mark: |
+| Double right click anywhere on the page                                       | Chrome             | Firefox (128+)     |
+| :---                                                                          |        :----:      |               ---: |
+| Closes the active tab (or does what you choose)                               | :heavy_check_mark: | :heavy_check_mark: |
+| With Shift, Ctrl, Alt or Cmd: does what you choose (eg: reopens a closed tab) | :heavy_check_mark: | :heavy_check_mark: |
 
 <img width="32" alt="Google Chrome Logo" src="https://cdn.jsdelivr.net/gh/webextensions/live-css-editor@master/extension/ui-images/logo-google-chrome.svg"> &nbsp; https://chromewebstore.google.com/detail/klngijkfgagcnegkffeckmkdpnpmbdpm
 
@@ -22,7 +22,7 @@ Extension **Double Right Click - close tab & more** for Google Chrome and Mozill
 
 **Notes:**
 
-* Shift + double right click (with Shift held on the first click) reopens the last closed tab, once you turn that on in the options of the extension, which asks for access to the recently closed tabs. Until then, it closes the tab like a double right click.
+* In the options of the extension, choose what a double right click does, and what it does with Shift, Ctrl, Alt (Option on macOS) or Cmd (macOS only) held on its first click: do nothing, close the tab, go back, reload the tab, open a new tab, duplicate the tab, or reopen the last closed tab (which asks for access to the recently closed tabs). By default, a double right click closes the tab, and with a key held it does the same. Holding two of these keys does nothing.
 
 * To enable this extension in "incognito" window mode, you will need to provide permissions for this by going to "chrome://extensions".
 

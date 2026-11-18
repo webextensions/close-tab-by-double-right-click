@@ -46,16 +46,18 @@ is.
   Firefox shares those with the page, so each side would overwrite the other's handler.
 - A page which cancels `contextmenu` gets no native menu, so both events of one right click reach it. On Linux the
   `mouseup` of a press already counted on `mousedown` must stay ignored there, or a single right click closes the tab.
-- Shift + double right click reopens the last closed tab while the optional `sessions` permission is granted, and
-  closes the tab otherwise. Keep `sessions` optional: as a required permission next to `tabs`, it changes Chrome's
-  warning to "Read your browsing history on all your signed-in devices". The checkbox on the options page shows that
-  permission and keeps no setting of its own. Nothing may be awaited before `permissions.request` there: Firefox only
-  asks straight from the user's action. Content scripts cannot call `chrome.permissions`, so the content script only
-  reports the gesture, and the background script decides what it does.
-- Shift held on the first right press decides. In Chromium on Wayland, the `mousemove` which stands in for the second
-  click reports no Shift while it is held, and the page gets no key events while the native menu is open. For the
-  same reason, the Wayland workaround ignores Shift's `keydown` and `keyup`: the page gets the `keyup` of a Shift
-  released right after the second click before the gesture is confirmed.
+- The options page sets what a double right click does, and with Shift, Ctrl, Alt or (on macOS only) Cmd held. The
+  content script only reports the gesture and its keys; the background script reads the settings on each gesture and
+  decides. Two keys held together do nothing, and a key with nothing set does what the plain gesture does.
+- Reopening the last closed tab needs the optional `sessions` permission. Keep it optional: as a required permission
+  next to `tabs`, it changes Chrome's warning to "Read your browsing history on all your signed-in devices". The
+  options page asks for it when a dropdown gets set to reopen, and removes it once none is. Nothing may be awaited
+  before `permissions.request` there: Firefox only asks straight from the user's action. Keep "Reopen the last closed
+  tab" last in the dropdowns, so that arrow keys do not pass it (each step fires `change` and would ask).
+- The keys held on the first right press decide. In Chromium on Wayland, the `mousemove` which stands in for the second
+  click reports no keys while they are held, and the page gets no key events while the native menu is open. For the
+  same reason, the Wayland workaround ignores the `keydown` and `keyup` of Shift, Ctrl, Alt and Meta: the page gets
+  the `keyup` of a key released right after the second click before the gesture is confirmed.
 - Where no content script can run, the "Close Tab" context menu entry stands in: special URLs (`chrome://`, `file://`,
   web stores), a tab without a committed URL (it waits for the first response of its page), http(s) tabs which fail
   the scripting probe in [extension/include.js](extension/include.js) (the browser's error pages), and PDF files. The
@@ -103,10 +105,11 @@ is.
 - Playwright cannot load extensions into Firefox, so `test:e2e` covers Chromium only, loading `dist/chrome` (the
   manifest test also loads `extension/`). Firefox is covered by
   [scripts/verify-firefox/verify-firefox.py](scripts/verify-firefox/verify-firefox.py), which runs against
-  `dist/firefox` and sends real clicks and key presses. It finds the options page by its `<title>` and reads the radio
-  buttons, dropdown and checkbox through the accessibility tree, as well as the note which "Done" shows (Firefox keeps
-  the page open), so update the script when changing those. It sets `extensions.webextOptionalPermissionPrompts` to
-  false, so ticking the checkbox grants `sessions` without a prompt.
+  `dist/firefox` and sends real clicks and key presses. It finds the options page by its `<title>`, reaches its
+  controls by counting Tab presses, and reads the radio buttons and the dropdowns (by their names) through the
+  accessibility tree, as well as the note which "Done" shows (Firefox keeps the page open), so update the script when
+  changing those. It sets `extensions.webextOptionalPermissionPrompts` to false, so choosing to reopen from an opened
+  dropdown grants `sessions` without a prompt (still only on the user's action).
 - The real-site checks (`test:sites`, `test:sites:headless`, `verify:chrome:sites`, `verify:firefox:sites`) share one
   site list, [tests/shared/real-sites.json](tests/shared/real-sites.json); its fields are described in
   [tests/shared/real-sites.js](tests/shared/real-sites.js). They depend on what third-party sites serve, so run them
@@ -136,5 +139,7 @@ is.
   service worker, and use `stopServiceWorker` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js) to simulate a
   background-script restart.
 - In the tests, Chromium grants `sessions` without a prompt (seen with the extension loaded from a folder), so they
-  tick the real checkbox on the options page. Where a test must control what is listed as closed, it uses
-  `stubReopenClosedTab` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js) instead.
+  choose to reopen in a real dropdown on the options page, with `chooseOption` in
+  [tests/shared/test-pages.js](tests/shared/test-pages.js): a value set from a script is not the user's action. Where a
+  test must control what is listed as closed, it sets the action with `setGestureAction` and uses
+  `stubReopenClosedTab` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js).

@@ -38,18 +38,18 @@ const REAL_INPUT_COUNTDOWN_SECONDS = 5;
 const e2eSpecTimes = {
     'build.spec.js': '1-3 s',
     'close-tab.spec.js': '15-25 s',
-    'context-menu-dismissal.spec.js': '8-15 s',
+    'context-menu-dismissal.spec.js': '12-20 s',
     'context-menu.spec.js': '5-12 s',
     'extension-lifecycle.spec.js': '3-6 s',
-    'gestures.spec.js': '5-10 s',
+    'gestures.spec.js': '25-40 s',
     'injection-failure.spec.js': '1-3 s',
     'late-frame.spec.js': '5-10 s',
     'linux-detection.spec.js': '1-3 s',
     'loading-page.spec.js': '5-10 s',
     'manifest.spec.js': '1-3 s',
-    'options.spec.js': '5-10 s',
+    'options.spec.js': '8-15 s',
     'release-check.spec.js': '1-3 s',
-    'reopen-tab.spec.js': '12-20 s',
+    'reopen-tab.spec.js': '18-30 s',
     'setup.spec.js': '1-3 s',
     'untrusted-events.spec.js': '3-6 s',
     'window-focus.spec.js': '1-3 s'
@@ -77,7 +77,7 @@ const groups = [
         ]
     },
     {
-        name: 'End-to-end tests in Chromium (test:e2e, about 40-90 s in all)',
+        name: 'End-to-end tests in Chromium (test:e2e, about 90-150 s in all)',
         items: e2eSpecFiles.map((file, index) => ({
             id: e2eSpecIds[index],
             label: file,
@@ -91,7 +91,7 @@ const groups = [
             const all = pickedItems.length === e2eSpecFiles.length;
             return [{
                 id: all ? ALL_E2E_SPECS : `test:e2e (${pickedItems.length} of ${e2eSpecFiles.length} files)`,
-                time: all ? '40-90 s' : undefined,
+                time: all ? '90-150 s' : undefined,
                 build: 'chrome',
                 command: ['playwright', 'test', ...(all ? [] : pickedItems.map((item) => item.id))]
             }];

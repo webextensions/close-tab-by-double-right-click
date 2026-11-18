@@ -184,7 +184,7 @@ const undoPointerShifts = function (commands) {
 const setReopenClosedTab = async function (context, serviceWorker, turnOn) {
     const optionsPage = await context.newPage();
     await optionsPage.goto(`chrome-extension://${new URL(serviceWorker.url()).host}/options.html`);
-    // Chromium grants the permission without a prompt to an extension which got loaded from a folder
+    // Chromium grants the permission here without a prompt (seen with the extension loaded from a folder)
     await optionsPage.getByRole('checkbox', { name: 'Reopen the last closed tab' }).setChecked(turnOn);
     const deadline = Date.now() + 5000;
     while (await serviceWorker.evaluate(() => chrome.permissions.contains({ permissions: ['sessions'] })) !== turnOn) {

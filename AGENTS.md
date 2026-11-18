@@ -134,6 +134,6 @@ is.
 - Playwright cannot operate native context menus either. Tests dispatch `chrome.contextMenus.onClicked` from the
   service worker, and use `stopServiceWorker` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js) to simulate a
   background-script restart.
-- Chromium grants an optional permission without a prompt to an extension which got loaded from a folder, so tests
+- In the tests, Chromium grants `sessions` without a prompt (seen with the extension loaded from a folder), so they
   tick the real checkbox on the options page. Where a test must control what is listed as closed, it uses
   `stubReopenClosedTab` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js) instead.

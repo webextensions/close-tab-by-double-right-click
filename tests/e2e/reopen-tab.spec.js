@@ -10,8 +10,8 @@ import {
 } from './fixtures.js';
 
 // Shift + double right click reopens the last closed tab, once the user has granted the optional "sessions"
-// permission on the options page. Chromium grants it without a prompt to an extension which got loaded from a folder,
-// as here. Most tests stub the permission and chrome.sessions in the service worker instead, so that they control
+// permission on the options page. Chromium grants it here without a prompt (seen with the extension loaded from a
+// folder). Most tests stub the permission and chrome.sessions in the service worker instead, so that they control
 // what is listed as closed. As in close-tab.spec.js, they use a page which cancels the context menu.
 
 // Newest first, as chrome.sessions.getRecentlyClosed() lists them

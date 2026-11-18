@@ -132,7 +132,7 @@ const main = function () {
         const isGranted = await chrome.permissions.contains(SESSIONS_PERMISSION);
         elGestureActions.forEach((elGestureAction) => {
             const elMissing = elGestureAction.closest('.gesture').querySelector('.gesture-permission-missing');
-            elMissing.style.visibility = !isGranted && isReopenChosenFor(elGestureAction) ? 'visible' : 'hidden';
+            elMissing.hidden = isGranted || !isReopenChosenFor(elGestureAction);
         });
         elSessionsPermissionMissing.hidden = isGranted || !isReopenChosen();
     };

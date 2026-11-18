@@ -48,7 +48,8 @@
         }
         .gestures {
             display: grid;
-            grid-template-columns: auto auto auto;
+            grid-template-columns: auto auto;
+            justify-content: start;
             align-items: center;
             gap: 6px 12px;
         }
@@ -62,7 +63,7 @@
             display: block;
         }
         .gesture-permission-missing {
-            visibility: hidden;
+            margin-left: 8px;
             color: #b00;
         }
     </style>
@@ -77,28 +78,23 @@
                     <div class="gestures">
                         <div class="gesture">
                             <label for="double-right-click-action">Double right click</label>
-                            <select id="double-right-click-action" class="gesture-action" data-setting="DOUBLE_RIGHT_CLICK_ACTION"></select>
-                            <span class="gesture-permission-missing">Needs access</span>
+                            <span><select id="double-right-click-action" class="gesture-action" data-setting="DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                         <div class="gesture">
                             <label for="shift-double-right-click-action">Shift + double right click</label>
-                            <select id="shift-double-right-click-action" class="gesture-action" data-setting="SHIFT_DOUBLE_RIGHT_CLICK_ACTION"></select>
-                            <span class="gesture-permission-missing">Needs access</span>
+                            <span><select id="shift-double-right-click-action" class="gesture-action" data-setting="SHIFT_DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                         <div class="gesture">
                             <label for="ctrl-double-right-click-action">Ctrl + double right click</label>
-                            <select id="ctrl-double-right-click-action" class="gesture-action" data-setting="CTRL_DOUBLE_RIGHT_CLICK_ACTION"></select>
-                            <span class="gesture-permission-missing">Needs access</span>
+                            <span><select id="ctrl-double-right-click-action" class="gesture-action" data-setting="CTRL_DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                         <div class="gesture">
                             <label for="alt-double-right-click-action"><span class="alt-key-name">Alt</span> + double right click</label>
-                            <select id="alt-double-right-click-action" class="gesture-action" data-setting="ALT_DOUBLE_RIGHT_CLICK_ACTION"></select>
-                            <span class="gesture-permission-missing">Needs access</span>
+                            <span><select id="alt-double-right-click-action" class="gesture-action" data-setting="ALT_DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                         <div class="gesture gesture-mac-only" hidden>
                             <label for="meta-double-right-click-action">Cmd + double right click</label>
-                            <select id="meta-double-right-click-action" class="gesture-action" data-setting="META_DOUBLE_RIGHT_CLICK_ACTION"></select>
-                            <span class="gesture-permission-missing">Needs access</span>
+                            <span><select id="meta-double-right-click-action" class="gesture-action" data-setting="META_DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                     </div>
                     <div style="color: #777; margin-top:7px">Hold the key while making the first click.</div>

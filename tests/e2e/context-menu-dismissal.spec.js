@@ -3,6 +3,8 @@ import {
     STALLED_HEAD_PATH,
     expect,
     openTestPage,
+    restoredSessionIds,
+    stubReopenClosedTab,
     test
 } from './fixtures.js';
 
@@ -14,31 +16,50 @@ test.skip(process.platform !== 'linux', 'The content script only watches for the
 
 const RIGHT_CLICK_POSITION = { x: 300, y: 200 };
 
-const rightClickThenCloseContextMenu = async function (page, { closedAfter, pointerAt = RIGHT_CLICK_POSITION, followedBy, moveFirst = true }) {
+// CDP's modifier bit for Shift
+const SHIFT_MODIFIER = 8;
+
+const rightClickThenCloseContextMenu = async function (page, { closedAfter, pointerAt = RIGHT_CLICK_POSITION, followedBy, moveFirst = true, withShift = false }) {
     const client = await page.context().newCDPSession(page);
-    const sendMouseEvent = async function (type, position, button) {
+    const sendMouseEvent = async function (type, position, button, modifiers = 0) {
         await client.send('Input.dispatchMouseEvent', {
             type,
             x: position.x,
             y: position.y,
             button,
             buttons: type === 'mousePressed' ? 2 : 0,
-            clickCount: type === 'mouseMoved' ? 0 : 1
+            clickCount: type === 'mouseMoved' ? 0 : 1,
+            modifiers
+        });
+    };
+    const sendShiftKeyEvent = async function (type) {
+        await client.send('Input.dispatchKeyEvent', {
+            type,
+            key: 'Shift',
+            code: 'ShiftLeft',
+            windowsVirtualKeyCode: 16,
+            modifiers: type === 'keyDown' ? SHIFT_MODIFIER : 0
         });
     };
 
     if (moveFirst) {
         await sendMouseEvent('mouseMoved', RIGHT_CLICK_POSITION, 'none');
     }
+    if (withShift) {
+        await sendShiftKeyEvent('keyDown');
+    }
     // Never released: the context menu swallows the "mouseup"
-    await sendMouseEvent('mousePressed', RIGHT_CLICK_POSITION, 'right');
+    await sendMouseEvent('mousePressed', RIGHT_CLICK_POSITION, 'right', withShift ? SHIFT_MODIFIER : 0);
     await page.waitForTimeout(closedAfter);
+    // Reports no Shift, even while it is held: that is what Chromium on Wayland sends
     await sendMouseEvent('mouseMoved', pointerAt, 'none');
 
     if (followedBy) {
         await page.waitForTimeout(20);
         if (followedBy === 'keyup') {
             await client.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        } else if (followedBy === 'shift-keyup') {
+            await sendShiftKeyEvent('keyUp');
         } else {
             await sendMouseEvent('mouseReleased', pointerAt, 'left');
         }
@@ -117,5 +138,17 @@ test('context menu closed by a click which reaches the page keeps the tab open',
     await rightClickThenCloseContextMenu(page, { closedAfter: 200, followedBy: 'mouseup' });
     await page.waitForTimeout(600);
 
+    expect(page.isClosed()).toBe(false);
+});
+
+test('context menu closed quickly after a Shift + right click reopens the last closed tab', async ({ context, serviceWorker }) => {
+    const page = await openTestPage({ context, serviceWorker }, '/menu-closed-after-shift');
+    await stubReopenClosedTab(serviceWorker, [{ lastModified: 1, tab: { sessionId: 'closed-tab' } }]);
+
+    // Shift gets released right after the menu closed, which the page learns before the gesture is confirmed
+    await rightClickThenCloseContextMenu(page, { closedAfter: 200, withShift: true, followedBy: 'shift-keyup' });
+
+    await expect.poll(() => restoredSessionIds(serviceWorker)).toEqual(['closed-tab']);
+    await page.waitForTimeout(600);
     expect(page.isClosed()).toBe(false);
 });

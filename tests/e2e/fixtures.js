@@ -136,6 +136,31 @@ const stopServiceWorker = async function ({ context, serviceWorker }, page) {
     await client.detach();
 };
 
+// Turns on reopening the last closed tab (Shift + double right click) without the browser's permission prompt, which
+// Playwright cannot answer: the service worker gets told that the optional "sessions" permission is granted, and gets
+// a stand-in for chrome.sessions, which lists the given sessions as closed and records which ones got restored (read
+// them with restoredSessionIds). A restart of the service worker drops these stand-ins.
+const stubReopenClosedTab = async function (serviceWorker, recentlyClosed) {
+    await serviceWorker.evaluate((recentlyClosed) => {
+        globalThis.restoredSessionIds = [];
+        chrome.permissions.contains = async function () {
+            return true;
+        };
+        chrome.sessions = {
+            getRecentlyClosed: async function () {
+                return recentlyClosed;
+            },
+            restore: async function (sessionId) {
+                globalThis.restoredSessionIds.push(sessionId);
+            }
+        };
+    }, recentlyClosed);
+};
+
+const restoredSessionIds = async function (serviceWorker) {
+    return await serviceWorker.evaluate(() => globalThis.restoredSessionIds);
+};
+
 const hasServiceWorkerRestarted = async function (serviceWorker) {
     return await serviceWorker.evaluate(() => globalThis.setBeforeServiceWorkerStop === undefined);
 };
@@ -201,7 +226,9 @@ export {
     openTestPage,
     pathToChromeBuild,
     pathToSource,
+    restoredSessionIds,
     startLatePageServer,
     stopServiceWorker,
+    stubReopenClosedTab,
     test
 };

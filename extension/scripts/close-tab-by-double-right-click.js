@@ -40,32 +40,41 @@ if (window.DRCattachListeners) {
     // The default applies until the setting has been read, which happens at the end of this file
     let maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
 
-    var tabRemoveAlreadyRequested = false;
-    var requestTabClose = function () {
-        if (!tabRemoveAlreadyRequested) {
-            tabRemoveAlreadyRequested = true;
+    // The background script decides what the gesture does: it closes the tab, or with Shift held on the first click
+    // (only the first click reports Shift in Chromium on Wayland), it reopens the last closed tab if the user turned
+    // that on.
+    var gestureReported = false;
+    var reportDoubleRightClick = function (shiftKey) {
+        if (!gestureReported) {
+            gestureReported = true;
 
-            // Lets the gesture work again if the tab stays open (eg: the user chose to stay on a page which asks
-            // before leaving). The background script ignores repeated requests for the same duration.
+            // Ignores the further clicks of the same gesture (eg: a triple right click), whatever Shift they had.
+            // With Shift, that lasts until those clicks stop counting, so the next gesture reopens one more tab.
+            // Otherwise it lets the gesture work again if the tab stays open (eg: the user chose to stay on a page
+            // which asks before leaving). The background script ignores repeated close requests for the same duration.
             setTimeout(function () {
-                tabRemoveAlreadyRequested = false;
-            }, 2500);
+                gestureReported = false;
+            }, shiftKey ? maxTimeBetweenClicksValue : 2500);
 
             // Note: Once the extension got disabled, removed or reloaded, this script is left behind without a working
             //       extension context: `chrome.runtime` is then missing or has no `id`, and sending a message would throw.
             if (chrome.runtime && chrome.runtime.id) {
-                chrome.runtime.sendMessage({closeTab: true});
+                chrome.runtime.sendMessage({gesture: 'doubleRightClick', shiftKey: shiftKey});
             }
         }
     };
 
     var receiveRightClick = (function () {
         var counter = 0,
-            lastTime = new Date();
+            lastTime = new Date(),
+            lastShiftKey = false;
         return function (e) {
             if (e.button !== 2) {
                 return;
             }
+
+            var shiftKeyOnFirstClick = lastShiftKey;
+            lastShiftKey = e.shiftKey;
 
             counter++;
 
@@ -90,7 +99,7 @@ if (window.DRCattachListeners) {
                     timeDiff >= 50
                 )
             ) {
-                requestTabClose();
+                reportDoubleRightClick(shiftKeyOnFirstClick);
             }
         };
     }());
@@ -184,14 +193,22 @@ if (window.DRCattachListeners) {
         listen(document, 'mousedown', function (e) {
             forget();
             if (e.button === 2) {
-                rightPress = { x: e.screenX, y: e.screenY, time: Date.now() };
+                // That "mousemove" reports no Shift, even while it is held, so the press tells whether it was
+                rightPress = { x: e.screenX, y: e.screenY, time: Date.now(), shiftKey: e.shiftKey };
                 document.addEventListener('pointerrawupdate', receivePointerRawUpdate, true);
             }
         });
         // A "mouseup" means that no context menu is swallowing the events
         listen(document, 'mouseup', forget);
-        listen(document, 'keydown', forget);
-        listen(document, 'keyup', forget);
+        // Except for Shift, which does not close the menu: the page gets the "keyup" of Shift released right after the
+        // second click (eg: of a Shift + double right click) within CONFIRMATION_DELAY
+        const forgetUnlessShift = function (e) {
+            if (e.key !== 'Shift') {
+                forget();
+            }
+        };
+        listen(document, 'keydown', forgetUnlessShift);
+        listen(document, 'keyup', forgetUnlessShift);
         const receivePointerMove = function (e) {
             if (!rightPress) {
                 return;
@@ -208,9 +225,10 @@ if (window.DRCattachListeners) {
                 forget();
                 return;
             }
+            const shiftKey = rightPress.shiftKey;
             confirmationTimer = setTimeout(function () {
                 forget();
-                requestTabClose();
+                reportDoubleRightClick(shiftKey);
             }, CONFIRMATION_DELAY);
         };
         listen(document, 'mousemove', receivePointerMove);

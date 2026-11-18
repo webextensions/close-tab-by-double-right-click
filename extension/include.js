@@ -94,6 +94,38 @@
         closeTabByTabId(tab.id);
     }
 
+    // Reopening a closed tab needs the "sessions" permission, which is optional: the user grants it on the options
+    // page. It gets checked on each gesture, since nothing kept in memory survives a restart of the background script.
+    async function isReopenEnabled() {
+        return await chrome.permissions.contains({ permissions: ['sessions'] });
+    }
+
+    // Reopens the tab which got closed last (closed windows are skipped)
+    async function reopenLastClosedTab() {
+        try {
+            const sessions = await chrome.sessions.getRecentlyClosed();
+            const lastClosed = sessions.find(function (session) {
+                return session.tab;
+            });
+            if (lastClosed) {
+                // Firefox requires the sessionId
+                await chrome.sessions.restore(lastClosed.tab.sessionId);
+            }
+        } catch (e) {
+            console.debug('Could not reopen the last closed tab', e);
+        }
+    }
+
+    // A double right click closes the tab. With Shift held on its first click, it reopens the last closed tab instead,
+    // once the user has turned that on (otherwise it closes the tab as well).
+    async function handleDoubleRightClick(request, tab) {
+        if (request.shiftKey && await isReopenEnabled()) {
+            reopenLastClosedTab();
+        } else {
+            closeTab(tab);
+        }
+    }
+
     function removeContextMenuEntry() {
         /*
             Note:
@@ -214,8 +246,8 @@
 
     chrome.runtime.onMessage.addListener(
         function (request, sender, sendResponse) {      // eslint-disable-line no-unused-vars
-            if (request.closeTab) {
-                closeTab(sender.tab);
+            if (request.gesture === 'doubleRightClick') {
+                handleDoubleRightClick(request, sender.tab);
             }
         }
     );

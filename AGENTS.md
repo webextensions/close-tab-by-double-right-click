@@ -104,8 +104,9 @@ is.
   manifest test also loads `extension/`). Firefox is covered by
   [scripts/verify-firefox/verify-firefox.py](scripts/verify-firefox/verify-firefox.py), which runs against
   `dist/firefox` and sends real clicks and key presses. It finds the options page by its `<title>` and reads the radio
-  buttons, dropdown and checkbox through the accessibility tree, so update the script when changing those. It sets
-  `extensions.webextOptionalPermissionPrompts` to false, so ticking the checkbox grants `sessions` without a prompt.
+  buttons, dropdown and checkbox through the accessibility tree, as well as the note which "Done" shows (Firefox keeps
+  the page open), so update the script when changing those. It sets `extensions.webextOptionalPermissionPrompts` to
+  false, so ticking the checkbox grants `sessions` without a prompt.
 - The real-site checks (`test:sites`, `test:sites:headless`, `verify:chrome:sites`, `verify:firefox:sites`) share one
   site list, [tests/shared/real-sites.json](tests/shared/real-sites.json); its fields are described in
   [tests/shared/real-sites.js](tests/shared/real-sites.js). They depend on what third-party sites serve, so run them

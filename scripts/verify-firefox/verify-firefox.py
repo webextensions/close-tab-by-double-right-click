@@ -295,6 +295,35 @@ def read_options_page(pid):
     return None, None
 
 
+def find_options_page(pid):
+    """Return the accessible document of the options page, or None if it is not found."""
+    desktop = Atspi.get_desktop(0)
+    for index in range(desktop.get_child_count()):
+        app = desktop.get_child_at_index(index)
+        if app is None or app.get_process_id() != pid:
+            continue
+        for node in accessible_descendants(app):
+            if node.get_role() == Atspi.Role.DOCUMENT_WEB and node.get_name() == OPTIONS_TITLE:
+                return node
+    return None
+
+
+def accessible_text(node):
+    text = node.get_text_iface()
+    content = Atspi.Text.get_text(text, 0, Atspi.Text.get_character_count(text)) if text else ''
+    return f'{node.get_name() or ""} {content}'
+
+
+def wait_for_text_in_document(document, text, timeout_seconds):
+    """Poll until `document` shows `text`; return whether it did."""
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        if any(text in accessible_text(node) for node in accessible_descendants(document)):
+            return True
+        time.sleep(0.2)
+    return False
+
+
 def wait_for_options_page(pid, expected, previous_document=None, timeout_seconds=10):
     """Poll until the options page shows `expected`; with `previous_document`, only a newer document counts."""
     document = state = None
@@ -623,9 +652,9 @@ def check_real_sites(browser, mouse, keep):
             browser.switch_to(keep)
 
 
-def open_options_page(browser, mouse):
+def open_options_page(browser, mouse, first_url=None):
     # WebDriver refuses to navigate to moz-extension:// URLs, so type the URL into the address bar instead
-    browser.new_tab()
+    handle = browser.new_tab(first_url)
     time.sleep(1)
     mouse.key(KEYSYM_CONTROL_L, True)
     mouse.type_text('l')
@@ -634,6 +663,7 @@ def open_options_page(browser, mouse):
     mouse.type_text(OPTIONS_URL)
     mouse.key(KEYSYM_RETURN)
     time.sleep(2)
+    return handle
 
 
 def check_options_page(browser, mouse, keep):
@@ -667,6 +697,31 @@ def check_options_page(browser, mouse, keep):
     time.sleep(1.5)
     check('with custom 1000 ms, right clicks 800 ms apart close the tab', target not in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
+
+
+def check_done_button(browser, mouse, keep):
+    # Firefox lets a page close a tab which shows nothing before it, so the tab shows a page first. Then the options page
+    # stays open on "Done", as it does inside about:addons, and shows the note. Follows check_options_page, which
+    # leaves the custom 1000 ms
+    options_tab = open_options_page(browser, mouse, TEST_URL)
+    unchanged_state = {'type': 'custom', 'value': '1000', 'reopen': False}
+    wait_for_options_page(browser.pid, unchanged_state)
+    document = find_options_page(browser.pid)
+    mouse.type_text('\t\t\t\t')  # the radio buttons, the dropdown, the checkbox, then "Done"
+    mouse.type_text(' ')
+    # The note shows after 100 ms, for 2.5 seconds
+    shown = bool(document) and wait_for_text_in_document(document, 'Your change would apply next time onwards', 2.5)
+    # Ticking the checkbox shows the same note, so the state must be unchanged
+    _, state = read_options_page(browser.pid)
+    check('"Done" on the options page which stays open shows the note', shown and state == unchanged_state,
+          f'note shown: {shown}, state: {json.dumps(state)}')
+    # Had "Done" closed the options tab, Ctrl+W would close the last tab, and with it the browser
+    if options_tab in browser.handles():
+        mouse.key(KEYSYM_CONTROL_L, True)
+        mouse.type_text('w')  # close the options tab
+        mouse.key(KEYSYM_CONTROL_L, False)
+        time.sleep(1)
+    browser.switch_to(keep)
 
 
 def set_reopen_closed_tab(browser, mouse, keep, turn_on):
@@ -765,7 +820,7 @@ def main():
         steps = (check_real_sites,) if ARGUMENTS.sites else (
             check_clicks, check_held_clicks, check_shift_clicks, check_own_handlers, check_loading_pages,
             check_rewritten_page, check_context_menu_entry, check_error_page, check_restricted_domain,
-            check_options_page, check_reopen_closed_tab)
+            check_options_page, check_done_button, check_reopen_closed_tab)
         for step in steps:
             try:
                 step(browser, mouse, keep)

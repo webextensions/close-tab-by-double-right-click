@@ -121,6 +121,9 @@ const main = function () {
 
     const btnDone = document.getElementById('done');
     btnDone.addEventListener('click', function () {
+        // Where the page stays open (Firefox shows it inside about:addons, where window.close() does nothing), the note
+        // confirms the changes. The delay keeps it from flashing on a page which closes.
+        setTimeout(notifyUser, 100);
         window.close();
     });
 };

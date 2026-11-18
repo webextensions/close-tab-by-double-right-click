@@ -62,3 +62,16 @@ test('choosing "Default" again brings back the default 500 ms', async ({ context
 
     expect(page.isClosed()).toBe(false);
 });
+
+test('"Done" shows the note when the options page stays open', async ({ context, extensionId }) => {
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+
+    // Chromium closes the page here; Firefox keeps it open inside about:addons
+    await optionsPage.evaluate(() => {
+        window.close = function () {};
+    });
+
+    await optionsPage.getByRole('button', { name: 'Done' }).click();
+    await expect(optionsPage.getByText('Your change would apply next time onwards')).toBeVisible();
+});

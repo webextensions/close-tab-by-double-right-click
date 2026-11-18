@@ -1,5 +1,6 @@
 import {
     CANCEL_CONTEXT_MENU_PATH,
+    TEST_ORIGIN,
     expect,
     holdRightClick,
     openTestPage,
@@ -9,9 +10,9 @@ import {
 } from './fixtures.js';
 
 // Shift + double right click reopens the last closed tab, once the user has granted the optional "sessions"
-// permission on the options page. Playwright cannot answer the browser's permission prompt, so these tests stub the
-// permission and chrome.sessions in the service worker (the verify:* scripts grant it for real). As in
-// close-tab.spec.js, they use a page which cancels the context menu.
+// permission on the options page. Chromium grants it without a prompt to an extension which got loaded from a folder,
+// as here. Most tests stub the permission and chrome.sessions in the service worker instead, so that they control
+// what is listed as closed. As in close-tab.spec.js, they use a page which cancels the context menu.
 
 // Newest first, as chrome.sessions.getRecentlyClosed() lists them
 const RECENTLY_CLOSED = [
@@ -40,6 +41,51 @@ const doubleRightClick = async function (page, { shiftOn = [] } = {}) {
         }
     }
 };
+
+const isSessionsPermissionGranted = async function (serviceWorker) {
+    return await serviceWorker.evaluate(() => chrome.permissions.contains({ permissions: ['sessions'] }));
+};
+
+test('the options page turns reopening on and off through the "sessions" permission', async ({ context, serviceWorker, extensionId }) => {
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+    const checkbox = optionsPage.getByRole('checkbox', { name: 'Reopen the last closed tab' });
+
+    await expect(checkbox).not.toBeChecked();
+    expect(await isSessionsPermissionGranted(serviceWorker)).toBe(false);
+
+    await checkbox.check();
+    await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(true);
+    await optionsPage.reload();
+    await expect(checkbox).toBeChecked();
+
+    await checkbox.uncheck();
+    await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(false);
+    await optionsPage.reload();
+    await expect(checkbox).not.toBeChecked();
+});
+
+test('after turning reopening on, Shift + double right click reopens the tab which the gesture closed', async ({ context, serviceWorker, extensionId }) => {
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+    await optionsPage.getByRole('checkbox', { name: 'Reopen the last closed tab' }).check();
+    await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(true);
+    await optionsPage.close();
+
+    const closedUrl = `${TEST_ORIGIN}${CANCEL_CONTEXT_MENU_PATH}closed-then-reopened`;
+    const pageToClose = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}closed-then-reopened`);
+    const closed = pageToClose.waitForEvent('close');
+    await doubleRightClick(pageToClose);
+    await closed;
+
+    const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}reopens-for-real`);
+    const reopened = context.waitForEvent('page');
+    await doubleRightClick(page, { shiftOn: ['first', 'second'] });
+
+    const reopenedPage = await reopened;
+    await expect.poll(() => reopenedPage.url()).toBe(closedUrl);
+    expect(page.isClosed()).toBe(false);
+});
 
 test('Shift + double right click closes the tab while reopening is not turned on', async ({ context, serviceWorker }) => {
     const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}shift-not-turned-on`);

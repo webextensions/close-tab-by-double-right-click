@@ -92,6 +92,27 @@ const main = function () {
         notifyUser();
     });
 
+    // Shift + double right click reopens the last closed tab while the optional "sessions" permission is granted, so
+    // the checkbox shows that permission (which the user can also revoke in the browser's add-on settings)
+    const SESSIONS_PERMISSION = { permissions: ['sessions'] };
+    const elReopenClosedTab = document.querySelector('.reopen-closed-tab');
+    const showReopenClosedTab = async function () {
+        elReopenClosedTab.checked = await chrome.permissions.contains(SESSIONS_PERMISSION);
+    };
+    showReopenClosedTab();
+    chrome.permissions.onAdded.addListener(showReopenClosedTab);
+    chrome.permissions.onRemoved.addListener(showReopenClosedTab);
+    elReopenClosedTab.addEventListener('change', function () {
+        // Firefox only asks for a permission straight from the user's action: nothing may be awaited before this
+        const permissionChange = elReopenClosedTab.checked ?
+            chrome.permissions.request(SESSIONS_PERMISSION) :
+            chrome.permissions.remove(SESSIONS_PERMISSION);
+        permissionChange.then(showReopenClosedTab, function (e) {
+            console.log('Could not change the permission to reopen closed tabs', e);
+            showReopenClosedTab();
+        });
+    });
+
     const btnDone = document.getElementById('done');
     btnDone.addEventListener('click', function () {
         window.close();

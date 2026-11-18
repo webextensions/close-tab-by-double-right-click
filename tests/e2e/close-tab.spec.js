@@ -65,7 +65,7 @@ test('double right click works again after the user chose to stay on the page', 
     await expect.poll(() => dialogs).toBe(1);
     expect(page.isClosed()).toBe(false);
 
-    // Both the content script and the background script ignore repeated close requests for 2.5 seconds
+    // The background script ignores repeated close requests for 2.5 seconds
     await page.waitForTimeout(3000);
     const closed = page.waitForEvent('close');
     await holdRightClick(page, 120);

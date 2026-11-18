@@ -40,26 +40,36 @@ if (window.DRCattachListeners) {
     // The default applies until the setting has been read, which happens at the end of this file
     let maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
 
-    // The background script decides what the gesture does: it closes the tab, or with Shift held on the first click
-    // (only the first click reports Shift in Chromium on Wayland), it reopens the last closed tab if the user turned
-    // that on.
+    // The modifier keys which were held during a mouse event
+    var readModifiers = function (e) {
+        return { shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey };
+    };
+
+    // The background script decides what the gesture does, from the modifier keys held on its first click (only the
+    // first click reports them in Chromium on Wayland) and the user's settings.
     var gestureReported = false;
-    var reportDoubleRightClick = function (shiftKey) {
+    var reportDoubleRightClick = function (modifiers) {
         if (!gestureReported) {
             gestureReported = true;
 
-            // Ignores the further clicks of the same gesture (eg: a triple right click), whatever Shift they had.
-            // With Shift, that lasts until those clicks stop counting, so the next gesture reopens one more tab.
-            // Otherwise it lets the gesture work again if the tab stays open (eg: the user chose to stay on a page
-            // which asks before leaving). The background script ignores repeated close requests for the same duration.
+            // Ignores the further clicks of the same gesture (eg: a triple right click), whatever keys they had, until
+            // those clicks stop counting, so that the next gesture counts again (eg: to reopen one more tab, or after
+            // the user chose to stay on a page which asks before leaving). The background script ignores repeated
+            // close requests for the same tab for longer.
             setTimeout(function () {
                 gestureReported = false;
-            }, shiftKey ? maxTimeBetweenClicksValue : 2500);
+            }, maxTimeBetweenClicksValue);
 
             // Note: Once the extension got disabled, removed or reloaded, this script is left behind without a working
             //       extension context: `chrome.runtime` is then missing or has no `id`, and sending a message would throw.
             if (chrome.runtime && chrome.runtime.id) {
-                chrome.runtime.sendMessage({gesture: 'doubleRightClick', shiftKey: shiftKey});
+                chrome.runtime.sendMessage({
+                    gesture: 'doubleRightClick',
+                    shiftKey: modifiers.shiftKey,
+                    ctrlKey: modifiers.ctrlKey,
+                    altKey: modifiers.altKey,
+                    metaKey: modifiers.metaKey
+                });
             }
         }
     };
@@ -67,14 +77,14 @@ if (window.DRCattachListeners) {
     var receiveRightClick = (function () {
         var counter = 0,
             lastTime = new Date(),
-            lastShiftKey = false;
+            lastModifiers = { shiftKey: false, ctrlKey: false, altKey: false, metaKey: false };
         return function (e) {
             if (e.button !== 2) {
                 return;
             }
 
-            var shiftKeyOnFirstClick = lastShiftKey;
-            lastShiftKey = e.shiftKey;
+            var modifiersOnFirstClick = lastModifiers;
+            lastModifiers = readModifiers(e);
 
             counter++;
 
@@ -99,7 +109,7 @@ if (window.DRCattachListeners) {
                     timeDiff >= 50
                 )
             ) {
-                reportDoubleRightClick(shiftKeyOnFirstClick);
+                reportDoubleRightClick(modifiersOnFirstClick);
             }
         };
     }());
@@ -193,22 +203,23 @@ if (window.DRCattachListeners) {
         listen(document, 'mousedown', function (e) {
             forget();
             if (e.button === 2) {
-                // That "mousemove" reports no Shift, even while it is held, so the press tells whether it was
-                rightPress = { x: e.screenX, y: e.screenY, time: Date.now(), shiftKey: e.shiftKey };
+                // That "mousemove" reports no modifier keys, even while they are held, so the press tells which were
+                rightPress = { x: e.screenX, y: e.screenY, time: Date.now(), modifiers: readModifiers(e) };
                 document.addEventListener('pointerrawupdate', receivePointerRawUpdate, true);
             }
         });
         // A "mouseup" means that no context menu is swallowing the events
         listen(document, 'mouseup', forget);
-        // Except for Shift, which does not close the menu: the page gets the "keyup" of Shift released right after the
-        // second click (eg: of a Shift + double right click) within CONFIRMATION_DELAY
-        const forgetUnlessShift = function (e) {
-            if (e.key !== 'Shift') {
+        // Except for the modifier keys, which do not close the menu: the page gets the "keyup" of a modifier key released
+        // right after the second click (eg: of a Shift + double right click) within CONFIRMATION_DELAY
+        const MODIFIER_KEYS = ['Shift', 'Control', 'Alt', 'Meta'];
+        const forgetUnlessModifierKey = function (e) {
+            if (!MODIFIER_KEYS.includes(e.key)) {
                 forget();
             }
         };
-        listen(document, 'keydown', forgetUnlessShift);
-        listen(document, 'keyup', forgetUnlessShift);
+        listen(document, 'keydown', forgetUnlessModifierKey);
+        listen(document, 'keyup', forgetUnlessModifierKey);
         const receivePointerMove = function (e) {
             if (!rightPress) {
                 return;
@@ -225,10 +236,10 @@ if (window.DRCattachListeners) {
                 forget();
                 return;
             }
-            const shiftKey = rightPress.shiftKey;
+            const modifiers = rightPress.modifiers;
             confirmationTimer = setTimeout(function () {
                 forget();
-                reportDoubleRightClick(shiftKey);
+                reportDoubleRightClick(modifiers);
             }, CONFIRMATION_DELAY);
         };
         listen(document, 'mousemove', receivePointerMove);

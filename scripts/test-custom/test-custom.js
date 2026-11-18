@@ -41,6 +41,7 @@ const e2eSpecTimes = {
     'context-menu-dismissal.spec.js': '8-15 s',
     'context-menu.spec.js': '5-12 s',
     'extension-lifecycle.spec.js': '3-6 s',
+    'gestures.spec.js': '5-10 s',
     'injection-failure.spec.js': '1-3 s',
     'late-frame.spec.js': '5-10 s',
     'linux-detection.spec.js': '1-3 s',

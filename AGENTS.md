@@ -46,6 +46,16 @@ is.
   Firefox shares those with the page, so each side would overwrite the other's handler.
 - A page which cancels `contextmenu` gets no native menu, so both events of one right click reach it. On Linux the
   `mouseup` of a press already counted on `mousedown` must stay ignored there, or a single right click closes the tab.
+- Shift + double right click reopens the last closed tab while the optional `sessions` permission is granted, and
+  closes the tab otherwise. Keep `sessions` optional: as a required permission next to `tabs`, it changes Chrome's
+  warning to "Read your browsing history on all your signed-in devices". The checkbox on the options page shows that
+  permission and keeps no setting of its own. Nothing may be awaited before `permissions.request` there: Firefox only
+  asks straight from the user's action. Content scripts cannot call `chrome.permissions`, so the content script only
+  reports the gesture, and the background script decides what it does.
+- Shift held on the first right press decides. In Chromium on Wayland, the `mousemove` which stands in for the second
+  click reports no Shift while it is held, and the page gets no key events while the native menu is open. For the
+  same reason, the Wayland workaround ignores Shift's `keydown` and `keyup`: the page gets the `keyup` of a Shift
+  released right after the second click before the gesture is confirmed.
 - Where no content script can run, the "Close Tab" context menu entry stands in: special URLs (`chrome://`, `file://`,
   web stores), a tab without a committed URL (it waits for the first response of its page), http(s) tabs which fail
   the scripting probe in [extension/include.js](extension/include.js) (the browser's error pages), and PDF files. The
@@ -69,8 +79,8 @@ is.
 - `npm run release:check` runs `git fetch origin` (needs internet access; it updates only the remote-tracking refs).
 - `npm start` rebuilds `dist/chrome` and `dist/firefox` on every change and never exits on its own.
 - `npm run start:chrome` / `npm run start:firefox` open a browser and block until it is closed.
-- `npm run verify:firefox` (about a minute) and `npm run verify:chrome` (about two minutes) take over the real mouse
-  and keyboard (Linux with GNOME only): warn the user right before each run.
+- `npm run verify:firefox` (about two minutes) and `npm run verify:chrome` (about two and a half minutes) take over the
+  real mouse and keyboard (Linux with GNOME only): warn the user right before each run.
 - `npm run verify:firefox:sites` (about 5 minutes) and `npm run verify:chrome:sites` (about 10 minutes) take them over
   as well, and need internet access.
 - `npm run test:sites` opens Chromium windows, four at a time, for about 4 minutes and needs internet access.
@@ -94,7 +104,8 @@ is.
   manifest test also loads `extension/`). Firefox is covered by
   [scripts/verify-firefox/verify-firefox.py](scripts/verify-firefox/verify-firefox.py), which runs against
   `dist/firefox` and sends real clicks and key presses. It finds the options page by its `<title>` and reads the radio
-  buttons and dropdown through the accessibility tree, so update the script when changing those.
+  buttons, dropdown and checkbox through the accessibility tree, so update the script when changing those. It sets
+  `extensions.webextOptionalPermissionPrompts` to false, so ticking the checkbox grants `sessions` without a prompt.
 - The real-site checks (`test:sites`, `test:sites:headless`, `verify:chrome:sites`, `verify:firefox:sites`) share one
   site list, [tests/shared/real-sites.json](tests/shared/real-sites.json); its fields are described in
   [tests/shared/real-sites.js](tests/shared/real-sites.js). They depend on what third-party sites serve, so run them
@@ -123,3 +134,6 @@ is.
 - Playwright cannot operate native context menus either. Tests dispatch `chrome.contextMenus.onClicked` from the
   service worker, and use `stopServiceWorker` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js) to simulate a
   background-script restart.
+- Chromium grants an optional permission without a prompt to an extension which got loaded from a folder, so tests
+  tick the real checkbox on the options page. Where a test must control what is listed as closed, it uses
+  `stubReopenClosedTab` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js) instead.

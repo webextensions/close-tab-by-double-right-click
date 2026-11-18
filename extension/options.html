@@ -16,6 +16,9 @@
             font-size: 62.5%;
         }
         body {
+            margin: 0;
+            /* The same inset as the icon in the title of Chrome's options dialog */
+            padding: 20px;
             font-size: 1.3rem;
         }
         button {
@@ -74,9 +77,9 @@
 <body>
     <div style="display:flex; justify-content:center;">
         <div>
-            <div class="option" style="margin-top:10px">
+            <div class="option">
                 <div class="option-heading">Double right click</div>
-                <div style="margin-top:10px; margin-left:20px; margin-right:20px">
+                <div style="margin-top:10px; margin-left:20px">
                     <div class="gestures">
                         <div class="gesture">
                             <label for="double-right-click-action">Double right click</label>
@@ -108,7 +111,7 @@
 
             <div class="option" style="margin-top:20px">
                 <div class="option-heading">Maximum time between clicks</div>
-                <div style="margin-top:10px; margin-left:20px; margin-right:20px">
+                <div style="margin-top:10px; margin-left:20px">
                     <div class="option-value">
                         <label><input type="radio" name="maximum-time-between-clicks-type" value="default" /> Default &nbsp;&nbsp;<span style="color: #777;">(500 ms)</span></label>
                     </div>

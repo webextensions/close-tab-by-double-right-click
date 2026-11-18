@@ -118,6 +118,9 @@ is.
   accessibility tree, as well as the note which "Done" shows (Firefox keeps the page open), so update the script when
   changing those. It sets `extensions.webextOptionalPermissionPrompts` to false, so choosing to reopen from an opened
   dropdown grants `sessions` without a prompt (still only on the user's action).
+- In the Chromium which Playwright launches (also the one of `verify:chrome`), the options dialog of
+  `chrome://extensions` cuts off the right part of the options page, as it did before the page was restyled. Chrome
+  started with `npm run start:chrome` shows the page whole, so judge the dialog there.
 - The real-site checks (`test:sites`, `test:sites:headless`, `verify:chrome:sites`, `verify:firefox:sites`) share one
   site list, [tests/shared/real-sites.json](tests/shared/real-sites.json); its fields are described in
   [tests/shared/real-sites.js](tests/shared/real-sites.js). They depend on what third-party sites serve, so run them

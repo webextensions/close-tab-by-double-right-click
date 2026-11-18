@@ -63,9 +63,9 @@ the same version, built from the same commit. The uploads are made by hand in ea
     npm run release:check:zips
     ```
 
-    `npm run build` writes `close_tab_by_double_right_click-<version>-chrome.zip` and
-    `close_tab_by_double_right_click-<version>-firefox.zip` into `web-ext-artifacts/`. `npm run build:source` zips the
-    files of the new tag into `close-tab-by-double-right-click-<version>-source.zip` there, for AMO (step 7).
+    `npm run build` writes `double-right-click-<version>-chrome.zip` and
+    `double-right-click-<version>-firefox.zip` into `web-ext-artifacts/`. `npm run build:source` zips the
+    files of the new tag into `double-right-click-<version>-source.zip` there, for AMO (step 7).
     `npm run release:check:zips` checks that each store zip holds exactly the files of `extension/`, with the same
     content and the manifest of its browser at the new version. If it fails, run `npm run build` again and do not upload
     before it passes.
@@ -93,7 +93,7 @@ the same version, built from the same commit. The uploads are made by hand in ea
         ```text
         The files are copied unchanged from extension/; only manifest.json is generated.
         Build: Node.js from .nvmrc, then "npm ci" and "npm run build:firefox". The add-on is in dist/firefox/.
-        Source: https://github.com/webextensions/close-tab-by-double-right-click (tag v<version>)
+        Source: https://github.com/webextensions/double-right-click (tag v<version>)
         ```
 
     - Submit the version.

@@ -140,7 +140,7 @@ if (window.DRCattachListeners) {
     //         https://bugs.chromium.org/p/chromium/issues/detail?id=506801 (Right-click should fire mouseup event after contextmenu)
     //       * Firefox for Linux behaves the same way (since Firefox 102, still the case in Firefox 160): the context menu swallows
     //         the "mouseup" of the first right click and the "mousedown" of the second one
-    //         (https://github.com/webextensions/close-tab-by-double-right-click/issues/12)
+    //         (https://github.com/webextensions/double-right-click/issues/12)
     if (isLinux) {
         listen(document, 'mousedown', function (e) {
             if (e.button === 2) {

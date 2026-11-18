@@ -58,7 +58,7 @@ test.afterEach(async () => {
 
 // These tests need no browser: they run the script in a temporary copy of what it reads
 test.describe('release-check-zips.js', () => {
-    const zipName = (browser, zipVersion = version) => `close_tab_by_double_right_click-${zipVersion}-${browser}.zip`;
+    const zipName = (browser, zipVersion = version) => `double-right-click-${zipVersion}-${browser}.zip`;
 
     test.beforeAll(async () => {
         await execFileAsync(process.execPath, [buildScript]);

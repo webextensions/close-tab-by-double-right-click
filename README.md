@@ -1,16 +1,17 @@
-# Close Tab by Double Right Click
-Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Firefox.
+# Double Right Click - close tab & more
+Extension **Double Right Click - close tab & more** for Google Chrome and Mozilla Firefox.
 
-| Close active tab by                     | Chrome             | Firefox (128+)     |
+| Double right click anywhere on the page | Chrome             | Firefox (128+)     |
 | :---                                    |        :----:      |               ---: |
-| Double right click anywhere on the page | :heavy_check_mark: | :heavy_check_mark: |
+| Closes the active tab                   | :heavy_check_mark: | :heavy_check_mark: |
+| With Shift: reopens the last closed tab | :heavy_check_mark: | :heavy_check_mark: |
 
 <img width="32" alt="Google Chrome Logo" src="https://cdn.jsdelivr.net/gh/webextensions/live-css-editor@master/extension/ui-images/logo-google-chrome.svg"> &nbsp; https://chromewebstore.google.com/detail/klngijkfgagcnegkffeckmkdpnpmbdpm
 
 <img width="32" alt="Mozilla Firefox Logo" src="https://cdn.jsdelivr.net/gh/webextensions/live-css-editor@master/extension/ui-images/logo-firefox_edited.png"> &nbsp; https://addons.mozilla.org/firefox/addon/close-tab-double-right-click/
 
 **Open source:**
-* https://github.com/webextensions/close-tab-by-double-right-click
+* https://github.com/webextensions/double-right-click
 
 **This extension is available for:**
 * Google Chrome
@@ -25,7 +26,7 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 
 * To enable this extension in "incognito" window mode, you will need to provide permissions for this by going to "chrome://extensions".
 
-* Close Tab by Double Right Click implements an alternative approach for closing "chrome://", "about:blank", "file:///" and other special tabs. This is due to technical limitations of Chrome API. In these tabs, you would find a "Close Tab" context-menu entry which is shown when you right click anywhere on the page. The same entry is shown on a tab which still waits for the first response of a slow site (in Chrome also while the site has answered, but its page has not started to arrive), on the error pages of the browser (eg: "This site can't be reached"), and on PDF files, where the PDF viewer of the browser receives the clicks.
+* This extension implements an alternative approach for closing "chrome://", "about:blank", "file:///" and other special tabs. This is due to technical limitations of Chrome API. In these tabs, you would find a "Close Tab" context-menu entry which is shown when you right click anywhere on the page. The same entry is shown on a tab which still waits for the first response of a slow site (in Chrome also while the site has answered, but its page has not started to arrive), on the error pages of the browser (eg: "This site can't be reached"), and on PDF files, where the PDF viewer of the browser receives the clicks.
 
 * In Chrome on Linux, a right click followed by a quick left click on the same spot can also close the tab. On Wayland, the browser does not tell the extension which mouse button closed the context menu.
 
@@ -58,6 +59,6 @@ Extension **Close Tab by Double Right Click** for Google Chrome and Mozilla Fire
 
 **Connect with us:**
 * https://www.webextensions.org/
-* [GitHub](https://github.com/webextensions/close-tab-by-double-right-click)
+* [GitHub](https://github.com/webextensions/double-right-click)
 * [X](https://x.com/webextensions)
 * [LinkedIn - Priyank Parashar](https://linkedin.com/in/ParasharPriyank/)

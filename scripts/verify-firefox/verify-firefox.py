@@ -63,7 +63,7 @@ with open(os.path.join(EXTENSION_DIR, 'manifest.json')) as manifest_file:
 # Fixed internal UUID, so the options page URL is known up front
 ADDON_UUID = '0d7c4a5e-3b1f-4c62-9a8e-5f2b7c1d9e40'
 OPTIONS_URL = f'moz-extension://{ADDON_UUID}/options.html'
-OPTIONS_TITLE = 'Close Tab by Double Right Click'
+OPTIONS_TITLE = 'Double Right Click - close tab & more'
 # A plain text page on one of the domains where Firefox runs no extension scripts
 RESTRICTED_DOMAIN_URL = 'https://support.mozilla.org/robots.txt'
 TEST_PAGE = ('<!doctype html><html><head><title>Test page</title></head>'

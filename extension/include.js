@@ -66,7 +66,7 @@
                     allFrames: true
                 },
                 files: [
-                    'scripts/close-tab-by-double-right-click.js'
+                    'scripts/double-right-click.js'
                 ],
                 // Otherwise a tab which is still loading would only get the script once it has loaded
                 injectImmediately: true

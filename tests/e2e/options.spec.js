@@ -4,6 +4,7 @@ import {
     expect,
     holdRightClick,
     openTestPage,
+    setGestureAction,
     test
 } from './fixtures.js';
 
@@ -177,4 +178,72 @@ test('arrow keys move through the actions without asking for a permission on the
         DOUBLE_RIGHT_CLICK_ACTION: 'duplicateTab'
     });
     expect(await optionsPage.evaluate(() => window.permissionRequests)).toBe(0);
+});
+
+test('"Reset" shows once a gesture differs from its default, and puts the gestures back to their defaults', async ({ context, serviceWorker, extensionId }) => {
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+    const reset = optionsPage.getByRole('button', { name: 'Reset', exact: true });
+    const altAction = optionsPage.getByRole('combobox', { name: 'Alt + Double right click' });
+    const doubleRightClickAction = optionsPage.getByRole('combobox', { name: 'Double right click', exact: true });
+    await expect(altAction).toHaveValue('sameAsDoubleRightClick');
+    await expect(reset).toBeHidden();
+
+    await chooseOption(altAction, 'Duplicate the tab');
+    await chooseOption(doubleRightClickAction, 'Do nothing');
+    await expect(reset).toBeVisible();
+    await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
+        ALT_DOUBLE_RIGHT_CLICK_ACTION: 'duplicateTab',
+        DOUBLE_RIGHT_CLICK_ACTION: 'nothing'
+    });
+
+    await reset.click();
+    await expect(optionsPage.getByText('Reset to the defaults')).toBeVisible();
+    await expect(reset).toBeHidden();
+    await expect(altAction).toHaveValue('sameAsDoubleRightClick');
+    await expect(doubleRightClickAction).toHaveValue('closeTab');
+    await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({});
+
+    await optionsPage.reload();
+    await expect(altAction).toHaveValue('sameAsDoubleRightClick');
+    await expect(reset).toBeHidden();
+});
+
+test('outside macOS, a Cmd setting synced from a Mac neither shows "Reset" nor gets reset', async ({ context, serviceWorker, extensionId }) => {
+    await setGestureAction(serviceWorker, 'META_DOUBLE_RIGHT_CLICK_ACTION', 'nothing');
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+    const reset = optionsPage.getByRole('button', { name: 'Reset', exact: true });
+    const ctrlAction = optionsPage.getByRole('combobox', { name: 'Ctrl + Double right click' });
+    await expect(ctrlAction).toHaveValue('sameAsDoubleRightClick');
+    await expect(reset).toBeHidden();
+
+    await chooseOption(ctrlAction, 'Reload the tab');
+    await expect(reset).toBeVisible();
+    await reset.click();
+
+    await expect(reset).toBeHidden();
+    await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
+        META_DOUBLE_RIGHT_CLICK_ACTION: 'nothing'
+    });
+});
+
+test('on macOS, "Reset" shows for a changed Cmd row and resets it', async ({ context, serviceWorker, extensionId }) => {
+    await setGestureAction(serviceWorker, 'META_DOUBLE_RIGHT_CLICK_ACTION', 'nothing');
+    const optionsPage = await context.newPage();
+    await optionsPage.addInitScript(() => {
+        chrome.runtime.getPlatformInfo = async function () {
+            return { os: 'mac', arch: 'arm', nacl_arch: 'arm' };
+        };
+    });
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+    const reset = optionsPage.getByRole('button', { name: 'Reset', exact: true });
+    await expect(optionsPage.getByRole('combobox', { name: 'Cmd + Double right click' })).toHaveValue('nothing');
+    await expect(reset).toBeVisible();
+
+    await reset.click();
+
+    await expect(optionsPage.getByRole('combobox', { name: 'Cmd + Double right click' })).toHaveValue('sameAsDoubleRightClick');
+    await expect(reset).toBeHidden();
+    await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({});
 });

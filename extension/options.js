@@ -122,8 +122,11 @@ const main = function () {
     const SESSIONS_PERMISSION = { permissions: ['sessions'] };
     const elSessionsPermissionMissing = document.querySelector('.sessions-permission-missing');
     // A hidden row (Cmd outside macOS) does nothing, whatever it keeps
+    const isVisibleRow = function (elGestureAction) {
+        return !elGestureAction.closest('.gesture').hidden;
+    };
     const isReopenChosenFor = function (elGestureAction) {
-        return !elGestureAction.closest('.gesture').hidden && savedActions.get(elGestureAction) === ACTION_REOPEN_CLOSED_TAB;
+        return isVisibleRow(elGestureAction) && savedActions.get(elGestureAction) === ACTION_REOPEN_CLOSED_TAB;
     };
     const isReopenChosen = function () {
         return elGestureActions.some(isReopenChosenFor);
@@ -145,15 +148,40 @@ const main = function () {
         });
     });
 
-    const saveAction = async function (elGestureAction) {
-        const action = elGestureAction.value;
-        await chromeStorageForExtensionData.set({ [elGestureAction.dataset.setting]: action });
-        savedActions.set(elGestureAction, action);
-        notifyUser('Saved');
+    const removeSessionsPermissionIfUnused = async function () {
         if (!isReopenChosen() && await chrome.permissions.contains(SESSIONS_PERMISSION)) {
             await chrome.permissions.remove(SESSIONS_PERMISSION);
         }
         showSessionsPermission();
+    };
+
+    // "Reset" shows while a visible row differs from its default, and puts the visible rows back to their defaults (a
+    // Cmd setting synced from a Mac stays, outside macOS)
+    const elResetGestures = document.querySelector('.reset-gestures');
+    const showResetGestures = function () {
+        elResetGestures.hidden = !elGestureActions.some((elGestureAction) => {
+            return isVisibleRow(elGestureAction) && savedActions.get(elGestureAction) !== defaultAction(elGestureAction);
+        });
+    };
+    elResetGestures.addEventListener('click', async function () {
+        const elVisibleGestureActions = elGestureActions.filter(isVisibleRow);
+        await chromeStorageForExtensionData.remove(elVisibleGestureActions.map((elGestureAction) => elGestureAction.dataset.setting));
+        elVisibleGestureActions.forEach((elGestureAction) => {
+            elGestureAction.value = defaultAction(elGestureAction);
+            savedActions.set(elGestureAction, elGestureAction.value);
+        });
+        showResetGestures();
+        notifyUser('Reset to the defaults');
+        await removeSessionsPermissionIfUnused();
+    });
+
+    const saveAction = async function (elGestureAction) {
+        const action = elGestureAction.value;
+        await chromeStorageForExtensionData.set({ [elGestureAction.dataset.setting]: action });
+        savedActions.set(elGestureAction, action);
+        showResetGestures();
+        notifyUser('Saved');
+        await removeSessionsPermissionIfUnused();
     };
 
     elGestureActions.forEach((elGestureAction) => {
@@ -196,6 +224,7 @@ const main = function () {
             savedActions.set(elGestureAction, elGestureAction.value);
         });
         showSessionsPermission();
+        showResetGestures();
     });
 
     // The Cmd key only counts on macOS, where the Alt key is called Option
@@ -206,6 +235,7 @@ const main = function () {
             });
             document.querySelector('.alt-key-name').textContent = 'Option';
             showSessionsPermission();
+            showResetGestures();
         }
     });
 

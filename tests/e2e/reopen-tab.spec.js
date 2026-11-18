@@ -100,6 +100,19 @@ test('the permission stays while another gesture still reopens the last closed t
     expect(await isSessionsPermissionGranted(serviceWorker)).toBe(true);
 });
 
+test('"Reset" removes the permission along with the choice to reopen the last closed tab', async ({ context, serviceWorker, extensionId }) => {
+    const optionsPage = await openOptionsPage({ context, extensionId });
+    const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + Double right click' });
+
+    await chooseOption(shiftAction, 'Reopen the last closed tab');
+    await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(true);
+
+    await optionsPage.getByRole('button', { name: 'Reset', exact: true }).click();
+    await expect(shiftAction).toHaveValue('sameAsDoubleRightClick');
+    await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(false);
+    await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({});
+});
+
 test('a denied permission puts the previous choice back and shows no note', async ({ context, serviceWorker, extensionId }) => {
     const optionsPage = await openOptionsPage({ context, extensionId });
     const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + Double right click' });

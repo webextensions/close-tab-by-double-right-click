@@ -303,11 +303,15 @@ def read_options_page(pid):
                 # The notice is left out of the accessibility tree while it is hidden
                 access_missing = any('needs access to the recently closed tabs' in accessible_text(text)
                                      for text in accessible_descendants(node))
+                # Left out of the accessibility tree while it is hidden, like the notice
+                reset_shown = any(button.get_role() == Atspi.Role.PUSH_BUTTON and button.get_name() == 'Reset'
+                                  for button in accessible_descendants(node))
                 return node.path, {'type': checked[0] if checked else None,
                                    'value': dropdowns.get(MAXIMUM_TIME_DROPDOWN),
                                    'gestures': {gesture: dropdowns.get(name)
                                                 for gesture, name in GESTURE_DROPDOWNS.items()},
-                                   'access_missing': access_missing}
+                                   'access_missing': access_missing,
+                                   'reset_shown': reset_shown}
     return None, None
 
 
@@ -324,9 +328,10 @@ def read_dropdowns(document):
 
 def options_state(time_type, time_value, access_missing=False, **gestures):
     """Return the state of the options page with the given choices, and the defaults for the gestures not given."""
-    return {'type': time_type, 'value': time_value,
-            'gestures': {gesture: gestures.get(gesture, default) for gesture, default in DEFAULT_GESTURES.items()},
-            'access_missing': access_missing}
+    shown_gestures = {gesture: gestures.get(gesture, default) for gesture, default in DEFAULT_GESTURES.items()}
+    return {'type': time_type, 'value': time_value, 'gestures': shown_gestures, 'access_missing': access_missing,
+            # "Reset" shows while a gesture differs from its default
+            'reset_shown': shown_gestures != DEFAULT_GESTURES}
 
 
 def find_options_page(pid):
@@ -782,7 +787,8 @@ def choose_gesture_action(browser, mouse, keep, gesture, label, expected):
     current = state['gestures'][gesture]
     labels = ACTION_LABELS if gesture == 'plain' else [SAME_AS_DOUBLE_RIGHT_CLICK, *ACTION_LABELS]
     steps = labels.index(label) - labels.index(current)
-    mouse.type_text('\t' * (list(GESTURE_DROPDOWNS).index(gesture) + 1))
+    # "Reset" comes first while it shows
+    mouse.type_text('\t' * (list(GESTURE_DROPDOWNS).index(gesture) + 1 + (1 if state['reset_shown'] else 0)))
     # Alt+Down opens the dropdown, the arrow keys move through its options and Enter takes one
     mouse.key(KEYSYM_ALT_L, True)
     mouse.key(KEYSYM_DOWN)
@@ -886,6 +892,18 @@ def check_key_actions(browser, mouse, keep):
     check('Alt + double right click set to duplicate the tab duplicates it and keeps it open',
           still_open and urls == [TEST_URL], json.dumps(urls))
     close_tab_if_open(browser, mouse, target, keep)
+
+    open_options_page(browser, mouse)
+    wait_for_options_page(browser.pid, expected)
+    mouse.type_text('\t ')  # "Reset", the first control while it shows
+    expected = options_state('custom', '1000')
+    _, state = wait_for_options_page(browser.pid, expected)
+    check('"Reset" puts the gestures back to their defaults', state == expected, json.dumps(state))
+    mouse.key(KEYSYM_CONTROL_L, True)
+    mouse.type_text('w')  # close the options tab
+    mouse.key(KEYSYM_CONTROL_L, False)
+    time.sleep(1)
+    browser.switch_to(keep)
 
 
 def main():

@@ -29,6 +29,24 @@
             font-weight: bold;
             padding-bottom: 7px;
         }
+        .option-heading-with-action {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        /* A button which looks like a link */
+        .reset-gestures {
+            padding: 0;
+            border: 0;
+            background: none;
+            color: #1a73e8;
+            font: inherit;
+            font-size: 1.3rem;
+            font-weight: normal;
+        }
+        .reset-gestures:hover {
+            text-decoration: underline;
+        }
         .option-value,
         label {
             display: flex;
@@ -78,7 +96,10 @@
     <div style="display:flex; justify-content:center;">
         <div>
             <div class="option">
-                <div class="option-heading">Double right click</div>
+                <div class="option-heading option-heading-with-action">
+                    <span>Double right click</span>
+                    <button class="reset-gestures" hidden>Reset</button>
+                </div>
                 <div style="margin-top:10px; margin-left:20px">
                     <div class="gestures">
                         <div class="gesture">

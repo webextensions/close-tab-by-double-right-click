@@ -67,9 +67,9 @@ OPTIONS_URL = f'moz-extension://{ADDON_UUID}/options.html'
 OPTIONS_TITLE = 'Double Right Click - close tab & more'
 # The dropdowns of the options page, by their names (there is no Cmd row outside macOS), and their options
 MAXIMUM_TIME_DROPDOWN = 'Maximum time between clicks'
-GESTURE_DROPDOWNS = {'plain': 'Double right click', 'shift': 'Shift + double right click',
-                     'ctrl': 'Ctrl + double right click', 'alt': 'Alt + double right click'}
-SAME_AS_DOUBLE_RIGHT_CLICK = 'Same as double right click'
+GESTURE_DROPDOWNS = {'plain': 'Double right click', 'shift': 'Shift + Double right click',
+                     'ctrl': 'Ctrl + Double right click', 'alt': 'Alt + Double right click'}
+SAME_AS_DOUBLE_RIGHT_CLICK = 'Same as Double right click'
 ACTION_LABELS = ['Do nothing', 'Close the tab', 'Go back', 'Reload the tab', 'Open a new tab', 'Duplicate the tab',
                  'Reopen the last closed tab']
 DEFAULT_GESTURES = {'plain': 'Close the tab', 'shift': SAME_AS_DOUBLE_RIGHT_CLICK, 'ctrl': SAME_AS_DOUBLE_RIGHT_CLICK,

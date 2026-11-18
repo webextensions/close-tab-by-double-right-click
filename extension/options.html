@@ -61,6 +61,8 @@
         }
         .gesture label {
             display: block;
+            text-align: right;
+            white-space: nowrap;
         }
         .gesture-permission-missing {
             margin-left: 8px;
@@ -81,23 +83,22 @@
                             <span><select id="double-right-click-action" class="gesture-action" data-setting="DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                         <div class="gesture">
-                            <label for="shift-double-right-click-action">Shift + double right click</label>
+                            <label for="shift-double-right-click-action">Shift + Double right click</label>
                             <span><select id="shift-double-right-click-action" class="gesture-action" data-setting="SHIFT_DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                         <div class="gesture">
-                            <label for="ctrl-double-right-click-action">Ctrl + double right click</label>
+                            <label for="ctrl-double-right-click-action">Ctrl + Double right click</label>
                             <span><select id="ctrl-double-right-click-action" class="gesture-action" data-setting="CTRL_DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                         <div class="gesture">
-                            <label for="alt-double-right-click-action"><span class="alt-key-name">Alt</span> + double right click</label>
+                            <label for="alt-double-right-click-action"><span class="alt-key-name">Alt</span> + Double right click</label>
                             <span><select id="alt-double-right-click-action" class="gesture-action" data-setting="ALT_DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                         <div class="gesture gesture-mac-only" hidden>
-                            <label for="meta-double-right-click-action">Cmd + double right click</label>
+                            <label for="meta-double-right-click-action">Cmd + Double right click</label>
                             <span><select id="meta-double-right-click-action" class="gesture-action" data-setting="META_DOUBLE_RIGHT_CLICK_ACTION"></select><span class="gesture-permission-missing" hidden>Needs access</span></span>
                         </div>
                     </div>
-                    <div style="color: #777; margin-top:7px">Hold the key while making the first click.</div>
                     <div class="sessions-permission-missing" style="margin-top:7px" hidden>
                         Reopening the last closed tab needs access to the recently closed tabs.
                         <button class="grant-sessions-permission">Grant access</button>

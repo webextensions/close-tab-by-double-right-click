@@ -79,9 +79,9 @@ test('"Done" shows the note when the options page stays open', async ({ context,
 
 const GESTURE_ROWS = [
     ['Double right click', 'closeTab'],
-    ['Shift + double right click', 'sameAsDoubleRightClick'],
-    ['Ctrl + double right click', 'sameAsDoubleRightClick'],
-    ['Alt + double right click', 'sameAsDoubleRightClick']
+    ['Shift + Double right click', 'sameAsDoubleRightClick'],
+    ['Ctrl + Double right click', 'sameAsDoubleRightClick'],
+    ['Alt + Double right click', 'sameAsDoubleRightClick']
 ];
 
 test('the gestures start with the double right click closing the tab and nothing set for the keys', async ({ context, extensionId }) => {
@@ -92,7 +92,7 @@ test('the gestures start with the double right click closing the tab and nothing
         await expect(optionsPage.getByRole('combobox', { name, exact: true })).toHaveValue(value);
     }
     // Only on macOS
-    await expect(optionsPage.getByRole('combobox', { name: 'Cmd + double right click' })).toBeHidden();
+    await expect(optionsPage.getByRole('combobox', { name: 'Cmd + Double right click' })).toBeHidden();
     await expect(optionsPage.getByRole('combobox', { name: 'Double right click', exact: true }).locator('option')).toHaveText([
         'Do nothing',
         'Close the tab',
@@ -102,8 +102,8 @@ test('the gestures start with the double right click closing the tab and nothing
         'Duplicate the tab',
         'Reopen the last closed tab'
     ]);
-    await expect(optionsPage.getByRole('combobox', { name: 'Alt + double right click' }).locator('option').first()).toHaveText(
-        'Same as double right click'
+    await expect(optionsPage.getByRole('combobox', { name: 'Alt + Double right click' }).locator('option').first()).toHaveText(
+        'Same as Double right click'
     );
 });
 
@@ -116,14 +116,14 @@ test('on macOS, the options page shows the Cmd key and calls the Alt key Option'
     });
     await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
 
-    await expect(optionsPage.getByRole('combobox', { name: 'Cmd + double right click' })).toHaveValue('sameAsDoubleRightClick');
-    await expect(optionsPage.getByRole('combobox', { name: 'Option + double right click' })).toBeVisible();
+    await expect(optionsPage.getByRole('combobox', { name: 'Cmd + Double right click' })).toHaveValue('sameAsDoubleRightClick');
+    await expect(optionsPage.getByRole('combobox', { name: 'Option + Double right click' })).toBeVisible();
 });
 
 test('choosing what a gesture does saves it and shows the note', async ({ context, serviceWorker, extensionId }) => {
     const optionsPage = await context.newPage();
     await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
-    const altAction = optionsPage.getByRole('combobox', { name: 'Alt + double right click' });
+    const altAction = optionsPage.getByRole('combobox', { name: 'Alt + Double right click' });
 
     await chooseOption(altAction, 'Duplicate the tab');
     await expect(optionsPage.getByText('Saved')).toBeVisible();

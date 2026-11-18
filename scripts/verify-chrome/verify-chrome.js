@@ -250,7 +250,7 @@ const runGestureChecks = async function (context, serviceWorker, displayMode) {
         console.log(`${passed ? 'PASS' : 'FAIL'}  [${displayMode}] ${name}${detail ? `  (${detail})` : ''}`);
     };
 
-    let { granted, missingShown } = await chooseGestureAction(context, serviceWorker, 'Shift + double right click', 'Reopen the last closed tab');
+    let { granted, missingShown } = await chooseGestureAction(context, serviceWorker, 'Shift + Double right click', 'Reopen the last closed tab');
     check('choosing to reopen the last closed tab for Shift grants the permission', granted && !missingShown,
         JSON.stringify({ granted, missingShown }));
 
@@ -265,16 +265,16 @@ const runGestureChecks = async function (context, serviceWorker, displayMode) {
     check('after closing two tabs, Shift + double right click reopens only the last one',
         urls.length === 1 && urls[0] === `${CLOSED_URL_PREFIX}third`, JSON.stringify(urls));
 
-    ({ granted } = await chooseGestureAction(context, serviceWorker, 'Shift + double right click', 'Same as double right click'));
+    ({ granted } = await chooseGestureAction(context, serviceWorker, 'Shift + Double right click', 'Same as Double right click'));
     check('setting Shift back to the double right click removes the permission', !granted);
     ({ stayedOpen } = await shiftDoubleRightClick(context, serviceWorker));
     check('then Shift + double right click closes the tab', !stayedOpen);
 
-    await chooseGestureAction(context, serviceWorker, 'Ctrl + double right click', 'Do nothing');
+    await chooseGestureAction(context, serviceWorker, 'Ctrl + Double right click', 'Do nothing');
     ({ stayedOpen } = await gestureOnNewPage(context, serviceWorker, doubleRightClickWith('ctrl')));
     check('Ctrl + double right click set to do nothing keeps the tab open', stayedOpen);
 
-    await chooseGestureAction(context, serviceWorker, 'Alt + double right click', 'Duplicate the tab');
+    await chooseGestureAction(context, serviceWorker, 'Alt + Double right click', 'Duplicate the tab');
     ({ stayedOpen, urls } = await gestureOnNewPage(context, serviceWorker, doubleRightClickWith('alt')));
     check('Alt + double right click set to duplicate the tab duplicates it and keeps it open',
         stayedOpen && urls.length === 1 && urls[0] === TEST_URL, JSON.stringify(urls));

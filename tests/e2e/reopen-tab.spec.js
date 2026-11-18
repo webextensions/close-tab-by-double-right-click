@@ -59,7 +59,7 @@ const openOptionsPage = async function ({ context, extensionId }) {
 
 test('choosing to reopen the last closed tab asks for the "sessions" permission, which goes once no gesture uses it', async ({ context, serviceWorker, extensionId }) => {
     const optionsPage = await openOptionsPage({ context, extensionId });
-    const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + double right click' });
+    const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + Double right click' });
 
     await expect(shiftAction).toHaveValue('sameAsDoubleRightClick');
     expect(await isSessionsPermissionGranted(serviceWorker)).toBe(false);
@@ -74,7 +74,7 @@ test('choosing to reopen the last closed tab asks for the "sessions" permission,
     await expect(shiftAction).toHaveValue('reopenClosedTab');
     await expect(optionsPage.getByText('needs access to the recently closed tabs')).toBeHidden();
 
-    await chooseOption(shiftAction, 'Same as double right click');
+    await chooseOption(shiftAction, 'Same as Double right click');
     await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(false);
     await optionsPage.reload();
     await expect(shiftAction).toHaveValue('sameAsDoubleRightClick');
@@ -82,8 +82,8 @@ test('choosing to reopen the last closed tab asks for the "sessions" permission,
 
 test('the permission stays while another gesture still reopens the last closed tab', async ({ context, serviceWorker, extensionId }) => {
     const optionsPage = await openOptionsPage({ context, extensionId });
-    const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + double right click' });
-    const ctrlAction = optionsPage.getByRole('combobox', { name: 'Ctrl + double right click' });
+    const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + Double right click' });
+    const ctrlAction = optionsPage.getByRole('combobox', { name: 'Ctrl + Double right click' });
 
     await chooseOption(shiftAction, 'Reopen the last closed tab');
     await expect(shiftAction).toHaveValue('reopenClosedTab');
@@ -102,7 +102,7 @@ test('the permission stays while another gesture still reopens the last closed t
 
 test('a denied permission puts the previous choice back and shows no note', async ({ context, serviceWorker, extensionId }) => {
     const optionsPage = await openOptionsPage({ context, extensionId });
-    const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + double right click' });
+    const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + Double right click' });
     await expect(shiftAction).toHaveValue('sameAsDoubleRightClick');
 
     // As if the user denied the prompt
@@ -138,7 +138,7 @@ test('the options page offers to grant the permission while a gesture reopens th
 
 test('when the browser does not ask for the permission, the choice stays and the page offers to grant it', async ({ context, serviceWorker, extensionId }) => {
     const optionsPage = await openOptionsPage({ context, extensionId });
-    const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + double right click' });
+    const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + Double right click' });
     await expect(shiftAction).toHaveValue('sameAsDoubleRightClick');
 
     // As when the browser does not take the change of a dropdown for the user's action
@@ -167,14 +167,14 @@ test('outside macOS, the hidden Cmd row neither asks for the permission nor keep
     // As when the setting got synced from a Mac
     await setGestureAction(serviceWorker, 'META_DOUBLE_RIGHT_CLICK_ACTION', 'reopenClosedTab');
     const optionsPage = await openOptionsPage({ context, extensionId });
-    await expect(optionsPage.getByRole('combobox', { name: 'Shift + double right click' })).toHaveValue('sameAsDoubleRightClick');
+    await expect(optionsPage.getByRole('combobox', { name: 'Shift + Double right click' })).toHaveValue('sameAsDoubleRightClick');
 
     await expect(optionsPage.getByText('needs access to the recently closed tabs')).toBeHidden();
 });
 
 test('once chosen, Shift + double right click reopens the tab which the gesture closed', async ({ context, serviceWorker, extensionId }) => {
     const optionsPage = await openOptionsPage({ context, extensionId });
-    await chooseOption(optionsPage.getByRole('combobox', { name: 'Shift + double right click' }), 'Reopen the last closed tab');
+    await chooseOption(optionsPage.getByRole('combobox', { name: 'Shift + Double right click' }), 'Reopen the last closed tab');
     await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(true);
     await optionsPage.close();
 

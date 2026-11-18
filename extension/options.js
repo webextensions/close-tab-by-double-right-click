@@ -159,7 +159,7 @@ const main = function () {
     elGestureActions.forEach((elGestureAction) => {
         const options = elGestureAction.dataset.setting === DOUBLE_RIGHT_CLICK_ACTION ?
             ACTION_LABELS :
-            [[ACTION_SAME_AS_DOUBLE_RIGHT_CLICK, 'Same as double right click'], ...ACTION_LABELS];
+            [[ACTION_SAME_AS_DOUBLE_RIGHT_CLICK, 'Same as Double right click'], ...ACTION_LABELS];
         options.forEach(([value, label]) => {
             elGestureAction.add(new Option(label, value));
         });

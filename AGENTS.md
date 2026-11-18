@@ -49,6 +49,10 @@ is.
 - The options page sets what a double right click does, and with Shift, Ctrl, Alt or (on macOS only) Cmd held. The
   content script only reports the gesture and its keys; the background script reads the settings on each gesture and
   decides. Two keys held together do nothing, and a key with nothing set does what the plain gesture does.
+- The look of the options page lives in [extension/options.css](extension/options.css), in light and dark. Its rule
+  which keeps `[hidden]` elements hidden must stay, or a styled element which `options.js` hides shows up and joins the
+  Tab order. The note which confirms a change (`utils.alertNote`) styles itself inline, so `options.css` overrides its
+  colors with `!important`.
 - Reopening the last closed tab needs the optional `sessions` permission. Keep it optional: as a required permission
   next to `tabs`, it changes Chrome's warning to "Read your browsing history on all your signed-in devices". The
   options page asks for it when a dropdown gets set to reopen, and removes it once none is. Nothing may be awaited

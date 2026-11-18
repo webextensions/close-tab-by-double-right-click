@@ -1,0 +1,237 @@
+:root {
+    color-scheme: light dark;
+
+    --page-background: #f2f4f8;
+    --card-background: #fff;
+    --card-border: #e2e6ee;
+    --card-shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 4px 12px rgb(16 24 40 / 6%);
+    --text: #1d2330;
+    --text-muted: #6a7282;
+    --control-background: #fff;
+    --control-border: #cdd3de;
+    --control-border-hover: #9aa4b6;
+    --accent: #2f6fed;
+    --accent-hover: #1f5ad1;
+    --accent-text: #fff;
+    --danger: #c22c2c;
+    --note-background: #e7f6ec;
+    --note-border: #a6dcb8;
+    --note-text: #17572f;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --page-background: #15171c;
+        --card-background: #1f2229;
+        --card-border: #30343e;
+        --card-shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 25%);
+        --text: #e4e7ee;
+        --text-muted: #9aa2b1;
+        --control-background: #272b33;
+        --control-border: #414755;
+        --control-border-hover: #5c6475;
+        --accent: #7ea6ff;
+        --accent-hover: #a0bdff;
+        --accent-text: #0e1626;
+        --danger: #ff8f87;
+        --note-background: #183826;
+        --note-border: #2f6b47;
+        --note-text: #c3efd3;
+    }
+}
+
+/* Elements which options.js hides and shows with the "hidden" attribute stay hidden, whatever their display below */
+[hidden] {
+    display: none !important;
+}
+
+html {
+    font-size: 62.5%;
+}
+body {
+    margin: 0;
+    /* At the top, room for the note which confirms a change (see notifyUser in options.js) */
+    padding: 40px 20px 20px;
+    background: var(--page-background);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+    font-size: 1.35rem;
+    line-height: 1.4;
+}
+button,
+select {
+    font: inherit;
+    color: inherit;
+}
+button {
+    cursor: pointer;
+}
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.page {
+    display: flex;
+    justify-content: center;
+}
+
+/* Each section is a card */
+.option {
+    padding: 16px 20px 18px;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: var(--card-background);
+    box-shadow: var(--card-shadow);
+}
+.option + .option {
+    margin-top: 16px;
+}
+.option-heading {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+.option-heading-with-action {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+}
+.option-body {
+    margin-top: 14px;
+}
+
+/* A button which looks like a link */
+.reset-gestures {
+    padding: 2px 6px;
+    margin-right: -6px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--accent);
+    font-size: 1.3rem;
+    font-weight: 500;
+}
+.reset-gestures:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+select {
+    appearance: none;
+    min-height: 30px;
+    padding: 4px 30px 4px 10px;
+    border: 1px solid var(--control-border);
+    border-radius: 8px;
+    /* A chevron drawn in the text color, so that it follows the color scheme */
+    background:
+        linear-gradient(45deg, transparent 50%, currentColor 50%) right 15px center / 5px 5px no-repeat,
+        linear-gradient(135deg, currentColor 50%, transparent 50%) right 10px center / 5px 5px no-repeat,
+        var(--control-background);
+    cursor: pointer;
+}
+select:hover {
+    border-color: var(--control-border-hover);
+}
+select:focus-visible {
+    border-color: var(--accent);
+}
+input[type="radio"] {
+    width: 15px;
+    height: 15px;
+    margin: 0 8px 0 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.option-value,
+label {
+    display: flex;
+    align-items: center;
+}
+.option-value + .option-value {
+    margin-top: 10px;
+}
+.option-value label {
+    cursor: pointer;
+}
+.muted {
+    color: var(--text-muted);
+}
+
+.gestures {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: start;
+    align-items: center;
+    gap: 10px 20px;
+}
+.gesture {
+    display: contents;
+}
+.gesture label {
+    display: block;
+    white-space: nowrap;
+}
+.gesture-permission-missing {
+    margin-left: 8px;
+    color: var(--danger);
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.sessions-permission-missing {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    max-width: 440px;
+    margin-top: 14px;
+    color: var(--text-muted);
+}
+
+.button-secondary,
+.button-primary {
+    padding: 5px 14px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+.button-secondary {
+    border: 1px solid var(--control-border);
+    background: var(--control-background);
+}
+.button-secondary:hover {
+    border-color: var(--control-border-hover);
+}
+.button-primary {
+    min-width: 96px;
+    padding: 7px 20px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--accent-text);
+}
+.button-primary:hover {
+    border-color: var(--accent-hover);
+    background: var(--accent-hover);
+}
+
+.page-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 22px;
+}
+
+/* The note which confirms a change (utils.alertNote, which styles it inline), restyled to match the page */
+#topCenterAlertNote div:has(> .alert-note-text) {
+    padding: 3px 14px !important;
+    border-color: var(--note-border) !important;
+    border-radius: 999px;
+    background-color: var(--note-background) !important;
+    box-shadow: var(--card-shadow);
+}
+#topCenterAlertNote .alert-note-text {
+    color: var(--note-text) !important;
+    font: 600 1.25rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif !important;
+}

@@ -18,7 +18,8 @@ const RadioButtonSelectedValueSet = function (name, SelectedValue) {
 };
 
 const notifyUser = function (message = 'Your change would apply next time onwards') {
-    utils.alertNote(`✓ ${message}`, 2500);
+    // Pinned a little below the top of the page, which leaves room for it above the first heading
+    utils.alertNote(`✓ ${message}`, 2500, { paddingTop: '8px' });
 };
 
 const main = function () {

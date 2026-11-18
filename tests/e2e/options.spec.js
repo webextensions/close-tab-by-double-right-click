@@ -305,3 +305,17 @@ for (const [value, apart] of [['750', 650], ['2000', 1500]]) {
         await closed;
     });
 }
+
+test('the note which confirms a change leaves room above the first heading', async ({ context, extensionId }) => {
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+
+    await optionsPage.getByRole('combobox', { name: 'Maximum time between clicks' }).selectOption('1000');
+    const note = optionsPage.locator('.alert-note-text');
+    await expect(note).toBeVisible();
+
+    // The note's box is the bordered element around its text
+    const noteBottom = await note.evaluate((el) => el.parentElement.getBoundingClientRect().bottom);
+    const headingTop = await optionsPage.locator('.option-heading').first().evaluate((el) => el.getBoundingClientRect().top);
+    expect(headingTop - noteBottom).toBeGreaterThanOrEqual(8);
+});

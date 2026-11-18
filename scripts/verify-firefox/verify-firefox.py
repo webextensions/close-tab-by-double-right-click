@@ -212,7 +212,9 @@ def wait_for_geckodriver(driver, timeout_seconds=15):
 class Browser:
     def __init__(self):
         caps = {'capabilities': {'alwaysMatch': {'browserName': 'firefox', 'moz:firefoxOptions': {
-            'prefs': {'extensions.webextensions.uuids': json.dumps({ADDON_ID: ADDON_UUID})}}}}}
+            'prefs': {'extensions.webextensions.uuids': json.dumps({ADDON_ID: ADDON_UUID}),
+                      # Grants an optional permission without asking, still only on the user's action
+                      'extensions.webextOptionalPermissionPrompts': False}}}}}
         response = webdriver('POST', '/session', caps)
         self.session = response['sessionId']
         self.pid = response['capabilities']['moz:processID']
@@ -271,7 +273,7 @@ def has_state(node, state):
 def read_options_page(pid):
     """Return (document object path, shown state) for the options page, or (None, None) if it is not found.
 
-    The shown state looks like {'type': 'custom', 'value': '1000'}.
+    The shown state looks like {'type': 'custom', 'value': '1000', 'reopen': False}.
     """
     desktop = Atspi.get_desktop(0)
     for index in range(desktop.get_child_count()):
@@ -285,8 +287,11 @@ def read_options_page(pid):
                            if radio.get_role() == Atspi.Role.RADIO_BUTTON and has_state(radio, Atspi.StateType.CHECKED)]
                 selected = [item.get_name() for item in accessible_descendants(node)
                             if item.get_role() == Atspi.Role.MENU_ITEM and has_state(item, Atspi.StateType.SELECTED)]
+                reopen = [box for box in accessible_descendants(node)
+                          if box.get_role() == Atspi.Role.CHECK_BOX and has_state(box, Atspi.StateType.CHECKED)]
                 return node.path, {'type': checked[0] if checked else None,
-                                   'value': selected[0] if selected else None}
+                                   'value': selected[0] if selected else None,
+                                   'reopen': bool(reopen)}
     return None, None
 
 
@@ -401,10 +406,7 @@ def check_held_clicks(browser, mouse, keep):
     close_tab_if_open(browser, mouse, target, keep)
 
 
-def check_shift_clicks(browser, mouse, keep):
-    # On Shift + right click, Firefox opens its context menu without sending "contextmenu" to the page
-    target = open_test_page(browser)
-    focus_page(mouse)
+def shift_right_clicks(mouse):
     mouse.key(KEYSYM_SHIFT_L, True)
     try:
         time.sleep(0.1)
@@ -413,7 +415,14 @@ def check_shift_clicks(browser, mouse, keep):
     finally:
         mouse.key(KEYSYM_SHIFT_L, False)
     time.sleep(1.2)
-    check('Shift + double right click closes the tab', target not in browser.handles())
+
+
+def check_shift_clicks(browser, mouse, keep):
+    # On Shift + right click, Firefox opens its context menu without sending "contextmenu" to the page
+    target = open_test_page(browser)
+    focus_page(mouse)
+    shift_right_clicks(mouse)
+    check('Shift + double right click closes the tab while reopening is off', target not in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
 
 
@@ -631,13 +640,13 @@ def check_options_page(browser, mouse, keep):
     # WebDriver cannot read or script extension pages ("privileged scope"), so drive the page with the keyboard, read
     # it through the accessibility tree, and check the effect: the content script must pick up the saved custom value
     open_options_page(browser, mouse)
-    default_state = {'type': 'default', 'value': '500'}
+    default_state = {'type': 'default', 'value': '500', 'reopen': False}
     _, state = wait_for_options_page(browser.pid, default_state)
     check('options page starts on "Default" (500 ms)', state == default_state, json.dumps(state))
 
     mouse.type_text('\t\t')  # "Default" radio, then the dropdown
     mouse.type_text('1000')  # type-ahead selects the "1000" option and fires "change"
-    custom_state = {'type': 'custom', 'value': '1000'}
+    custom_state = {'type': 'custom', 'value': '1000', 'reopen': False}
     document_before_reload, state = wait_for_options_page(browser.pid, custom_state)
     check('choosing 1000 in the dropdown selects "Custom"', state == custom_state, json.dumps(state))
 
@@ -657,6 +666,80 @@ def check_options_page(browser, mouse, keep):
     right_clicks(mouse, 0.8)
     time.sleep(1.5)
     check('with custom 1000 ms, right clicks 800 ms apart close the tab', target not in browser.handles())
+    close_tab_if_open(browser, mouse, target, keep)
+
+
+def set_reopen_closed_tab(browser, mouse, keep, turn_on):
+    # Follows check_options_page, which leaves the custom 1000 ms
+    open_options_page(browser, mouse)
+    wait_for_options_page(browser.pid, {'type': 'custom', 'value': '1000', 'reopen': not turn_on})
+    mouse.type_text('\t\t\t')  # the radio buttons, the dropdown, then the checkbox
+    mouse.type_text(' ')  # a key press of the user, so the page may ask for the permission
+    _, state = wait_for_options_page(browser.pid, {'type': 'custom', 'value': '1000', 'reopen': turn_on})
+    # The checks after this one tell whether it worked, even when the options page cannot be read
+    check(f'{"ticking" if turn_on else "unticking"} the checkbox turns reopening {"on" if turn_on else "off"}',
+          bool(state) and state['reopen'] == turn_on, json.dumps(state))
+    mouse.key(KEYSYM_CONTROL_L, True)
+    mouse.type_text('w')  # close the options tab
+    mouse.key(KEYSYM_CONTROL_L, False)
+    time.sleep(1)
+    browser.switch_to(keep)
+
+
+def close_with_gesture(browser, mouse, keep, url):
+    handle = open_test_page(browser, url)
+    focus_page(mouse)
+    right_clicks(mouse, 0.15)
+    time.sleep(1.5)
+    if handle in browser.handles():
+        raise RuntimeError(f'Double right click did not close {url}')
+    browser.switch_to(keep)
+
+
+def reopened_tab_urls(browser, mouse, keep, handles_before):
+    """Return the URLs of the tabs which showed up since `handles_before`, and close those tabs."""
+    mouse.key(KEYSYM_ESCAPE)  # the context menu which the first click opened
+    urls = []
+    for handle in browser.handles():
+        if handle not in handles_before:
+            browser.switch_to(handle)
+            urls.append(browser.cmd('GET', '/url'))
+            browser.cmd('DELETE', '/window')
+    browser.switch_to(keep)
+    return urls
+
+
+def check_reopen_closed_tab(browser, mouse, keep):
+    # Each closed tab gets its own URL, since the earlier checks closed many tabs with the same one
+    set_reopen_closed_tab(browser, mouse, keep, True)
+
+    close_with_gesture(browser, mouse, keep, f'{TEST_URL}?closed-first')
+    target = open_test_page(browser)
+    focus_page(mouse)
+    handles_before = browser.handles()
+    shift_right_clicks(mouse)
+    still_open = target in browser.handles()
+    urls = reopened_tab_urls(browser, mouse, keep, handles_before)
+    check('Shift + double right click reopens the last closed tab and keeps the tab open',
+          still_open and urls == [f'{TEST_URL}?closed-first'], json.dumps(urls))
+    close_tab_if_open(browser, mouse, target, keep)
+
+    close_with_gesture(browser, mouse, keep, f'{TEST_URL}?closed-second')
+    close_with_gesture(browser, mouse, keep, f'{TEST_URL}?closed-third')
+    target = open_test_page(browser)
+    focus_page(mouse)
+    handles_before = browser.handles()
+    shift_right_clicks(mouse)
+    urls = reopened_tab_urls(browser, mouse, keep, handles_before)
+    check('after closing two tabs, Shift + double right click reopens only the last one',
+          urls == [f'{TEST_URL}?closed-third'], json.dumps(urls))
+    close_tab_if_open(browser, mouse, target, keep)
+
+    set_reopen_closed_tab(browser, mouse, keep, False)
+    target = open_test_page(browser)
+    focus_page(mouse)
+    shift_right_clicks(mouse)
+    check('after turning reopening off, Shift + double right click closes the tab', target not in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
 
 
@@ -682,7 +765,7 @@ def main():
         steps = (check_real_sites,) if ARGUMENTS.sites else (
             check_clicks, check_held_clicks, check_shift_clicks, check_own_handlers, check_loading_pages,
             check_rewritten_page, check_context_menu_entry, check_error_page, check_restricted_domain,
-            check_options_page)
+            check_options_page, check_reopen_closed_tab)
         for step in steps:
             try:
                 step(browser, mouse, keep)

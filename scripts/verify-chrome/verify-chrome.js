@@ -61,6 +61,8 @@ const STALLED_IMAGE_URL = `${TEST_ORIGIN}/stalled-image`;
 // A page covered by a frame whose own page never arrives, so the page never finishes loading either
 const LATE_FRAME_URL = `${TEST_ORIGIN}/late-frame`;
 const STALLED_URLS = [STALLED_HEAD_URL, STALLED_IMAGE_URL, LATE_FRAME_URL];
+// Pages which get closed and then reopened, each under its own URL
+const CLOSED_URL_PREFIX = `${TEST_ORIGIN}/closed-`;
 
 // A spot inside the page of the full screen window
 const POINTER = { x: 600, y: 450 };
@@ -68,9 +70,13 @@ const POINTER = { x: 600, y: 450 };
 // Chromium picks Wayland on a Wayland session, where X11 (through XWayland) still works and behaves differently
 const displayModes = process.env.XDG_SESSION_TYPE === 'wayland' ? ['wayland', 'x11'] : ['x11'];
 
+const DOUBLE_RIGHT_CLICK = ['right', 'sleep', 0.15, 'right', 'sleep', 1.2];
+const SHIFT_DOUBLE_RIGHT_CLICK = ['shift-down', 'sleep', 0.1, 'right', 'sleep', 0.15, 'right', 'sleep', 0.3, 'shift-up', 'sleep', 1.2];
+
 // [name, whether the tab should get closed, real_input.py commands, page (TEST_URL unless given)]
 const checks = [
     ['single right click keeps the tab open', false, ['right', 'sleep', 1.2]],
+    ['Shift + double right click closes the tab while reopening is off', true, SHIFT_DOUBLE_RIGHT_CLICK],
     ['double right click (mouse not moved) closes the tab', true, ['right', 'sleep', 0.15, 'right', 'sleep', 1.2]],
     ['double right click 420 ms apart closes the tab', true, ['right', 'sleep', 0.42, 'right', 'sleep', 1.2]],
     ['double right click with the pointer shifted by 3 px closes the tab', true, ['right', 'sleep', 0.1, 'rel', -3, -3, 'right', 'sleep', 1.2]],
@@ -175,6 +181,73 @@ const undoPointerShifts = function (commands) {
     return undo;
 };
 
+const setReopenClosedTab = async function (context, serviceWorker, turnOn) {
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${new URL(serviceWorker.url()).host}/options.html`);
+    // Chromium grants the permission without a prompt to an extension which got loaded from a folder
+    await optionsPage.getByRole('checkbox', { name: 'Reopen the last closed tab' }).setChecked(turnOn);
+    const deadline = Date.now() + 5000;
+    while (await serviceWorker.evaluate(() => chrome.permissions.contains({ permissions: ['sessions'] })) !== turnOn) {
+        if (Date.now() > deadline) {
+            throw new Error(`Reopening the last closed tab did not get turned ${turnOn ? 'on' : 'off'}`);
+        }
+        await sleep(200);
+    }
+    await optionsPage.close();
+};
+
+const closeWithGesture = async function (context, serviceWorker, url) {
+    const page = await openTestPage(context, serviceWorker, url);
+    await realInput(...DOUBLE_RIGHT_CLICK);
+    await sleep(400);
+    if (!page.isClosed()) {
+        throw new Error(`Double right click did not close ${url}`);
+    }
+};
+
+// Makes the Shift + double right click gesture on a new test page, and returns whether that page stayed open and the
+// URLs of the pages which showed up (closing those)
+const shiftDoubleRightClick = async function (context, serviceWorker) {
+    const page = await openTestPage(context, serviceWorker, TEST_URL);
+    const pagesBefore = new Set(context.pages());
+    await realInput(...SHIFT_DOUBLE_RIGHT_CLICK);
+    await sleep(400);
+    const stayedOpen = !page.isClosed();
+    const reopened = context.pages().filter((other) => !pagesBefore.has(other));
+    const urls = reopened.map((other) => other.url());
+    await realInput('esc', 'sleep', 0.4);
+    for (const other of [...reopened, page]) {
+        if (!other.isClosed()) {
+            await other.close();
+        }
+    }
+    return { stayedOpen, urls };
+};
+
+const runReopenChecks = async function (context, serviceWorker, displayMode) {
+    const check = function (name, passed, detail) {
+        results.push(passed);
+        console.log(`${passed ? 'PASS' : 'FAIL'}  [${displayMode}] ${name}${detail ? `  (${detail})` : ''}`);
+    };
+
+    await setReopenClosedTab(context, serviceWorker, true);
+
+    await closeWithGesture(context, serviceWorker, `${CLOSED_URL_PREFIX}first`);
+    let { stayedOpen, urls } = await shiftDoubleRightClick(context, serviceWorker);
+    check('Shift + double right click reopens the last closed tab and keeps the tab open',
+        stayedOpen && urls.length === 1 && urls[0] === `${CLOSED_URL_PREFIX}first`, JSON.stringify(urls));
+
+    await closeWithGesture(context, serviceWorker, `${CLOSED_URL_PREFIX}second`);
+    await closeWithGesture(context, serviceWorker, `${CLOSED_URL_PREFIX}third`);
+    ({ urls } = await shiftDoubleRightClick(context, serviceWorker));
+    check('after closing two tabs, Shift + double right click reopens only the last one',
+        urls.length === 1 && urls[0] === `${CLOSED_URL_PREFIX}third`, JSON.stringify(urls));
+
+    await setReopenClosedTab(context, serviceWorker, false);
+    ({ stayedOpen } = await shiftDoubleRightClick(context, serviceWorker));
+    check('after turning reopening off, Shift + double right click closes the tab', !stayedOpen);
+};
+
 // The gesture on real sites. Whatever a site serves gets checked (a bot check, a login page and a consent screen are
 // pages too), and each result tells which page that was.
 const runSiteChecks = async function (context, serviceWorker, displayMode) {
@@ -261,6 +334,7 @@ const runChecks = async function (displayMode) {
         await context.route(LATE_FRAME_URL, (route) => route.fulfill({ contentType: 'text/html', body: LATE_FRAME_PAGE }));
         await context.route(STALLED_HEAD_URL, (route) => route.fulfill({ contentType: 'text/html', body: STALLED_HEAD_PAGE }));
         await context.route(STALLED_IMAGE_URL, (route) => route.fulfill({ contentType: 'text/html', body: STALLED_IMAGE_PAGE }));
+        await context.route(`${CLOSED_URL_PREFIX}*`, (route) => route.fulfill({ contentType: 'text/html', body: TEST_PAGE }));
         // Never answered
         await context.route(`${TEST_ORIGIN}${STALLED_PATH}**`, () => {});
 
@@ -298,6 +372,11 @@ const runChecks = async function (displayMode) {
                 await realInput('esc', 'sleep', 0.4, ...undoPointerShifts(commands));
             }
         }
+
+        if (page && !page.isClosed()) {
+            await page.close();
+        }
+        await runReopenChecks(context, serviceWorker, displayMode);
     } finally {
         await realInput('esc').catch(() => {});
         await context.close();

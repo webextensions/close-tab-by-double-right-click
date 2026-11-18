@@ -14,6 +14,7 @@ Commands, run in the given order:
 - right - right click
 - right-hold S - right click which keeps the button down for S seconds
 - esc - press Escape
+- shift-down / shift-up - press / release Shift (released at the end in any case)
 - sleep S - wait S seconds
 """
 import sys
@@ -78,6 +79,7 @@ class Input:
 
 def run(commands):
     real_input = Input()
+    shift_down = False
     try:
         index = 0
         while index < len(commands):
@@ -100,12 +102,19 @@ def run(commands):
             elif command == 'esc':
                 real_input.key(KEYSYM_ESCAPE)
                 index += 1
+            elif command in ('shift-down', 'shift-up'):
+                shift_down = command == 'shift-down'
+                real_input.key(KEYSYM_SHIFT_L, shift_down)
+                index += 1
             elif command == 'sleep':
                 time.sleep(float(commands[index + 1]))
                 index += 2
             else:
                 raise SystemExit(f'Unknown command "{command}"')
     finally:
+        # A Shift left held down would stay held on the desktop
+        if shift_down:
+            real_input.key(KEYSYM_SHIFT_L, False)
         real_input.stop()
 
 

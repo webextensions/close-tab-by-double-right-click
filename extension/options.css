@@ -173,6 +173,7 @@ label {
 }
 .gesture label {
     display: block;
+    text-align: right;
     white-space: nowrap;
 }
 .gesture-permission-missing {

@@ -159,11 +159,30 @@ const main = function () {
             window.close();
         });
     };
-    document.querySelector('.grant-sessions-permission').addEventListener('click', function () {
-        // The popup never asks for the permission itself: the browser's prompt can take the focus and close the popup
-        // before the choice gets saved. The options page asks instead.
-        if (isPopup) {
+    // The popup never asks for the permission itself: the browser's prompt can take the focus and close the popup before
+    // the choice gets saved. The options page asks instead, which the popup offers to open in a dialog first, rather
+    // than leaving the user in a page which they did not expect.
+    const elOptionsPageDialog = document.querySelector('.options-page-dialog');
+    const askToOpenOptionsPage = function () {
+        // The dialog keeps the value of its last button, which Escape leaves as it is
+        elOptionsPageDialog.returnValue = '';
+        elOptionsPageDialog.showModal();
+    };
+    // Its buttons, Escape and a click beside it all close it
+    elOptionsPageDialog.addEventListener('close', function () {
+        if (elOptionsPageDialog.returnValue === 'open') {
             openOptionsPage();
+        }
+    });
+    elOptionsPageDialog.addEventListener('click', function (event) {
+        // The dialog has no padding of its own, so a click on it is a click on its backdrop
+        if (event.target === elOptionsPageDialog) {
+            elOptionsPageDialog.close();
+        }
+    });
+    document.querySelector('.grant-sessions-permission').addEventListener('click', function () {
+        if (isPopup) {
+            askToOpenOptionsPage();
             return;
         }
         // Firefox only asks for a permission straight from the user's action: nothing may be awaited before this
@@ -223,13 +242,13 @@ const main = function () {
                 saveAction(elGestureAction);
                 return;
             }
-            // In the popup, the options page asks for the permission (see the "Grant access" button above)
+            // In the popup, the options page asks for the permission (see askToOpenOptionsPage above)
             if (isPopup) {
                 if (isSessionsGranted) {
                     saveAction(elGestureAction);
                 } else {
                     elGestureAction.value = savedActions.get(elGestureAction);
-                    openOptionsPage();
+                    askToOpenOptionsPage();
                 }
                 return;
             }

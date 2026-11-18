@@ -61,7 +61,9 @@ is.
   before `permissions.request` there: Firefox only asks straight from the user's action. Keep "Reopen the last closed
   tab" last in the dropdowns, so that arrow keys do not pass it (each step fires `change` and would ask). The popup
   never asks: the browser's prompt can take the focus and close the popup before the choice gets saved. There,
-  choosing reopen without the permission (or "Grant access") opens the options page instead, and the popup closes.
+  choosing reopen without the permission (or "Grant access") shows a `<dialog>` which offers to open the options page
+  (the popup then closes). Keep the closed dialog without a `display` of its own, so that it stays out of the layout
+  and the Tab order.
 - The keys held on the first right press decide. In Chromium on Wayland, the `mousemove` which stands in for the second
   click reports no keys while they are held, and the page gets no key events while the native menu is open. For the
   same reason, the Wayland workaround ignores the `keydown` and `keyup` of Shift, Ctrl, Alt and Meta: the page gets

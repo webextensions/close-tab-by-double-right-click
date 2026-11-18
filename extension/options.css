@@ -223,6 +223,36 @@ label {
     margin-top: 22px;
 }
 
+/* The dialog in which the popup asks before it opens the options page. The browser gives a dialog its own colors, so it
+   takes the card's. It has no padding, so that a click on it is a click on its backdrop (see options.js). Only its
+   content gets a display: a closed dialog must stay out of the layout and the Tab order. */
+.options-page-dialog {
+    box-sizing: border-box;
+    width: min(300px, calc(100vw - 32px));
+    padding: 0;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: var(--card-background);
+    color: var(--text);
+    box-shadow: var(--card-shadow);
+}
+.options-page-dialog::backdrop {
+    background: rgb(0 0 0 / 40%);
+}
+.options-page-dialog-content {
+    padding: 14px 16px 16px;
+}
+.options-page-dialog-content p {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+}
+.options-page-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+}
+
 /* The note which confirms a change (utils.alertNote, which styles it inline), restyled to match the page */
 #topCenterAlertNote div:has(> .alert-note-text) {
     padding: 3px 14px !important;

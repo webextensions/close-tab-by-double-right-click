@@ -108,6 +108,18 @@
         </div>
     </div>
 
+    <!-- Only in the popup, which asks before it opens the options page (see askToOpenOptionsPage in options.js) -->
+    <dialog class="options-page-dialog" aria-labelledby="options-page-dialog-heading">
+        <div class="options-page-dialog-content">
+            <div id="options-page-dialog-heading" class="option-heading">Allow access in the options</div>
+            <p>Reopening the last closed tab needs your permission to access the recently closed tabs. You can allow it on the options page.</p>
+            <form method="dialog" class="options-page-dialog-actions">
+                <button value="cancel" class="button-secondary">Cancel</button>
+                <button value="open" class="button-primary" autofocus>Open options</button>
+            </form>
+        </div>
+    </dialog>
+
     <script src="utils.js"></script>
     <script src="options.js"></script>
 </body>

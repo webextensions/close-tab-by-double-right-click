@@ -75,6 +75,14 @@ test('on macOS, the popup fits the height of a popup, and its width with the not
         return Math.max(...[...document.body.querySelectorAll('*')].map((el) => el.getBoundingClientRect().right));
     });
     expect(widest).toBeLessThanOrEqual(340);
+
+    // The dialog which "Grant access" opens fits as well. A modal dialog centers in the window, which is as wide as the
+    // page in a real popup.
+    await popup.setViewportSize({ width: 340, height: 600 });
+    await popup.getByRole('button', { name: 'Grant access' }).click();
+    const dialogBox = await popup.getByRole('dialog').boundingBox();
+    expect(dialogBox.x).toBeGreaterThanOrEqual(0);
+    expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(340);
 });
 
 test('a change in the popup gets saved', async ({ context, serviceWorker }) => {
@@ -88,16 +96,63 @@ test('a change in the popup gets saved', async ({ context, serviceWorker }) => {
     expect(await closeCalls(popup)).toBe(0);
 });
 
-test('choosing to reopen the last closed tab in the popup opens the options page instead of asking for the permission', async ({ context, serviceWorker, extensionId }) => {
+test('choosing to reopen the last closed tab in the popup asks, in a dialog, to open the options page instead of asking for the permission', async ({ context, serviceWorker, extensionId }) => {
     const popup = await openPopup({ context, serviceWorker });
     const shiftAction = popup.getByRole('combobox', { name: 'Shift + Double right click' });
-    const newPage = context.waitForEvent('page');
+    const pageCount = context.pages().length;
 
     await chooseOption(shiftAction, 'Reopen the last closed tab');
 
-    await expectOptionsPage(await newPage, extensionId);
+    const dialog = popup.getByRole('dialog', { name: 'Allow access in the options' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Open options' })).toBeFocused();
     await expect(shiftAction).toHaveValue('sameAsDoubleRightClick');
+    expect(context.pages()).toHaveLength(pageCount);
+    expect(await closeCalls(popup)).toBe(0);
+
+    const newPage = context.waitForEvent('page');
+    await dialog.getByRole('button', { name: 'Open options' }).click();
+
+    await expectOptionsPage(await newPage, extensionId);
+    await expect(dialog).toBeHidden();
     await expect.poll(() => closeCalls(popup)).toBe(1);
+
+    // The popup stays open here (window.close() only gets counted), behind the options page, so the dialog can show
+    // again: Escape cancels it, although the dialog keeps "Open options" as the value of its last button
+    const pageCountAfterOpen = context.pages().length;
+    await popup.bringToFront();
+    await chooseOption(shiftAction, 'Reopen the last closed tab');
+    await expect(dialog).toBeVisible();
+    await popup.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    expect(context.pages()).toHaveLength(pageCountAfterOpen);
+    expect(await closeCalls(popup)).toBe(1);
+
+    expect(await popup.evaluate(() => window.permissionRequests)).toBe(0);
+    expect(await serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({});
+});
+
+test('"Cancel", Escape and a click beside the dialog in the popup keep the popup open, without the options page', async ({ context, serviceWorker }) => {
+    const popup = await openPopup({ context, serviceWorker });
+    const shiftAction = popup.getByRole('combobox', { name: 'Shift + Double right click' });
+    const dialog = popup.getByRole('dialog', { name: 'Allow access in the options' });
+    const pageCount = context.pages().length;
+
+    const dismissals = [
+        () => dialog.getByRole('button', { name: 'Cancel' }).click(),
+        () => popup.keyboard.press('Escape'),
+        () => popup.mouse.click(2, 2)
+    ];
+    for (const dismiss of dismissals) {
+        await chooseOption(shiftAction, 'Reopen the last closed tab');
+        await expect(dialog).toBeVisible();
+        await dismiss();
+        await expect(dialog).toBeHidden();
+        await expect(shiftAction).toHaveValue('sameAsDoubleRightClick');
+    }
+
+    expect(context.pages()).toHaveLength(pageCount);
+    expect(await closeCalls(popup)).toBe(0);
     expect(await popup.evaluate(() => window.permissionRequests)).toBe(0);
     expect(await serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({});
 });
@@ -125,12 +180,23 @@ test('with the permission granted, choosing to reopen the last closed tab in the
     expect(await popup.evaluate(() => window.permissionRequests)).toBe(0);
 });
 
-test('"Grant access" in the popup opens the options page', async ({ context, serviceWorker, extensionId }) => {
+test('"Grant access" in the popup asks, in a dialog, to open the options page', async ({ context, serviceWorker, extensionId }) => {
     await setGestureAction(serviceWorker, 'SHIFT_DOUBLE_RIGHT_CLICK_ACTION', 'reopenClosedTab');
     const popup = await openPopup({ context, serviceWorker });
-    const newPage = context.waitForEvent('page');
 
-    await popup.getByRole('button', { name: 'Grant access' }).click();
+    // From the keyboard: the dialog moves the focus to "Open options" while Enter is down, and must still wait
+    await popup.getByRole('button', { name: 'Grant access' }).focus();
+    await popup.keyboard.press('Enter');
+
+    const dialog = popup.getByRole('dialog', { name: 'Allow access in the options' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Open options' })).toBeFocused();
+    await popup.waitForTimeout(300);
+    await expect(dialog).toBeVisible();
+    expect(await closeCalls(popup)).toBe(0);
+
+    const newPage = context.waitForEvent('page');
+    await dialog.getByRole('button', { name: 'Open options' }).click();
 
     await expectOptionsPage(await newPage, extensionId);
     await expect.poll(() => closeCalls(popup)).toBe(1);

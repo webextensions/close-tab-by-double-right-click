@@ -17,8 +17,8 @@ const RadioButtonSelectedValueSet = function (name, SelectedValue) {
     });
 };
 
-const notifyUser = function () {
-    utils.alertNote('✓ Your change would apply next time onwards', 2500);
+const notifyUser = function (message = 'Your change would apply next time onwards') {
+    utils.alertNote(`✓ ${message}`, 2500);
 };
 
 const main = function () {
@@ -92,31 +92,121 @@ const main = function () {
         notifyUser();
     });
 
-    // Shift + double right click reopens the last closed tab while the optional "sessions" permission is granted, so
-    // the checkbox shows that permission (which the user can also revoke in the browser's add-on settings)
-    const SESSIONS_PERMISSION = { permissions: ['sessions'] };
-    const elReopenClosedTab = document.querySelector('.reopen-closed-tab');
-    const showReopenClosedTab = async function () {
-        elReopenClosedTab.checked = await chrome.permissions.contains(SESSIONS_PERMISSION);
+    // What a double right click does, without a modifier key and with each one held on its first click. The background
+    // script reads these settings on each gesture, so a change applies at once.
+    const ACTION_SAME_AS_DOUBLE_RIGHT_CLICK = 'sameAsDoubleRightClick';
+    const ACTION_REOPEN_CLOSED_TAB = 'reopenClosedTab';
+    // Reopening comes last, since it asks for a permission: arrow keys change the value of a closed dropdown one option
+    // at a time, which should not stop by it on the way to another one
+    const ACTION_LABELS = [
+        ['nothing', 'Do nothing'],
+        ['closeTab', 'Close the tab'],
+        ['goBack', 'Go back'],
+        ['reload', 'Reload the tab'],
+        ['newTab', 'Open a new tab'],
+        ['duplicateTab', 'Duplicate the tab'],
+        [ACTION_REOPEN_CLOSED_TAB, 'Reopen the last closed tab']
+    ];
+    // The setting of the double right click itself; the ones with a modifier key can follow it
+    const DOUBLE_RIGHT_CLICK_ACTION = 'DOUBLE_RIGHT_CLICK_ACTION';
+    const elGestureActions = [...document.querySelectorAll('.gesture-action')];
+    const defaultAction = function (elGestureAction) {
+        return elGestureAction.dataset.setting === DOUBLE_RIGHT_CLICK_ACTION ? 'closeTab' : ACTION_SAME_AS_DOUBLE_RIGHT_CLICK;
     };
-    showReopenClosedTab();
-    chrome.permissions.onAdded.addListener(showReopenClosedTab);
-    chrome.permissions.onRemoved.addListener(showReopenClosedTab);
-    elReopenClosedTab.addEventListener('change', function () {
-        // Firefox only asks for a permission straight from the user's action: nothing may be awaited before this
-        const permissionChange = elReopenClosedTab.checked ?
-            chrome.permissions.request(SESSIONS_PERMISSION) :
-            chrome.permissions.remove(SESSIONS_PERMISSION);
-        permissionChange.then(function (changed) {
-            // Both resolve to false when nothing changed (for example, the user denied the prompt)
-            if (changed) {
-                notifyUser();
-            }
-            showReopenClosedTab();
-        }, function (e) {
-            console.log('Could not change the permission to reopen closed tabs', e);
-            showReopenClosedTab();
+    // The value each dropdown shows as saved, to go back to when the user denies a permission
+    const savedActions = new Map();
+
+    // Reopening the last closed tab needs the optional "sessions" permission. It gets asked for when the user chooses
+    // that action, and removed once no gesture uses it. The user can also revoke it in the browser's add-on settings,
+    // so the page tells when it is missing.
+    const SESSIONS_PERMISSION = { permissions: ['sessions'] };
+    const elSessionsPermissionMissing = document.querySelector('.sessions-permission-missing');
+    // A hidden row (Cmd outside macOS) does nothing, whatever it keeps
+    const isReopenChosenFor = function (elGestureAction) {
+        return !elGestureAction.closest('.gesture').hidden && savedActions.get(elGestureAction) === ACTION_REOPEN_CLOSED_TAB;
+    };
+    const isReopenChosen = function () {
+        return elGestureActions.some(isReopenChosenFor);
+    };
+    const showSessionsPermission = async function () {
+        const isGranted = await chrome.permissions.contains(SESSIONS_PERMISSION);
+        elGestureActions.forEach((elGestureAction) => {
+            const elMissing = elGestureAction.closest('.gesture').querySelector('.gesture-permission-missing');
+            elMissing.style.visibility = !isGranted && isReopenChosenFor(elGestureAction) ? 'visible' : 'hidden';
         });
+        elSessionsPermissionMissing.hidden = isGranted || !isReopenChosen();
+    };
+    chrome.permissions.onAdded.addListener(showSessionsPermission);
+    chrome.permissions.onRemoved.addListener(showSessionsPermission);
+    document.querySelector('.grant-sessions-permission').addEventListener('click', function () {
+        // Firefox only asks for a permission straight from the user's action: nothing may be awaited before this
+        chrome.permissions.request(SESSIONS_PERMISSION).then(showSessionsPermission, function (e) {
+            console.log('Could not ask for the permission to reopen closed tabs', e);
+        });
+    });
+
+    const saveAction = async function (elGestureAction) {
+        const action = elGestureAction.value;
+        await chromeStorageForExtensionData.set({ [elGestureAction.dataset.setting]: action });
+        savedActions.set(elGestureAction, action);
+        notifyUser('Saved');
+        if (!isReopenChosen() && await chrome.permissions.contains(SESSIONS_PERMISSION)) {
+            await chrome.permissions.remove(SESSIONS_PERMISSION);
+        }
+        showSessionsPermission();
+    };
+
+    elGestureActions.forEach((elGestureAction) => {
+        const options = elGestureAction.dataset.setting === DOUBLE_RIGHT_CLICK_ACTION ?
+            ACTION_LABELS :
+            [[ACTION_SAME_AS_DOUBLE_RIGHT_CLICK, 'Same as double right click'], ...ACTION_LABELS];
+        options.forEach(([value, label]) => {
+            elGestureAction.add(new Option(label, value));
+        });
+        elGestureAction.value = defaultAction(elGestureAction);
+        savedActions.set(elGestureAction, elGestureAction.value);
+
+        elGestureAction.addEventListener('change', function () {
+            if (elGestureAction.value !== ACTION_REOPEN_CLOSED_TAB) {
+                saveAction(elGestureAction);
+                return;
+            }
+            // Firefox only asks for a permission straight from the user's action: nothing may be awaited before this
+            chrome.permissions.request(SESSIONS_PERMISSION).then(function (granted) {
+                if (granted) {
+                    saveAction(elGestureAction);
+                } else {
+                    // The user denied the prompt
+                    elGestureAction.value = savedActions.get(elGestureAction);
+                }
+            }, function (e) {
+                // The browser did not ask (unlike a denied prompt), so keep the choice: the page then offers to grant
+                // the permission with a button
+                console.log('Could not ask for the permission to reopen closed tabs', e);
+                saveAction(elGestureAction);
+            });
+        });
+    });
+
+    chromeStorageForExtensionData.get(elGestureActions.map((elGestureAction) => elGestureAction.dataset.setting), function (values) {
+        elGestureActions.forEach((elGestureAction) => {
+            const action = values && values[elGestureAction.dataset.setting];
+            const isOffered = [...elGestureAction.options].some((option) => option.value === action);
+            elGestureAction.value = isOffered ? action : defaultAction(elGestureAction);
+            savedActions.set(elGestureAction, elGestureAction.value);
+        });
+        showSessionsPermission();
+    });
+
+    // The Cmd key only counts on macOS, where the Alt key is called Option
+    chrome.runtime.getPlatformInfo().then(function (platformInfo) {
+        if (platformInfo.os === 'mac') {
+            document.querySelectorAll('.gesture-mac-only').forEach((el) => {
+                el.hidden = false;
+            });
+            document.querySelector('.alt-key-name').textContent = 'Option';
+            showSessionsPermission();
+        }
     });
 
     const btnDone = document.getElementById('done');

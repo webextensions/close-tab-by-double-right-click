@@ -116,13 +116,87 @@
         }
     }
 
-    // A double right click closes the tab. With Shift held on its first click, it reopens the last closed tab instead,
-    // once the user has turned that on (otherwise it closes the tab as well).
-    async function handleDoubleRightClick(request, tab) {
-        if (request.shiftKey && await isReopenEnabled()) {
-            reopenLastClosedTab();
-        } else {
+    // What a double right click does, as chosen on the options page, without a modifier key and with each one held on
+    // its first click. A missing or unknown choice means the default.
+    const DOUBLE_RIGHT_CLICK_ACTION = 'DOUBLE_RIGHT_CLICK_ACTION';
+    const MODIFIER_ACTION_KEYS = {
+        shiftKey: 'SHIFT_DOUBLE_RIGHT_CLICK_ACTION',
+        ctrlKey: 'CTRL_DOUBLE_RIGHT_CLICK_ACTION',
+        altKey: 'ALT_DOUBLE_RIGHT_CLICK_ACTION',
+        metaKey: 'META_DOUBLE_RIGHT_CLICK_ACTION'
+    };
+    const ACTION_SAME_AS_DOUBLE_RIGHT_CLICK = 'sameAsDoubleRightClick';
+    const ACTION_DEFAULT = 'closeTab';
+
+    // The actions which the user can choose from, by the names which the settings keep
+    const ACTIONS = {
+        nothing: function () {},
+        closeTab: function (tab) {
             closeTab(tab);
+        },
+        reopenClosedTab: async function () {
+            // Once the user revoked the permission, it does nothing (the options page shows that it is missing)
+            if (await isReopenEnabled()) {
+                await reopenLastClosedTab();
+            }
+        },
+        goBack: async function (tab) {
+            await chrome.tabs.goBack(tab.id);
+        },
+        reload: async function (tab) {
+            await chrome.tabs.reload(tab.id);
+        },
+        newTab: async function (tab) {
+            await chrome.tabs.create({ windowId: tab.windowId });
+        },
+        duplicateTab: async function (tab) {
+            await chrome.tabs.duplicate(tab.id);
+        }
+    };
+
+    const chromeStorageForExtensionData = chrome.storage.sync || chrome.storage.local;
+
+    async function readAction(storageKey) {
+        const action = (await chromeStorageForExtensionData.get(storageKey))[storageKey];
+        return Object.hasOwn(ACTIONS, action) || action === ACTION_SAME_AS_DOUBLE_RIGHT_CLICK ? action : undefined;
+    }
+
+    // The action for the modifier keys held on the first click: its own one if set, otherwise the one of the double
+    // right click. Several modifier keys held together do nothing. The Meta key (Cmd) only counts on macOS: elsewhere
+    // the system takes it (the Windows key, Super on Linux).
+    async function findAction(request) {
+        const isMac = (await chrome.runtime.getPlatformInfo()).os === 'mac';
+        const heldModifiers = Object.keys(MODIFIER_ACTION_KEYS).filter(function (modifier) {
+            return request[modifier] && (modifier !== 'metaKey' || isMac);
+        });
+        if (heldModifiers.length > 1) {
+            return 'nothing';
+        }
+        if (heldModifiers.length === 1) {
+            const action = await readAction(MODIFIER_ACTION_KEYS[heldModifiers[0]]);
+            if (action && action !== ACTION_SAME_AS_DOUBLE_RIGHT_CLICK) {
+                return action;
+            }
+        }
+        const action = await readAction(DOUBLE_RIGHT_CLICK_ACTION);
+        return action && action !== ACTION_SAME_AS_DOUBLE_RIGHT_CLICK ? action : ACTION_DEFAULT;
+    }
+
+    // The settings get read on each gesture, since nothing kept in memory survives a restart of the background script
+    async function handleDoubleRightClick(request, tab) {
+        let action;
+        try {
+            action = await findAction(request);
+        } catch (e) {
+            // Closing the tab could lose what the user did not want to lose
+            action = 'nothing';
+            console.debug('Could not read what the double right click does', e);
+        }
+        try {
+            await ACTIONS[action](tab);
+        } catch (e) {
+            // Expected for example when going back in a tab without history
+            console.debug('Could not do what the double right click does', action, e);
         }
     }
 

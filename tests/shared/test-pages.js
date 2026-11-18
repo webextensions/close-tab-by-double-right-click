@@ -89,6 +89,26 @@ const isContentScriptReady = async function (serviceWorker, url) {
     return await isContentScriptReadyInTab(serviceWorker, { url });
 };
 
+// Picks an option of a dropdown the way a user does, with key presses (the browser asks for a permission only on the
+// user's action, unlike when a script sets the value): opens the dropdown, moves to the option and takes it, so that
+// the dropdown changes only once
+const chooseOption = async function (select, label) {
+    const { from, to } = await select.evaluate((el, label) => ({
+        from: el.selectedIndex,
+        to: [...el.options].findIndex((option) => option.label === label)
+    }), label);
+    if (to === -1) {
+        throw new Error(`The dropdown has no option "${label}"`);
+    }
+    const keyboard = select.page().keyboard;
+    await select.focus();
+    await keyboard.press('Alt+ArrowDown');
+    for (let i = 0; i < Math.abs(to - from); i++) {
+        await keyboard.press(to > from ? 'ArrowDown' : 'ArrowUp');
+    }
+    await keyboard.press('Enter');
+};
+
 export {
     ASK_BEFORE_LEAVING_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
@@ -103,6 +123,7 @@ export {
     STALLED_PATH,
     SVG_PAGE,
     TEST_PAGE,
+    chooseOption,
     isContentScriptReady,
     isContentScriptReadyInTab
 };

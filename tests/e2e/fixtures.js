@@ -14,6 +14,7 @@ import {
     STALLED_PATH,
     SVG_PAGE,
     TEST_PAGE,
+    chooseOption,
     isContentScriptReady
 } from '../shared/test-pages.js';
 
@@ -136,8 +137,8 @@ const stopServiceWorker = async function ({ context, serviceWorker }, page) {
     await client.detach();
 };
 
-// Turns on reopening the last closed tab (Shift + double right click) without the browser's permission prompt, which
-// Playwright cannot answer: the service worker gets told that the optional "sessions" permission is granted, and gets
+// Lets a gesture set to reopen the last closed tab do that without the browser's permission prompt, which Playwright
+// cannot answer: the service worker gets told that the optional "sessions" permission is granted, and gets
 // a stand-in for chrome.sessions, which lists the given sessions as closed and records which ones got restored (read
 // them with restoredSessionIds). A restart of the service worker drops these stand-ins.
 const stubReopenClosedTab = async function (serviceWorker, recentlyClosed) {
@@ -155,6 +156,13 @@ const stubReopenClosedTab = async function (serviceWorker, recentlyClosed) {
             }
         };
     }, recentlyClosed);
+};
+
+// Sets what a gesture does (eg: 'SHIFT_DOUBLE_RIGHT_CLICK_ACTION' to 'reopenClosedTab'), as the options page would
+const setGestureAction = async function (serviceWorker, setting, action) {
+    await serviceWorker.evaluate(async ({ setting, action }) => {
+        await chrome.storage.sync.set({ [setting]: action });
+    }, { setting, action });
 };
 
 const restoredSessionIds = async function (serviceWorker) {
@@ -220,6 +228,7 @@ export {
     TEST_ORIGIN,
     clickContextMenuEntry,
     contextMenuEntryExists,
+    chooseOption,
     expect,
     hasServiceWorkerRestarted,
     holdRightClick,
@@ -227,6 +236,7 @@ export {
     pathToChromeBuild,
     pathToSource,
     restoredSessionIds,
+    setGestureAction,
     startLatePageServer,
     stopServiceWorker,
     stubReopenClosedTab,

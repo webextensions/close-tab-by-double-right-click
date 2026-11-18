@@ -46,6 +46,25 @@
         label select {
             margin-right: 4px;
         }
+        .gestures {
+            display: grid;
+            grid-template-columns: auto auto auto;
+            align-items: center;
+            gap: 6px 12px;
+        }
+        .gesture[hidden] {
+            display: none;
+        }
+        .gesture {
+            display: contents;
+        }
+        .gesture label {
+            display: block;
+        }
+        .gesture-permission-missing {
+            visibility: hidden;
+            color: #b00;
+        }
     </style>
 </head>
 
@@ -53,6 +72,44 @@
     <div style="display:flex; justify-content:center;">
         <div>
             <div class="option" style="margin-top:10px">
+                <div class="option-heading">Double right click</div>
+                <div style="margin-top:10px; margin-left:20px; margin-right:20px">
+                    <div class="gestures">
+                        <div class="gesture">
+                            <label for="double-right-click-action">Double right click</label>
+                            <select id="double-right-click-action" class="gesture-action" data-setting="DOUBLE_RIGHT_CLICK_ACTION"></select>
+                            <span class="gesture-permission-missing">Needs access</span>
+                        </div>
+                        <div class="gesture">
+                            <label for="shift-double-right-click-action">Shift + double right click</label>
+                            <select id="shift-double-right-click-action" class="gesture-action" data-setting="SHIFT_DOUBLE_RIGHT_CLICK_ACTION"></select>
+                            <span class="gesture-permission-missing">Needs access</span>
+                        </div>
+                        <div class="gesture">
+                            <label for="ctrl-double-right-click-action">Ctrl + double right click</label>
+                            <select id="ctrl-double-right-click-action" class="gesture-action" data-setting="CTRL_DOUBLE_RIGHT_CLICK_ACTION"></select>
+                            <span class="gesture-permission-missing">Needs access</span>
+                        </div>
+                        <div class="gesture">
+                            <label for="alt-double-right-click-action"><span class="alt-key-name">Alt</span> + double right click</label>
+                            <select id="alt-double-right-click-action" class="gesture-action" data-setting="ALT_DOUBLE_RIGHT_CLICK_ACTION"></select>
+                            <span class="gesture-permission-missing">Needs access</span>
+                        </div>
+                        <div class="gesture gesture-mac-only" hidden>
+                            <label for="meta-double-right-click-action">Cmd + double right click</label>
+                            <select id="meta-double-right-click-action" class="gesture-action" data-setting="META_DOUBLE_RIGHT_CLICK_ACTION"></select>
+                            <span class="gesture-permission-missing">Needs access</span>
+                        </div>
+                    </div>
+                    <div style="color: #777; margin-top:7px">Hold the key while making the first click.</div>
+                    <div class="sessions-permission-missing" style="margin-top:7px" hidden>
+                        Reopening the last closed tab needs access to the recently closed tabs.
+                        <button class="grant-sessions-permission">Grant access</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="option" style="margin-top:20px">
                 <div class="option-heading">Maximum time between clicks</div>
                 <div style="margin-top:10px; margin-left:20px; margin-right:20px">
                     <div class="option-value">
@@ -60,7 +117,7 @@
                     </div>
                     <div class="option-value">
                         <label><input type="radio" name="maximum-time-between-clicks-type" value="custom" /> Custom:&nbsp;&nbsp;</label>
-                        <select class="maximum-time-between-clicks-value">
+                        <select class="maximum-time-between-clicks-value" aria-label="Maximum time between clicks">
                             <optgroup label="Too fast">
                                 <option value="100">100</option>
                                 <option value="150">150</option>
@@ -109,16 +166,6 @@
                         </select>
                         &nbsp;ms
                     </div>
-                </div>
-            </div>
-
-            <div class="option" style="margin-top:20px">
-                <div class="option-heading">Shift + double right click</div>
-                <div style="margin-top:10px; margin-left:20px; margin-right:20px">
-                    <div class="option-value">
-                        <label><input type="checkbox" class="reopen-closed-tab" /> Reopen the last closed tab</label>
-                    </div>
-                    <div style="color: #777;">Asks for access to the recently closed tabs. Unticked, it closes the tab.</div>
                 </div>
             </div>
 

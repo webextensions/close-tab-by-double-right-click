@@ -4,6 +4,7 @@ import {
     expect,
     openTestPage,
     restoredSessionIds,
+    setGestureAction,
     stubReopenClosedTab,
     test
 } from './fixtures.js';
@@ -16,10 +17,14 @@ test.skip(process.platform !== 'linux', 'The content script only watches for the
 
 const RIGHT_CLICK_POSITION = { x: 300, y: 200 };
 
-// CDP's modifier bit for Shift
-const SHIFT_MODIFIER = 8;
+// CDP's modifier bits and the key codes of the modifier keys
+const MODIFIER_KEYS = {
+    Alt: { modifier: 1, code: 'AltLeft', windowsVirtualKeyCode: 18 },
+    Control: { modifier: 2, code: 'ControlLeft', windowsVirtualKeyCode: 17 },
+    Shift: { modifier: 8, code: 'ShiftLeft', windowsVirtualKeyCode: 16 }
+};
 
-const rightClickThenCloseContextMenu = async function (page, { closedAfter, pointerAt = RIGHT_CLICK_POSITION, followedBy, moveFirst = true, withShift = false }) {
+const rightClickThenCloseContextMenu = async function (page, { closedAfter, pointerAt = RIGHT_CLICK_POSITION, followedBy, moveFirst = true, withKey }) {
     const client = await page.context().newCDPSession(page);
     const sendMouseEvent = async function (type, position, button, modifiers = 0) {
         await client.send('Input.dispatchMouseEvent', {
@@ -32,34 +37,35 @@ const rightClickThenCloseContextMenu = async function (page, { closedAfter, poin
             modifiers
         });
     };
-    const sendShiftKeyEvent = async function (type) {
+    const sendModifierKeyEvent = async function (type) {
+        const { modifier, code, windowsVirtualKeyCode } = MODIFIER_KEYS[withKey];
         await client.send('Input.dispatchKeyEvent', {
             type,
-            key: 'Shift',
-            code: 'ShiftLeft',
-            windowsVirtualKeyCode: 16,
-            modifiers: type === 'keyDown' ? SHIFT_MODIFIER : 0
+            key: withKey,
+            code,
+            windowsVirtualKeyCode,
+            modifiers: type === 'keyDown' ? modifier : 0
         });
     };
 
     if (moveFirst) {
         await sendMouseEvent('mouseMoved', RIGHT_CLICK_POSITION, 'none');
     }
-    if (withShift) {
-        await sendShiftKeyEvent('keyDown');
+    if (withKey) {
+        await sendModifierKeyEvent('keyDown');
     }
     // Never released: the context menu swallows the "mouseup"
-    await sendMouseEvent('mousePressed', RIGHT_CLICK_POSITION, 'right', withShift ? SHIFT_MODIFIER : 0);
+    await sendMouseEvent('mousePressed', RIGHT_CLICK_POSITION, 'right', withKey ? MODIFIER_KEYS[withKey].modifier : 0);
     await page.waitForTimeout(closedAfter);
-    // Reports no Shift, even while it is held: that is what Chromium on Wayland sends
+    // Reports no modifier key, even while it is held: that is what Chromium on Wayland sends
     await sendMouseEvent('mouseMoved', pointerAt, 'none');
 
     if (followedBy) {
         await page.waitForTimeout(20);
         if (followedBy === 'keyup') {
             await client.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-        } else if (followedBy === 'shift-keyup') {
-            await sendShiftKeyEvent('keyUp');
+        } else if (followedBy === 'modifier-keyup') {
+            await sendModifierKeyEvent('keyUp');
         } else {
             await sendMouseEvent('mouseReleased', pointerAt, 'left');
         }
@@ -141,14 +147,21 @@ test('context menu closed by a click which reaches the page keeps the tab open',
     expect(page.isClosed()).toBe(false);
 });
 
-test('context menu closed quickly after a Shift + right click reopens the last closed tab', async ({ context, serviceWorker }) => {
-    const page = await openTestPage({ context, serviceWorker }, '/menu-closed-after-shift');
-    await stubReopenClosedTab(serviceWorker, [{ lastModified: 1, tab: { sessionId: 'closed-tab' } }]);
+for (const [key, setting] of [
+    ['Shift', 'SHIFT_DOUBLE_RIGHT_CLICK_ACTION'],
+    ['Control', 'CTRL_DOUBLE_RIGHT_CLICK_ACTION'],
+    ['Alt', 'ALT_DOUBLE_RIGHT_CLICK_ACTION']
+]) {
+    test(`context menu closed quickly after a ${key} + right click does what is set for ${key}`, async ({ context, serviceWorker }) => {
+        const page = await openTestPage({ context, serviceWorker }, `/menu-closed-after-${key}`);
+        await setGestureAction(serviceWorker, setting, 'reopenClosedTab');
+        await stubReopenClosedTab(serviceWorker, [{ lastModified: 1, tab: { sessionId: 'closed-tab' } }]);
 
-    // Shift gets released right after the menu closed, which the page learns before the gesture is confirmed
-    await rightClickThenCloseContextMenu(page, { closedAfter: 200, withShift: true, followedBy: 'shift-keyup' });
+        // The key gets released right after the menu closed, which the page learns before the gesture is confirmed
+        await rightClickThenCloseContextMenu(page, { closedAfter: 200, withKey: key, followedBy: 'modifier-keyup' });
 
-    await expect.poll(() => restoredSessionIds(serviceWorker)).toEqual(['closed-tab']);
-    await page.waitForTimeout(600);
-    expect(page.isClosed()).toBe(false);
-});
+        await expect.poll(() => restoredSessionIds(serviceWorker)).toEqual(['closed-tab']);
+        await page.waitForTimeout(600);
+        expect(page.isClosed()).toBe(false);
+    });
+}

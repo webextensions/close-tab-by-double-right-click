@@ -121,6 +121,10 @@ is.
 - In the Chromium which Playwright launches (also the one of `verify:chrome`), the options dialog of
   `chrome://extensions` cuts off the right part of the options page, as it did before the page was restyled. Chrome
   started with `npm run start:chrome` shows the page whole, so judge the dialog there.
+- No test sees the real popup of the toolbar icon, that dialog, or about:addons. To check them, drive a browser started
+  with `npm run start:chrome` or `npm run start:firefox` with
+  [scripts/real-input/real_input.py](scripts/real-input/real_input.py) (after the same warning as a `verify:*` run),
+  and look at what the screen shows with [scripts/real-input/screen_grab.py](scripts/real-input/screen_grab.py).
 - The real-site checks (`test:sites`, `test:sites:headless`, `verify:chrome:sites`, `verify:firefox:sites`) share one
   site list, [tests/shared/real-sites.json](tests/shared/real-sites.json); its fields are described in
   [tests/shared/real-sites.js](tests/shared/real-sites.js). They depend on what third-party sites serve, so run them

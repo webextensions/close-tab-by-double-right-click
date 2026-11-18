@@ -4,6 +4,18 @@ Manifest V3 extension for Chrome and Firefox. [extension/](extension/) is the so
 `dist/firefox` are generated from it (`npm run build:dist`). Chromium-based browsers can also load `extension/` as it
 is.
 
+## Working Agreements
+
+- Permissions: stop and challenge the user before any change which adds, removes or widens `permissions`,
+  `optional_permissions`, `host_permissions`, `optional_host_permissions` or the `matches` of the content script, or
+  which needs an API behind a permission. Do this even when the user asked for the change. Name the permission, the
+  warning which Chrome and Firefox show for it, and the effect on existing users: Chrome disables the extension on
+  update until each user accepts a new warning. Offer the alternatives (an optional permission, a way without a new
+  permission, dropping the change), and go ahead only after the user confirms explicitly.
+- Advisor: before any change (code, tests, scripts, docs, manifest), ask the advisor for its opinion (Claude Code's
+  `advisor` tool, a stronger reviewer model), and again before calling the work done. An agent without an advisor asks
+  for an independent review instead.
+
 ## Constraints
 
 - [extension/manifest.json](extension/manifest.json) is shared. The build changes only the manifest: `dist/chrome`

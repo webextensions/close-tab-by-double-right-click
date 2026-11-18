@@ -73,9 +73,9 @@ the same version, built from the same commit. The uploads are made by hand in ea
 6. Upload to the Chrome Web Store:
     - Open the item in the [Developer Dashboard](https://chrome.google.com/webstore/devconsole), go to its **Package**
       tab, click **Upload new package** and choose the `-chrome.zip`.
-    - If `permissions` or `host_permissions` in the manifest changed since the last release, give the reason for each
-      new one on the **Privacy practices** tab. Users get asked to accept new permissions. Update the **Store listing**
-      tab if the description or the screenshots should change.
+    - If `permissions`, `optional_permissions` or `host_permissions` in the manifest changed since the last release,
+      give the reason for each new one on the **Privacy practices** tab. Users get asked to accept new required
+      permissions. Update the **Store listing** tab if the description or the screenshots should change.
     - Click **Submit for review**. In the dialog, keep the checkbox ticked to publish as soon as the review passes, or
       untick it to publish by hand later (within 30 days of the review).
 

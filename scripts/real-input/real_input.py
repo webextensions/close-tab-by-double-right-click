@@ -14,7 +14,8 @@ Commands, run in the given order:
 - right - right click
 - right-hold S - right click which keeps the button down for S seconds
 - esc - press Escape
-- shift-down / shift-up - press / release Shift (released at the end in any case)
+- shift-down / shift-up, ctrl-down / ctrl-up, alt-down / alt-up - press / release Shift, Ctrl or Alt (released at the
+  end in any case)
 - sleep S - wait S seconds
 """
 import sys
@@ -28,7 +29,13 @@ from gi.repository import Gio, GLib  # noqa: E402
 # Linux evdev codes and X11 keysyms
 BTN_LEFT, BTN_RIGHT = 272, 273
 KEYSYM_TAB, KEYSYM_RETURN, KEYSYM_ESCAPE, KEYSYM_F5 = 0xff09, 0xff0d, 0xff1b, 0xffc2
-KEYSYM_SHIFT_L, KEYSYM_CONTROL_L = 0xffe1, 0xffe3
+KEYSYM_UP, KEYSYM_DOWN = 0xff52, 0xff54
+KEYSYM_SHIFT_L, KEYSYM_CONTROL_L, KEYSYM_ALT_L = 0xffe1, 0xffe3, 0xffe9
+
+# The modifier keys which the commands can hold, and the commands which press ("shift-down") or release them
+MODIFIER_KEYSYMS = {'shift': KEYSYM_SHIFT_L, 'ctrl': KEYSYM_CONTROL_L, 'alt': KEYSYM_ALT_L}
+KEY_COMMANDS = {f'{key}-{direction}': (key, direction == 'down')
+                for key in MODIFIER_KEYSYMS for direction in ('down', 'up')}
 
 BUS_NAME = 'org.gnome.Mutter.RemoteDesktop'
 
@@ -79,7 +86,7 @@ class Input:
 
 def run(commands):
     real_input = Input()
-    shift_down = False
+    held_keys = set()
     try:
         index = 0
         while index < len(commands):
@@ -102,9 +109,10 @@ def run(commands):
             elif command == 'esc':
                 real_input.key(KEYSYM_ESCAPE)
                 index += 1
-            elif command in ('shift-down', 'shift-up'):
-                shift_down = command == 'shift-down'
-                real_input.key(KEYSYM_SHIFT_L, shift_down)
+            elif command in KEY_COMMANDS:
+                key, pressed = KEY_COMMANDS[command]
+                real_input.key(MODIFIER_KEYSYMS[key], pressed)
+                (held_keys.add if pressed else held_keys.discard)(key)
                 index += 1
             elif command == 'sleep':
                 time.sleep(float(commands[index + 1]))
@@ -112,9 +120,9 @@ def run(commands):
             else:
                 raise SystemExit(f'Unknown command "{command}"')
     finally:
-        # A Shift left held down would stay held on the desktop
-        if shift_down:
-            real_input.key(KEYSYM_SHIFT_L, False)
+        # A key left held down would stay held on the desktop
+        for key in held_keys:
+            real_input.key(MODIFIER_KEYSYMS[key], False)
         real_input.stop()
 
 

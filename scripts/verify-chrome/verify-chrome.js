@@ -33,6 +33,7 @@ import {
     STALLED_IMAGE_PAGE,
     STALLED_PATH,
     TEST_PAGE,
+    chooseOption,
     isContentScriptReady,
     isContentScriptReadyInTab
 } from '../../tests/shared/test-pages.js';
@@ -71,12 +72,18 @@ const POINTER = { x: 600, y: 450 };
 const displayModes = process.env.XDG_SESSION_TYPE === 'wayland' ? ['wayland', 'x11'] : ['x11'];
 
 const DOUBLE_RIGHT_CLICK = ['right', 'sleep', 0.15, 'right', 'sleep', 1.2];
-const SHIFT_DOUBLE_RIGHT_CLICK = ['shift-down', 'sleep', 0.1, 'right', 'sleep', 0.15, 'right', 'sleep', 0.3, 'shift-up', 'sleep', 1.2];
+// A double right click with a key held (released a while after the second click)
+const doubleRightClickWith = function (key) {
+    return [`${key}-down`, 'sleep', 0.1, 'right', 'sleep', 0.15, 'right', 'sleep', 0.3, `${key}-up`, 'sleep', 1.2];
+};
+const SHIFT_DOUBLE_RIGHT_CLICK = doubleRightClickWith('shift');
 
 // [name, whether the tab should get closed, real_input.py commands, page (TEST_URL unless given)]
 const checks = [
     ['single right click keeps the tab open', false, ['right', 'sleep', 1.2]],
-    ['Shift + double right click closes the tab while reopening is off', true, SHIFT_DOUBLE_RIGHT_CLICK],
+    ['Shift + double right click closes the tab while nothing is set for it', true, SHIFT_DOUBLE_RIGHT_CLICK],
+    ['Ctrl + double right click closes the tab while nothing is set for it', true, doubleRightClickWith('ctrl')],
+    ['Alt + double right click closes the tab while nothing is set for it', true, doubleRightClickWith('alt')],
     ['double right click (mouse not moved) closes the tab', true, ['right', 'sleep', 0.15, 'right', 'sleep', 1.2]],
     ['double right click 420 ms apart closes the tab', true, ['right', 'sleep', 0.42, 'right', 'sleep', 1.2]],
     ['double right click with the pointer shifted by 3 px closes the tab', true, ['right', 'sleep', 0.1, 'rel', -3, -3, 'right', 'sleep', 1.2]],
@@ -181,19 +188,28 @@ const undoPointerShifts = function (commands) {
     return undo;
 };
 
-const setReopenClosedTab = async function (context, serviceWorker, turnOn) {
+// Chooses what a gesture does on the options page, with key presses (the page asks for a permission only on the
+// user's action), and returns whether the "sessions" permission is granted then and whether the page tells that it is
+// missing
+const chooseGestureAction = async function (context, serviceWorker, gesture, label) {
     const optionsPage = await context.newPage();
     await optionsPage.goto(`chrome-extension://${new URL(serviceWorker.url()).host}/options.html`);
+    const select = optionsPage.getByRole('combobox', { name: gesture, exact: true });
     // Chromium grants the permission here without a prompt (seen with the extension loaded from a folder)
-    await optionsPage.getByRole('checkbox', { name: 'Reopen the last closed tab' }).setChecked(turnOn);
+    await chooseOption(select, label);
     const deadline = Date.now() + 5000;
-    while (await serviceWorker.evaluate(() => chrome.permissions.contains({ permissions: ['sessions'] })) !== turnOn) {
+    while ((await select.evaluate((el) => el.selectedOptions[0].label)) !== label) {
         if (Date.now() > deadline) {
-            throw new Error(`Reopening the last closed tab did not get turned ${turnOn ? 'on' : 'off'}`);
+            throw new Error(`"${gesture}" did not get set to "${label}"`);
         }
         await sleep(200);
     }
+    // Lets the page save the choice and change the permission
+    await sleep(500);
+    const granted = await serviceWorker.evaluate(() => chrome.permissions.contains({ permissions: ['sessions'] }));
+    const missingShown = await optionsPage.getByText('needs access to the recently closed tabs').isVisible();
     await optionsPage.close();
+    return { granted, missingShown };
 };
 
 const closeWithGesture = async function (context, serviceWorker, url) {
@@ -205,12 +221,12 @@ const closeWithGesture = async function (context, serviceWorker, url) {
     }
 };
 
-// Makes the Shift + double right click gesture on a new test page, and returns whether that page stayed open and the
-// URLs of the pages which showed up (closing those)
-const shiftDoubleRightClick = async function (context, serviceWorker) {
+// Makes the gesture on a new test page, and returns whether that page stayed open and the URLs of the pages which
+// showed up (closing those)
+const gestureOnNewPage = async function (context, serviceWorker, commands) {
     const page = await openTestPage(context, serviceWorker, TEST_URL);
     const pagesBefore = new Set(context.pages());
-    await realInput(...SHIFT_DOUBLE_RIGHT_CLICK);
+    await realInput(...commands);
     await sleep(400);
     const stayedOpen = !page.isClosed();
     const reopened = context.pages().filter((other) => !pagesBefore.has(other));
@@ -224,13 +240,19 @@ const shiftDoubleRightClick = async function (context, serviceWorker) {
     return { stayedOpen, urls };
 };
 
-const runReopenChecks = async function (context, serviceWorker, displayMode) {
+const shiftDoubleRightClick = async function (context, serviceWorker) {
+    return await gestureOnNewPage(context, serviceWorker, SHIFT_DOUBLE_RIGHT_CLICK);
+};
+
+const runGestureChecks = async function (context, serviceWorker, displayMode) {
     const check = function (name, passed, detail) {
         results.push(passed);
         console.log(`${passed ? 'PASS' : 'FAIL'}  [${displayMode}] ${name}${detail ? `  (${detail})` : ''}`);
     };
 
-    await setReopenClosedTab(context, serviceWorker, true);
+    let { granted, missingShown } = await chooseGestureAction(context, serviceWorker, 'Shift + double right click', 'Reopen the last closed tab');
+    check('choosing to reopen the last closed tab for Shift grants the permission', granted && !missingShown,
+        JSON.stringify({ granted, missingShown }));
 
     await closeWithGesture(context, serviceWorker, `${CLOSED_URL_PREFIX}first`);
     let { stayedOpen, urls } = await shiftDoubleRightClick(context, serviceWorker);
@@ -243,9 +265,22 @@ const runReopenChecks = async function (context, serviceWorker, displayMode) {
     check('after closing two tabs, Shift + double right click reopens only the last one',
         urls.length === 1 && urls[0] === `${CLOSED_URL_PREFIX}third`, JSON.stringify(urls));
 
-    await setReopenClosedTab(context, serviceWorker, false);
+    ({ granted } = await chooseGestureAction(context, serviceWorker, 'Shift + double right click', 'Same as double right click'));
+    check('setting Shift back to the double right click removes the permission', !granted);
     ({ stayedOpen } = await shiftDoubleRightClick(context, serviceWorker));
-    check('after turning reopening off, Shift + double right click closes the tab', !stayedOpen);
+    check('then Shift + double right click closes the tab', !stayedOpen);
+
+    await chooseGestureAction(context, serviceWorker, 'Ctrl + double right click', 'Do nothing');
+    ({ stayedOpen } = await gestureOnNewPage(context, serviceWorker, doubleRightClickWith('ctrl')));
+    check('Ctrl + double right click set to do nothing keeps the tab open', stayedOpen);
+
+    await chooseGestureAction(context, serviceWorker, 'Alt + double right click', 'Duplicate the tab');
+    ({ stayedOpen, urls } = await gestureOnNewPage(context, serviceWorker, doubleRightClickWith('alt')));
+    check('Alt + double right click set to duplicate the tab duplicates it and keeps it open',
+        stayedOpen && urls.length === 1 && urls[0] === TEST_URL, JSON.stringify(urls));
+
+    ({ stayedOpen } = await gestureOnNewPage(context, serviceWorker, DOUBLE_RIGHT_CLICK));
+    check('double right click still closes the tab', !stayedOpen);
 };
 
 // The gesture on real sites. Whatever a site serves gets checked (a bot check, a login page and a consent screen are
@@ -376,7 +411,7 @@ const runChecks = async function (displayMode) {
         if (page && !page.isClosed()) {
             await page.close();
         }
-        await runReopenChecks(context, serviceWorker, displayMode);
+        await runGestureChecks(context, serviceWorker, displayMode);
     } finally {
         await realInput('esc').catch(() => {});
         await context.close();

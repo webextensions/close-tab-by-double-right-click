@@ -46,7 +46,8 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 # Real input through GNOME's RemoteDesktop D-Bus API, shared with verify-chrome.js
 sys.path.insert(0, os.path.join(REPO_ROOT, 'scripts', 'real-input'))
 from real_input import (  # noqa: E402
-    BTN_LEFT, BTN_RIGHT, KEYSYM_CONTROL_L, KEYSYM_ESCAPE, KEYSYM_F5, KEYSYM_RETURN, KEYSYM_SHIFT_L, Input
+    BTN_LEFT, BTN_RIGHT, KEYSYM_ALT_L, KEYSYM_CONTROL_L, KEYSYM_DOWN, KEYSYM_ESCAPE, KEYSYM_F5, KEYSYM_RETURN,
+    KEYSYM_SHIFT_L, KEYSYM_UP, Input
 )
 
 ARGUMENT_PARSER = argparse.ArgumentParser(description='Check the extension in a real Firefox window with real input.')
@@ -64,6 +65,19 @@ with open(os.path.join(EXTENSION_DIR, 'manifest.json')) as manifest_file:
 ADDON_UUID = '0d7c4a5e-3b1f-4c62-9a8e-5f2b7c1d9e40'
 OPTIONS_URL = f'moz-extension://{ADDON_UUID}/options.html'
 OPTIONS_TITLE = 'Double Right Click - close tab & more'
+# The dropdowns of the options page, by their names (there is no Cmd row outside macOS), and their options
+MAXIMUM_TIME_DROPDOWN = 'Maximum time between clicks'
+GESTURE_DROPDOWNS = {'plain': 'Double right click', 'shift': 'Shift + double right click',
+                     'ctrl': 'Ctrl + double right click', 'alt': 'Alt + double right click'}
+SAME_AS_DOUBLE_RIGHT_CLICK = 'Same as double right click'
+ACTION_LABELS = ['Do nothing', 'Close the tab', 'Go back', 'Reload the tab', 'Open a new tab', 'Duplicate the tab',
+                 'Reopen the last closed tab']
+DEFAULT_GESTURES = {'plain': 'Close the tab', 'shift': SAME_AS_DOUBLE_RIGHT_CLICK, 'ctrl': SAME_AS_DOUBLE_RIGHT_CLICK,
+                    'alt': SAME_AS_DOUBLE_RIGHT_CLICK}
+# The Tab presses from the top of the options page to its controls: the four gesture dropdowns, the radio buttons, the
+# dropdown of the maximum time, then "Done"
+TABS_TO_MAXIMUM_TIME_DROPDOWN = len(GESTURE_DROPDOWNS) + 2
+TABS_TO_DONE = len(GESTURE_DROPDOWNS) + 3
 # A plain text page on one of the domains where Firefox runs no extension scripts
 RESTRICTED_DOMAIN_URL = 'https://support.mozilla.org/robots.txt'
 TEST_PAGE = ('<!doctype html><html><head><title>Test page</title></head>'
@@ -273,7 +287,7 @@ def has_state(node, state):
 def read_options_page(pid):
     """Return (document object path, shown state) for the options page, or (None, None) if it is not found.
 
-    The shown state looks like {'type': 'custom', 'value': '1000', 'reopen': False}.
+    The shown state looks like options_state('custom', '1000', shift='Reopen the last closed tab').
     """
     desktop = Atspi.get_desktop(0)
     for index in range(desktop.get_child_count()):
@@ -285,14 +299,34 @@ def read_options_page(pid):
                 checked = [radio.get_name().split(':')[0].split()[0].lower()
                            for radio in accessible_descendants(node)
                            if radio.get_role() == Atspi.Role.RADIO_BUTTON and has_state(radio, Atspi.StateType.CHECKED)]
-                selected = [item.get_name() for item in accessible_descendants(node)
-                            if item.get_role() == Atspi.Role.MENU_ITEM and has_state(item, Atspi.StateType.SELECTED)]
-                reopen = [box for box in accessible_descendants(node)
-                          if box.get_role() == Atspi.Role.CHECK_BOX and has_state(box, Atspi.StateType.CHECKED)]
+                dropdowns = read_dropdowns(node)
+                # The notice is left out of the accessibility tree while it is hidden
+                access_missing = any('needs access to the recently closed tabs' in accessible_text(text)
+                                     for text in accessible_descendants(node))
                 return node.path, {'type': checked[0] if checked else None,
-                                   'value': selected[0] if selected else None,
-                                   'reopen': bool(reopen)}
+                                   'value': dropdowns.get(MAXIMUM_TIME_DROPDOWN),
+                                   'gestures': {gesture: dropdowns.get(name)
+                                                for gesture, name in GESTURE_DROPDOWNS.items()},
+                                   'access_missing': access_missing}
     return None, None
+
+
+def read_dropdowns(document):
+    """Return the label of the selected option of each dropdown of `document`, by the name of the dropdown."""
+    dropdowns = {}
+    for node in accessible_descendants(document):
+        if node.get_role() == Atspi.Role.COMBO_BOX:
+            selected = [item.get_name() for item in accessible_descendants(node)
+                        if item.get_role() == Atspi.Role.MENU_ITEM and has_state(item, Atspi.StateType.SELECTED)]
+            dropdowns[node.get_name()] = selected[0] if selected else None
+    return dropdowns
+
+
+def options_state(time_type, time_value, access_missing=False, **gestures):
+    """Return the state of the options page with the given choices, and the defaults for the gestures not given."""
+    return {'type': time_type, 'value': time_value,
+            'gestures': {gesture: gestures.get(gesture, default) for gesture, default in DEFAULT_GESTURES.items()},
+            'access_missing': access_missing}
 
 
 def find_options_page(pid):
@@ -435,24 +469,30 @@ def check_held_clicks(browser, mouse, keep):
     close_tab_if_open(browser, mouse, target, keep)
 
 
-def shift_right_clicks(mouse):
-    mouse.key(KEYSYM_SHIFT_L, True)
+def right_clicks_with_key(mouse, keysym):
+    mouse.key(keysym, True)
     try:
         time.sleep(0.1)
         right_clicks(mouse, 0.15)
         time.sleep(0.3)
     finally:
-        mouse.key(KEYSYM_SHIFT_L, False)
+        mouse.key(keysym, False)
     time.sleep(1.2)
 
 
-def check_shift_clicks(browser, mouse, keep):
+def shift_right_clicks(mouse):
+    right_clicks_with_key(mouse, KEYSYM_SHIFT_L)
+
+
+def check_key_clicks(browser, mouse, keep):
     # On Shift + right click, Firefox opens its context menu without sending "contextmenu" to the page
-    target = open_test_page(browser)
-    focus_page(mouse)
-    shift_right_clicks(mouse)
-    check('Shift + double right click closes the tab while reopening is off', target not in browser.handles())
-    close_tab_if_open(browser, mouse, target, keep)
+    for name, keysym in (('Shift', KEYSYM_SHIFT_L), ('Ctrl', KEYSYM_CONTROL_L), ('Alt', KEYSYM_ALT_L)):
+        target = open_test_page(browser)
+        focus_page(mouse)
+        right_clicks_with_key(mouse, keysym)
+        check(f'{name} + double right click closes the tab while nothing is set for it',
+              target not in browser.handles())
+        close_tab_if_open(browser, mouse, target, keep)
 
 
 def check_own_handlers(browser, mouse, keep):
@@ -670,13 +710,13 @@ def check_options_page(browser, mouse, keep):
     # WebDriver cannot read or script extension pages ("privileged scope"), so drive the page with the keyboard, read
     # it through the accessibility tree, and check the effect: the content script must pick up the saved custom value
     open_options_page(browser, mouse)
-    default_state = {'type': 'default', 'value': '500', 'reopen': False}
+    default_state = options_state('default', '500')
     _, state = wait_for_options_page(browser.pid, default_state)
     check('options page starts on "Default" (500 ms)', state == default_state, json.dumps(state))
 
-    mouse.type_text('\t\t')  # "Default" radio, then the dropdown
+    mouse.type_text('\t' * TABS_TO_MAXIMUM_TIME_DROPDOWN)
     mouse.type_text('1000')  # type-ahead selects the "1000" option and fires "change"
-    custom_state = {'type': 'custom', 'value': '1000', 'reopen': False}
+    custom_state = options_state('custom', '1000')
     document_before_reload, state = wait_for_options_page(browser.pid, custom_state)
     check('choosing 1000 in the dropdown selects "Custom"', state == custom_state, json.dumps(state))
 
@@ -704,14 +744,14 @@ def check_done_button(browser, mouse, keep):
     # stays open on "Done", as it does inside about:addons, and shows the note. Follows check_options_page, which
     # leaves the custom 1000 ms
     options_tab = open_options_page(browser, mouse, TEST_URL)
-    unchanged_state = {'type': 'custom', 'value': '1000', 'reopen': False}
+    unchanged_state = options_state('custom', '1000')
     wait_for_options_page(browser.pid, unchanged_state)
     document = find_options_page(browser.pid)
-    mouse.type_text('\t\t\t\t')  # the radio buttons, the dropdown, the checkbox, then "Done"
+    mouse.type_text('\t' * TABS_TO_DONE)
     mouse.type_text(' ')
     # The note shows after 100 ms, for 2.5 seconds
     shown = bool(document) and wait_for_text_in_document(document, 'Your change would apply next time onwards', 2.5)
-    # Ticking the checkbox shows the same note, so the state must be unchanged
+    # Changing the maximum time shows the same note, so the state must be unchanged
     _, state = read_options_page(browser.pid)
     check('"Done" on the options page which stays open shows the note', shown and state == unchanged_state,
           f'note shown: {shown}, state: {json.dumps(state)}')
@@ -724,21 +764,41 @@ def check_done_button(browser, mouse, keep):
     browser.switch_to(keep)
 
 
-def set_reopen_closed_tab(browser, mouse, keep, turn_on):
-    # Follows check_options_page, which leaves the custom 1000 ms
+def choose_gesture_action(browser, mouse, keep, gesture, label, expected):
+    """Choose what a gesture ('shift', ...) does on the options page, and return the state it shows then.
+
+    Picks the option from the opened dropdown, as a user does: the page asks for the permission to reopen closed tabs
+    on that change, which Firefox only allows on the user's action. `expected` is the state the page should show.
+    Follows check_options_page, which leaves the custom 1000 ms.
+    """
     open_options_page(browser, mouse)
-    wait_for_options_page(browser.pid, {'type': 'custom', 'value': '1000', 'reopen': not turn_on})
-    mouse.type_text('\t\t\t')  # the radio buttons, the dropdown, then the checkbox
-    mouse.type_text(' ')  # a key press of the user, so the page may ask for the permission
-    _, state = wait_for_options_page(browser.pid, {'type': 'custom', 'value': '1000', 'reopen': turn_on})
-    # The checks after this one tell whether it worked, even when the options page cannot be read
-    check(f'{"ticking" if turn_on else "unticking"} the checkbox turns reopening {"on" if turn_on else "off"}',
-          bool(state) and state['reopen'] == turn_on, json.dumps(state))
+    deadline = time.time() + 10
+    _, state = read_options_page(browser.pid)
+    while not state and time.time() < deadline:
+        time.sleep(0.5)
+        _, state = read_options_page(browser.pid)
+    if not state:
+        raise RuntimeError('The options page could not be read')
+    current = state['gestures'][gesture]
+    labels = ACTION_LABELS if gesture == 'plain' else [SAME_AS_DOUBLE_RIGHT_CLICK, *ACTION_LABELS]
+    steps = labels.index(label) - labels.index(current)
+    mouse.type_text('\t' * (list(GESTURE_DROPDOWNS).index(gesture) + 1))
+    # Alt+Down opens the dropdown, the arrow keys move through its options and Enter takes one
+    mouse.key(KEYSYM_ALT_L, True)
+    mouse.key(KEYSYM_DOWN)
+    mouse.key(KEYSYM_ALT_L, False)
+    time.sleep(0.5)
+    for _ in range(abs(steps)):
+        mouse.key(KEYSYM_DOWN if steps > 0 else KEYSYM_UP)
+        time.sleep(0.1)
+    mouse.key(KEYSYM_RETURN)
+    _, state = wait_for_options_page(browser.pid, expected)
     mouse.key(KEYSYM_CONTROL_L, True)
     mouse.type_text('w')  # close the options tab
     mouse.key(KEYSYM_CONTROL_L, False)
     time.sleep(1)
     browser.switch_to(keep)
+    return state
 
 
 def close_with_gesture(browser, mouse, keep, url):
@@ -766,7 +826,10 @@ def reopened_tab_urls(browser, mouse, keep, handles_before):
 
 def check_reopen_closed_tab(browser, mouse, keep):
     # Each closed tab gets its own URL, since the earlier checks closed many tabs with the same one
-    set_reopen_closed_tab(browser, mouse, keep, True)
+    expected = options_state('custom', '1000', shift='Reopen the last closed tab')
+    state = choose_gesture_action(browser, mouse, keep, 'shift', 'Reopen the last closed tab', expected)
+    check('choosing to reopen the last closed tab for Shift, from the opened dropdown, gets the permission',
+          state == expected, json.dumps(state))
 
     close_with_gesture(browser, mouse, keep, f'{TEST_URL}?closed-first')
     target = open_test_page(browser)
@@ -790,11 +853,38 @@ def check_reopen_closed_tab(browser, mouse, keep):
           urls == [f'{TEST_URL}?closed-third'], json.dumps(urls))
     close_tab_if_open(browser, mouse, target, keep)
 
-    set_reopen_closed_tab(browser, mouse, keep, False)
+    expected = options_state('custom', '1000')
+    state = choose_gesture_action(browser, mouse, keep, 'shift', SAME_AS_DOUBLE_RIGHT_CLICK, expected)
+    check('setting Shift back to the double right click', state == expected, json.dumps(state))
     target = open_test_page(browser)
     focus_page(mouse)
     shift_right_clicks(mouse)
-    check('after turning reopening off, Shift + double right click closes the tab', target not in browser.handles())
+    check('then Shift + double right click closes the tab', target not in browser.handles())
+    close_tab_if_open(browser, mouse, target, keep)
+
+
+def check_key_actions(browser, mouse, keep):
+    # Follows check_reopen_closed_tab, which leaves the gestures at their defaults
+    expected = options_state('custom', '1000', ctrl='Do nothing')
+    state = choose_gesture_action(browser, mouse, keep, 'ctrl', 'Do nothing', expected)
+    check('setting Ctrl to do nothing', state == expected, json.dumps(state))
+    target = open_test_page(browser)
+    focus_page(mouse)
+    right_clicks_with_key(mouse, KEYSYM_CONTROL_L)
+    check('Ctrl + double right click set to do nothing keeps the tab open', target in browser.handles())
+    close_tab_if_open(browser, mouse, target, keep)
+
+    expected = options_state('custom', '1000', ctrl='Do nothing', alt='Duplicate the tab')
+    state = choose_gesture_action(browser, mouse, keep, 'alt', 'Duplicate the tab', expected)
+    check('setting Alt to duplicate the tab', state == expected, json.dumps(state))
+    target = open_test_page(browser)
+    focus_page(mouse)
+    handles_before = browser.handles()
+    right_clicks_with_key(mouse, KEYSYM_ALT_L)
+    still_open = target in browser.handles()
+    urls = reopened_tab_urls(browser, mouse, keep, handles_before)
+    check('Alt + double right click set to duplicate the tab duplicates it and keeps it open',
+          still_open and urls == [TEST_URL], json.dumps(urls))
     close_tab_if_open(browser, mouse, target, keep)
 
 
@@ -818,9 +908,9 @@ def main():
         mouse = Input()
 
         steps = (check_real_sites,) if ARGUMENTS.sites else (
-            check_clicks, check_held_clicks, check_shift_clicks, check_own_handlers, check_loading_pages,
+            check_clicks, check_held_clicks, check_key_clicks, check_own_handlers, check_loading_pages,
             check_rewritten_page, check_context_menu_entry, check_error_page, check_restricted_domain,
-            check_options_page, check_done_button, check_reopen_closed_tab)
+            check_options_page, check_done_button, check_reopen_closed_tab, check_key_actions)
         for step in steps:
             try:
                 step(browser, mouse, keep)

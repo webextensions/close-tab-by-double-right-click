@@ -22,8 +22,6 @@ const notifyUser = function (message = 'Your change would apply next time onward
 };
 
 const main = function () {
-    const TIME_BETWEEN_CLICKS_RANGE_MIN = 100;
-    const TIME_BETWEEN_CLICKS_RANGE_MAX = 2000;
     const TIME_BETWEEN_CLICKS_DEFAULT = 500;
 
     const MAXIMUM_TIME_BETWEEN_CLICKS_TYPE = 'MAXIMUM_TIME_BETWEEN_CLICKS_TYPE';
@@ -55,12 +53,16 @@ const main = function () {
     });
 
     const elMaxTimeBetweenClicksDropdown = document.querySelector('.maximum-time-between-clicks-value');
+    // A value which the dropdown does not offer (eg: one of the steps it had before) means the default, as it does for
+    // the content script
+    const isOfferedTimeBetweenClicks = function (value) {
+        return [...elMaxTimeBetweenClicksDropdown.options].some((option) => option.value === `${value}`);
+    };
     chromeStorageForExtensionData.get(MAXIMUM_TIME_BETWEEN_CLICKS_VALUE, function (values) {
         let value = parseInt(values && values[MAXIMUM_TIME_BETWEEN_CLICKS_VALUE], 10);
         if (
             Number.isInteger(value) &&
-            value >= TIME_BETWEEN_CLICKS_RANGE_MIN &&
-            value <= TIME_BETWEEN_CLICKS_RANGE_MAX
+            isOfferedTimeBetweenClicks(value)
         ) {
             // do nothing
         } else {
@@ -75,8 +77,7 @@ const main = function () {
         let valueToSet;
         if (
             Number.isInteger(intValue) &&
-            intValue >= TIME_BETWEEN_CLICKS_RANGE_MIN &&
-            intValue <= TIME_BETWEEN_CLICKS_RANGE_MAX
+            isOfferedTimeBetweenClicks(intValue)
         ) {
             valueToSet = intValue;
         } else {

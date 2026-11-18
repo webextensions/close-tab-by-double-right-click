@@ -37,6 +37,19 @@ if (window.DRCattachListeners) {
     const TIME_BETWEEN_CLICKS_RANGE_MAX = 2000;
     const TIME_BETWEEN_CLICKS_DEFAULT = 500;
 
+    // The values which the dropdown of the options page offers: 100 to 750 ms in steps of 50, then up to 2000 ms in steps
+    // of 100. Any other value (eg: 850, which it offered before) means the default.
+    const isOfferedTimeBetweenClicks = function (value) {
+        if (
+            !Number.isInteger(value) ||
+            value < TIME_BETWEEN_CLICKS_RANGE_MIN ||
+            value > TIME_BETWEEN_CLICKS_RANGE_MAX
+        ) {
+            return false;
+        }
+        return value < 800 ? value % 50 === 0 : value % 100 === 0;
+    };
+
     // The default applies until the setting has been read, which happens at the end of this file
     let maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
 
@@ -307,11 +320,7 @@ if (window.DRCattachListeners) {
                 console.log(`Caught an unexpected error while trying to read ${MAXIMUM_TIME_BETWEEN_CLICKS_VALUE}`);
                 console.log(e);
             }
-            if (
-                Number.isInteger(maxTimeBetweenClicksValue) &&
-                maxTimeBetweenClicksValue >= TIME_BETWEEN_CLICKS_RANGE_MIN &&
-                maxTimeBetweenClicksValue <= TIME_BETWEEN_CLICKS_RANGE_MAX
-            ) {
+            if (isOfferedTimeBetweenClicks(maxTimeBetweenClicksValue)) {
                 // do nothing
             } else {
                 maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;

@@ -247,3 +247,61 @@ test('on macOS, "Reset" shows for a changed Cmd row and resets it', async ({ con
     await expect(reset).toBeHidden();
     await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({});
 });
+
+const storeCustomMaxTimeBetweenClicks = async function (serviceWorker, value) {
+    await serviceWorker.evaluate(async (value) => {
+        await chrome.storage.sync.set({
+            MAXIMUM_TIME_BETWEEN_CLICKS_TYPE: 'custom',
+            MAXIMUM_TIME_BETWEEN_CLICKS_VALUE: value
+        });
+    }, value);
+};
+
+// Two held right clicks which start the given time apart
+const rightClicksApart = async function (page, ms) {
+    await holdRightClick(page, 120);
+    await page.waitForTimeout(ms - 120);
+    await holdRightClick(page, 120);
+};
+
+test('"Too slow" goes up in steps of 100 ms', async ({ context, extensionId }) => {
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+
+    await expect(optionsPage.locator('optgroup[label="Too slow"] option')).toHaveText([
+        '800', '900', '1000', '1100', '1200', '1300', '1400', '1500', '1600', '1700', '1800', '1900', '2000'
+    ]);
+});
+
+test('a saved maximum time which the dropdown no longer offers shows as 500 ms', async ({ context, serviceWorker, extensionId }) => {
+    await storeCustomMaxTimeBetweenClicks(serviceWorker, '850');
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+
+    await expect(optionsPage.getByRole('radio', { name: /Custom/ })).toBeChecked();
+    await expect(optionsPage.getByRole('combobox', { name: 'Maximum time between clicks' })).toHaveValue('500');
+});
+
+test('a saved maximum time which the dropdown no longer offers means 500 ms on pages', async ({ context, serviceWorker }) => {
+    await storeCustomMaxTimeBetweenClicks(serviceWorker, '1950');
+    const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}no-longer-offered`);
+
+    // Within 1950 ms, but not within 500 ms
+    await rightClicksApart(page, 1000);
+    await page.waitForTimeout(1000);
+
+    expect(page.isClosed()).toBe(false);
+});
+
+for (const [value, apart] of [['750', 650], ['2000', 1500]]) {
+    test(`a saved custom maximum time of ${value} ms applies on pages`, async ({ context, serviceWorker }) => {
+        await storeCustomMaxTimeBetweenClicks(serviceWorker, value);
+        const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}custom-${value}`);
+        const closed = page.waitForEvent('close');
+
+        // Not within the default 500 ms
+        await rightClicksApart(page, apart);
+
+        await closed;
+    });
+}

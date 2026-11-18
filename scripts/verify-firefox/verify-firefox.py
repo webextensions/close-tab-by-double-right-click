@@ -70,8 +70,8 @@ MAXIMUM_TIME_DROPDOWN = 'Maximum time between clicks'
 GESTURE_DROPDOWNS = {'plain': 'Double right click', 'shift': 'Shift + Double right click',
                      'ctrl': 'Ctrl + Double right click', 'alt': 'Alt + Double right click'}
 SAME_AS_DOUBLE_RIGHT_CLICK = 'Same as Double right click'
-ACTION_LABELS = ['Do nothing', 'Close the tab', 'Go back', 'Reload the tab', 'Open a new tab', 'Duplicate the tab',
-                 'Reopen the last closed tab']
+ACTION_LABELS = ['Do nothing', 'Close the tab', 'Go back', 'Reload the tab', 'Hard reload the tab', 'Open a new tab',
+                 'Duplicate the tab', 'Reopen the last closed tab']
 DEFAULT_GESTURES = {'plain': 'Close the tab', 'shift': SAME_AS_DOUBLE_RIGHT_CLICK, 'ctrl': SAME_AS_DOUBLE_RIGHT_CLICK,
                     'alt': SAME_AS_DOUBLE_RIGHT_CLICK}
 # The Tab presses from the top of the options page to its controls: the four gesture dropdowns, the radio buttons, the
@@ -108,6 +108,10 @@ LATE_FRAME_PAGE = TEST_PAGE.replace(
     f'<iframe src="{STALLED_PATH}frame" style="position:fixed;left:0;top:0;width:100%;height:100%;border:0"></iframe>'
     '</body>')
 STALLED_REQUESTS_RELEASED = threading.Event()
+# A page whose requests get recorded with their Cache-Control header: a reload which skips the cache asks for "no-cache"
+HARD_RELOAD_PATH = '/hard-reload'
+HARD_RELOAD_REQUESTS = []
+HARD_RELOAD_REQUESTS_LOCK = threading.Lock()
 # Bound without listening: the port refuses connections, so a tab which opens it shows one of the browser's error pages
 REFUSING_SOCKET = socket.socket()
 REFUSING_SOCKET.bind(('127.0.0.1', 0))
@@ -173,6 +177,9 @@ class TestPageHandler(http.server.BaseHTTPRequestHandler):
             # Released once the checks are over, when nothing waits for the answer any more
             STALLED_REQUESTS_RELEASED.wait()
             return
+        if self.path == HARD_RELOAD_PATH:
+            with HARD_RELOAD_REQUESTS_LOCK:
+                HARD_RELOAD_REQUESTS.append(self.headers.get('Cache-Control'))
         self.send_response(200)
         self.send_header('Content-Type', 'text/html')
         self.end_headers()
@@ -193,6 +200,7 @@ OWN_HANDLERS_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{OWN_HANDLERS_PAT
 STALLED_HEAD_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{STALLED_HEAD_PATH}'
 STALLED_IMAGE_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{STALLED_IMAGE_PATH}'
 LATE_FRAME_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{LATE_FRAME_PATH}'
+HARD_RELOAD_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{HARD_RELOAD_PATH}'
 
 
 # ---- WebDriver (geckodriver) ----
@@ -880,7 +888,26 @@ def check_key_actions(browser, mouse, keep):
     check('Ctrl + double right click set to do nothing keeps the tab open', target in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
 
-    expected = options_state('custom', '1000', ctrl='Do nothing', alt='Duplicate the tab')
+    expected = options_state('custom', '1000', ctrl='Hard reload the tab')
+    state = choose_gesture_action(browser, mouse, keep, 'ctrl', 'Hard reload the tab', expected)
+    check('setting Ctrl to hard reload the tab', state == expected, json.dumps(state))
+    with HARD_RELOAD_REQUESTS_LOCK:
+        HARD_RELOAD_REQUESTS.clear()
+    target = open_test_page(browser, HARD_RELOAD_URL)
+    focus_page(mouse)
+    right_clicks_with_key(mouse, KEYSYM_CONTROL_L)
+    deadline = time.time() + 5
+    while True:
+        with HARD_RELOAD_REQUESTS_LOCK:
+            requests = list(HARD_RELOAD_REQUESTS)
+        if len(requests) >= 2 or time.time() > deadline:
+            break
+        time.sleep(0.2)
+    check('Ctrl + double right click set to hard reload the tab reloads it without the cache',
+          target in browser.handles() and len(requests) == 2 and requests[1] == 'no-cache', json.dumps(requests))
+    close_tab_if_open(browser, mouse, target, keep)
+
+    expected = options_state('custom', '1000', ctrl='Hard reload the tab', alt='Duplicate the tab')
     state = choose_gesture_action(browser, mouse, keep, 'alt', 'Duplicate the tab', expected)
     check('setting Alt to duplicate the tab', state == expected, json.dumps(state))
     target = open_test_page(browser)

@@ -105,6 +105,7 @@ const main = function () {
         ['closeTab', 'Close the tab'],
         ['goBack', 'Go back'],
         ['reload', 'Reload the tab'],
+        ['hardReload', 'Hard reload the tab'],
         ['newTab', 'Open a new tab'],
         ['duplicateTab', 'Duplicate the tab'],
         [ACTION_REOPEN_CLOSED_TAB, 'Reopen the last closed tab']

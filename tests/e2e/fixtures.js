@@ -169,6 +169,24 @@ const restoredSessionIds = async function (serviceWorker) {
     return await serviceWorker.evaluate(() => globalThis.restoredSessionIds);
 };
 
+// Records the arguments of each chrome.tabs.reload call in the service worker (read them with tabsReloadCalls), which
+// still reloads the tab. The routes of the test pages turn off the HTTP cache, so a test cannot tell a reload which
+// skips the cache by what the page loads. A restart of the service worker drops the recording.
+const spyOnTabsReload = async function (serviceWorker) {
+    await serviceWorker.evaluate(() => {
+        globalThis.tabsReloadCalls = [];
+        const reload = chrome.tabs.reload;
+        chrome.tabs.reload = function (...args) {
+            globalThis.tabsReloadCalls.push(args);
+            return reload.apply(this, args);
+        };
+    });
+};
+
+const tabsReloadCalls = async function (serviceWorker) {
+    return await serviceWorker.evaluate(() => globalThis.tabsReloadCalls);
+};
+
 const hasServiceWorkerRestarted = async function (serviceWorker) {
     return await serviceWorker.evaluate(() => globalThis.setBeforeServiceWorkerStop === undefined);
 };
@@ -237,8 +255,10 @@ export {
     pathToSource,
     restoredSessionIds,
     setGestureAction,
+    spyOnTabsReload,
     startLatePageServer,
     stopServiceWorker,
     stubReopenClosedTab,
+    tabsReloadCalls,
     test
 };

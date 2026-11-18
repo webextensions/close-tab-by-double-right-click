@@ -6,6 +6,8 @@ import {
     holdRightClick,
     openTestPage,
     setGestureAction,
+    spyOnTabsReload,
+    tabsReloadCalls,
     test
 } from './fixtures.js';
 
@@ -88,11 +90,30 @@ test('double right click set to reload the tab reloads it', async ({ context, se
     await setGestureAction(serviceWorker, 'DOUBLE_RIGHT_CLICK_ACTION', 'reload');
     const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}reload`);
     await markPage(page);
+    await spyOnTabsReload(serviceWorker);
 
     await doubleRightClickWithKeys(page, []);
 
     await expect.poll(() => isPageMarked(page).catch(() => true)).toBe(false);
     expect(page.isClosed()).toBe(false);
+    const calls = await tabsReloadCalls(serviceWorker);
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]?.bypassCache).toBeFalsy();
+});
+
+test('double right click set to hard reload the tab reloads it without the cache', async ({ context, serviceWorker }) => {
+    await setGestureAction(serviceWorker, 'DOUBLE_RIGHT_CLICK_ACTION', 'hardReload');
+    const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}hard-reload`);
+    await markPage(page);
+    await spyOnTabsReload(serviceWorker);
+
+    await doubleRightClickWithKeys(page, []);
+
+    await expect.poll(() => isPageMarked(page).catch(() => true)).toBe(false);
+    expect(page.isClosed()).toBe(false);
+    const calls = await tabsReloadCalls(serviceWorker);
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toEqual({ bypassCache: true });
 });
 
 test('double right click set to go back goes back', async ({ context, serviceWorker }) => {

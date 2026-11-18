@@ -99,6 +99,7 @@ test('the gestures start with the double right click closing the tab and nothing
         'Close the tab',
         'Go back',
         'Reload the tab',
+        'Hard reload the tab',
         'Open a new tab',
         'Duplicate the tab',
         'Reopen the last closed tab'
@@ -169,7 +170,7 @@ test('arrow keys move through the actions without asking for a permission on the
     const doubleRightClickAction = optionsPage.getByRole('combobox', { name: 'Double right click', exact: true });
 
     await doubleRightClickAction.focus();
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
         await optionsPage.keyboard.press('ArrowDown');
     }
 

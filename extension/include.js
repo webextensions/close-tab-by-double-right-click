@@ -146,6 +146,9 @@
         reload: async function (tab) {
             await chrome.tabs.reload(tab.id);
         },
+        hardReload: async function (tab) {
+            await chrome.tabs.reload(tab.id, { bypassCache: true });
+        },
         newTab: async function (tab) {
             await chrome.tabs.create({ windowId: tab.windowId });
         },

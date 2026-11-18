@@ -23,6 +23,10 @@
     "options_ui": {
         "page": "options.html"
     },
+    "action": {
+        "default_title": "Double Right Click - settings",
+        "default_popup": "options.html?popup"
+    },
     "background": {
         "service_worker": "include.js"
     },

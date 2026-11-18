@@ -17,6 +17,12 @@ const RadioButtonSelectedValueSet = function (name, SelectedValue) {
     });
 };
 
+// The toolbar icon opens this page as its popup (see "action" in manifest.json), which gets its own layout
+const isPopup = new URLSearchParams(location.search).has('popup');
+if (isPopup) {
+    document.documentElement.classList.add('popup');
+}
+
 const notifyUser = function (message = 'Your change would apply next time onwards') {
     // Pinned a little below the top of the page, which leaves room for it above the first heading
     utils.alertNote(`✓ ${message}`, 2500, { paddingTop: '8px' });
@@ -123,6 +129,8 @@ const main = function () {
     // that action, and removed once no gesture uses it. The user can also revoke it in the browser's add-on settings,
     // so the page tells when it is missing.
     const SESSIONS_PERMISSION = { permissions: ['sessions'] };
+    // Whether the permission is granted, as last checked (assumed missing until then)
+    let isSessionsGranted = false;
     const elSessionsPermissionMissing = document.querySelector('.sessions-permission-missing');
     // A hidden row (Cmd outside macOS) does nothing, whatever it keeps
     const isVisibleRow = function (elGestureAction) {
@@ -136,6 +144,7 @@ const main = function () {
     };
     const showSessionsPermission = async function () {
         const isGranted = await chrome.permissions.contains(SESSIONS_PERMISSION);
+        isSessionsGranted = isGranted;
         elGestureActions.forEach((elGestureAction) => {
             const elMissing = elGestureAction.closest('.gesture').querySelector('.gesture-permission-missing');
             elMissing.hidden = isGranted || !isReopenChosenFor(elGestureAction);
@@ -144,7 +153,19 @@ const main = function () {
     };
     chrome.permissions.onAdded.addListener(showSessionsPermission);
     chrome.permissions.onRemoved.addListener(showSessionsPermission);
+
+    const openOptionsPage = function () {
+        chrome.runtime.openOptionsPage().finally(function () {
+            window.close();
+        });
+    };
     document.querySelector('.grant-sessions-permission').addEventListener('click', function () {
+        // The popup never asks for the permission itself: the browser's prompt can take the focus and close the popup
+        // before the choice gets saved. The options page asks instead.
+        if (isPopup) {
+            openOptionsPage();
+            return;
+        }
         // Firefox only asks for a permission straight from the user's action: nothing may be awaited before this
         chrome.permissions.request(SESSIONS_PERMISSION).then(showSessionsPermission, function (e) {
             console.log('Could not ask for the permission to reopen closed tabs', e);
@@ -202,6 +223,16 @@ const main = function () {
                 saveAction(elGestureAction);
                 return;
             }
+            // In the popup, the options page asks for the permission (see the "Grant access" button above)
+            if (isPopup) {
+                if (isSessionsGranted) {
+                    saveAction(elGestureAction);
+                } else {
+                    elGestureAction.value = savedActions.get(elGestureAction);
+                    openOptionsPage();
+                }
+                return;
+            }
             // Firefox only asks for a permission straight from the user's action: nothing may be awaited before this
             chrome.permissions.request(SESSIONS_PERMISSION).then(function (granted) {
                 if (granted) {
@@ -249,6 +280,11 @@ const main = function () {
         setTimeout(notifyUser, 100);
         window.close();
     });
+
+    // Only in the popup, which has little room
+    const btnOpenOptionsPage = document.querySelector('.open-options-page');
+    btnOpenOptionsPage.hidden = !isPopup;
+    btnOpenOptionsPage.addEventListener('click', openOptionsPage);
 };
 
 ready(main);

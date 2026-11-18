@@ -235,3 +235,53 @@ label {
     color: var(--note-text) !important;
     font: 600 1.25rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif !important;
 }
+
+/* The popup of the toolbar icon (options.html?popup), which sizes itself to the page: narrow, with each label above its
+   dropdown, and compact, so that it stays within the 600 px height of a popup even with the Cmd row on macOS */
+.popup body {
+    box-sizing: border-box;
+    width: 340px;
+    padding: 36px 10px 10px;
+}
+.popup .page > div {
+    flex: 1;
+    min-width: 0;
+}
+.popup .option {
+    padding: 12px 14px 14px;
+}
+.popup .option + .option {
+    margin-top: 10px;
+}
+.popup .option-body {
+    margin-top: 10px;
+}
+.popup select {
+    min-height: 28px;
+}
+.popup .option-value + .option-value {
+    margin-top: 8px;
+}
+.popup .gestures {
+    grid-template-columns: 1fr;
+    gap: 2px;
+}
+.popup .gesture:not(:first-child) label {
+    margin-top: 6px;
+}
+.popup .gesture > span {
+    display: flex;
+    flex-wrap: wrap;
+}
+.popup .gesture-action {
+    flex: 1 0 100%;
+    min-width: 0;
+}
+/* Below its dropdown, which keeps the full width */
+.popup .gesture-permission-missing {
+    margin: 4px 0 0;
+}
+.popup .page-actions {
+    gap: 10px;
+    margin-top: 12px;
+}

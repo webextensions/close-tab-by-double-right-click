@@ -22,7 +22,7 @@ Extension **Double Right Click - close tab & more** for Google Chrome and Mozill
 
 **Notes:**
 
-* In the options of the extension, choose what a double right click does, and what it does with Shift, Ctrl, Alt (Option on macOS) or Cmd (macOS only) held on its first click: do nothing, close the tab, go back, reload the tab, hard reload the tab (without the cache), open a new tab, duplicate the tab, or reopen the last closed tab (which asks for access to the recently closed tabs). By default, a double right click closes the tab, and with a key held it does the same. Holding two of these keys does nothing.
+* In the options of the extension (also in the popup of its toolbar icon), choose what a double right click does, and what it does with Shift, Ctrl, Alt (Option on macOS) or Cmd (macOS only) held on its first click: do nothing, close the tab, go back, reload the tab, hard reload the tab (without the cache), open a new tab, duplicate the tab, or reopen the last closed tab (which asks for access to the recently closed tabs). By default, a double right click closes the tab, and with a key held it does the same. Holding two of these keys does nothing.
 
 * To enable this extension in "incognito" window mode, you will need to provide permissions for this by going to "chrome://extensions".
 

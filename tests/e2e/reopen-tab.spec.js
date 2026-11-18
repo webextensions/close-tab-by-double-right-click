@@ -56,13 +56,36 @@ test('the options page turns reopening on and off through the "sessions" permiss
 
     await checkbox.check();
     await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(true);
+    await expect(optionsPage.getByText('Your change would apply next time onwards')).toBeVisible();
     await optionsPage.reload();
     await expect(checkbox).toBeChecked();
 
     await checkbox.uncheck();
     await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(false);
+    await expect(optionsPage.getByText('Your change would apply next time onwards')).toBeVisible();
     await optionsPage.reload();
     await expect(checkbox).not.toBeChecked();
+});
+
+test('the options page shows no note when the "sessions" permission is not granted', async ({ context, serviceWorker, extensionId }) => {
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+    const checkbox = optionsPage.getByRole('checkbox', { name: 'Reopen the last closed tab' });
+    await expect(checkbox).not.toBeChecked();
+
+    // As if the user denied the prompt
+    await optionsPage.evaluate(() => {
+        chrome.permissions.request = async function () {
+            return false;
+        };
+    });
+
+    // The checkbox only goes back after the note would have shown. Read the note once: a retrying assertion would
+    // wait for the note to hide on its own
+    await checkbox.click();
+    await expect(checkbox).not.toBeChecked();
+    expect(await optionsPage.getByText('Your change would apply next time onwards').isVisible()).toBe(false);
+    expect(await isSessionsPermissionGranted(serviceWorker)).toBe(false);
 });
 
 test('after turning reopening on, Shift + double right click reopens the tab which the gesture closed', async ({ context, serviceWorker, extensionId }) => {

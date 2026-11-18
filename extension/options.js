@@ -107,7 +107,13 @@ const main = function () {
         const permissionChange = elReopenClosedTab.checked ?
             chrome.permissions.request(SESSIONS_PERMISSION) :
             chrome.permissions.remove(SESSIONS_PERMISSION);
-        permissionChange.then(showReopenClosedTab, function (e) {
+        permissionChange.then(function (changed) {
+            // Both resolve to false when nothing changed (for example, the user denied the prompt)
+            if (changed) {
+                notifyUser();
+            }
+            showReopenClosedTab();
+        }, function (e) {
             console.log('Could not change the permission to reopen closed tabs', e);
             showReopenClosedTab();
         });

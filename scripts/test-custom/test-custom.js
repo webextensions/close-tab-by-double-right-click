@@ -122,7 +122,7 @@ const groups = [
             {
                 id: 'verify:firefox',
                 label: 'verify:firefox',
-                time: '1-2 min',
+                time: '2-4 min',
                 build: 'firefox',
                 realInput: true,
                 command: ['python3', 'scripts/verify-firefox/verify-firefox.py']
@@ -130,7 +130,7 @@ const groups = [
             {
                 id: 'verify:chrome',
                 label: 'verify:chrome',
-                time: '1-3 min',
+                time: '2-4 min',
                 build: 'chrome',
                 realInput: true,
                 command: [process.execPath, 'scripts/verify-chrome/verify-chrome.js']

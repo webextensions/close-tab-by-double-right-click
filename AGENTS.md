@@ -81,7 +81,7 @@ is.
 - `npm run release:check` runs `git fetch origin` (needs internet access; it updates only the remote-tracking refs).
 - `npm start` rebuilds `dist/chrome` and `dist/firefox` on every change and never exits on its own.
 - `npm run start:chrome` / `npm run start:firefox` open a browser and block until it is closed.
-- `npm run verify:firefox` (about two minutes) and `npm run verify:chrome` (about two and a half minutes) take over the
+- `npm run verify:firefox` and `npm run verify:chrome` (about three minutes each) take over the
   real mouse and keyboard (Linux with GNOME only): warn the user right before each run.
 - `npm run verify:firefox:sites` (about 5 minutes) and `npm run verify:chrome:sites` (about 10 minutes) take them over
   as well, and need internet access.

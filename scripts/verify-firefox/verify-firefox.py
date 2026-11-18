@@ -13,7 +13,7 @@ is what breaks double right click on Linux. This script instead:
 
 Requirements: Linux with GNOME (Wayland or X11), geckodriver on PATH (the Firefox snap ships one), python3-gi and
 gir1.2-atspi-2.0.
-It takes over the mouse and keyboard for about a minute: do not touch them while it runs.
+It takes over the mouse and keyboard for about three minutes: do not touch them while it runs.
 
 Usage: npm run verify:firefox (generates dist/firefox first), or
 python3 scripts/verify-firefox/verify-firefox.py [path/to/extension]

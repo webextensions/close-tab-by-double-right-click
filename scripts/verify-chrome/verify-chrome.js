@@ -8,7 +8,7 @@
 // - reads the outcome (tab closed or still open) back through Playwright
 //
 // Requirements: Linux with GNOME, python3-gi, and "npx playwright install chromium".
-// It takes over the mouse and keyboard for about two minutes: do not touch them while it runs.
+// It takes over the mouse and keyboard for about three minutes: do not touch them while it runs.
 //
 // Usage: npm run verify:chrome (generates dist/chrome first), or
 // node scripts/verify-chrome/verify-chrome.js [path/to/extension]

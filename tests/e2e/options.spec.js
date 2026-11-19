@@ -122,6 +122,47 @@ test('on macOS, the options page shows the Cmd key and calls the Alt key Option'
     await expect(optionsPage.getByRole('combobox', { name: 'Option + Double right click' })).toBeVisible();
 });
 
+test('the gesture dropdowns are equally wide, level with their labels, and keep their width when the note about the missing access shows, on the options page and in the popup', async ({ context, serviceWorker, extensionId }) => {
+    const readGestures = async function (page) {
+        return await page.evaluate(() => [...document.querySelectorAll('.gesture')].filter((el) => !el.hidden).map((el) => {
+            const label = el.querySelector('label').getBoundingClientRect();
+            const dropdown = el.querySelector('select').getBoundingClientRect();
+            const note = el.querySelector('.gesture-permission-missing');
+            return {
+                width: Math.round(dropdown.width),
+                levelOffset: Math.abs((label.top + label.height / 2) - (dropdown.top + dropdown.height / 2)),
+                noteBelow: note.hidden ? null : note.getBoundingClientRect().top >= dropdown.bottom
+            };
+        }));
+    };
+
+    for (const path of ['options.html', 'options.html?popup']) {
+        const page = await context.newPage();
+        await page.goto(`chrome-extension://${extensionId}/${path}`);
+        await expect(page.getByRole('combobox', { name: 'Shift + Double right click' })).toHaveValue('sameAsDoubleRightClick');
+        const gestures = await readGestures(page);
+        const width = gestures[0].width;
+        for (const gesture of gestures) {
+            expect(gesture.width, path).toBe(width);
+            expect(gesture.levelOffset, path).toBeLessThan(4);
+        }
+
+        await setGestureAction(serviceWorker, 'SHIFT_DOUBLE_RIGHT_CLICK_ACTION', 'reopenClosedTab');
+        await page.reload();
+        await expect(page.getByText('Needs access', { exact: true }).filter({ visible: true })).toHaveCount(1);
+        const gesturesWithNote = await readGestures(page);
+        for (const gesture of gesturesWithNote) {
+            expect(gesture.width, path).toBe(width);
+            expect(gesture.levelOffset, path).toBeLessThan(4);
+        }
+        // The note shows below its dropdown
+        expect(gesturesWithNote.map((gesture) => gesture.noteBelow), path).toEqual([null, true, null, null]);
+
+        await serviceWorker.evaluate(() => chrome.storage.sync.clear());
+        await page.close();
+    }
+});
+
 test('choosing what a gesture does saves it and shows the note', async ({ context, serviceWorker, extensionId }) => {
     const optionsPage = await context.newPage();
     await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);

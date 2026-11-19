@@ -167,7 +167,8 @@ label {
     display: grid;
     grid-template-columns: auto auto;
     justify-content: start;
-    align-items: center;
+    /* Each label stays level with its dropdown when a notice shows below that */
+    align-items: baseline;
     gap: 10px 20px;
 }
 .gesture {
@@ -178,8 +179,14 @@ label {
     text-align: right;
     white-space: nowrap;
 }
+/* The dropdowns take the width of their column, so that all are as wide as the widest one */
+.gesture > span {
+    display: flex;
+    flex-direction: column;
+}
+/* Below its dropdown, so that it neither widens the dropdowns nor the popup when it shows */
 .gesture-permission-missing {
-    margin-left: 8px;
+    margin-top: 4px;
     color: var(--danger);
     font-size: 1.25rem;
     font-weight: 500;
@@ -279,19 +286,8 @@ label {
     flex: 1;
     min-width: 0;
 }
-/* Each label stays level with its dropdown when a notice shows below that */
-.popup .gestures {
-    align-items: baseline;
-}
-.popup .gesture > span {
-    display: flex;
-    flex-direction: column;
-}
-/* Below its dropdown, and the sentence about the missing access within the width of the card, so that neither widens
-   the popup when it shows */
-.popup .gesture-permission-missing {
-    margin: 4px 0 0;
-}
+/* The sentence about the missing access within the width of the card, so that it does not widen the popup when it
+   shows */
 .popup .sessions-permission-missing {
     contain: inline-size;
 }

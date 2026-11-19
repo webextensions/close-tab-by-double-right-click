@@ -250,7 +250,7 @@ const runGestureChecks = async function (context, serviceWorker, displayMode) {
         console.log(`${passed ? 'PASS' : 'FAIL'}  [${displayMode}] ${name}${detail ? `  (${detail})` : ''}`);
     };
 
-    let { granted, missingShown } = await chooseGestureAction(context, serviceWorker, 'Shift + Double right click', 'Reopen the last closed tab');
+    let { granted, missingShown } = await chooseGestureAction(context, serviceWorker, 'Shift + Double right click', 'Reopen last closed tab');
     check('choosing to reopen the last closed tab for Shift grants the permission', granted && !missingShown,
         JSON.stringify({ granted, missingShown }));
 
@@ -274,7 +274,7 @@ const runGestureChecks = async function (context, serviceWorker, displayMode) {
     ({ stayedOpen } = await gestureOnNewPage(context, serviceWorker, doubleRightClickWith('ctrl')));
     check('Ctrl + double right click set to do nothing keeps the tab open', stayedOpen);
 
-    await chooseGestureAction(context, serviceWorker, 'Alt + Double right click', 'Duplicate the tab');
+    await chooseGestureAction(context, serviceWorker, 'Alt + Double right click', 'Duplicate tab');
     ({ stayedOpen, urls } = await gestureOnNewPage(context, serviceWorker, doubleRightClickWith('alt')));
     check('Alt + double right click set to duplicate the tab duplicates it and keeps it open',
         stayedOpen && urls.length === 1 && urls[0] === TEST_URL, JSON.stringify(urls));

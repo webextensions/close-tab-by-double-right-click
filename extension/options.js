@@ -108,13 +108,13 @@ const main = function () {
     // at a time, which should not stop by it on the way to another one
     const ACTION_LABELS = [
         ['nothing', 'Do nothing'],
-        ['closeTab', 'Close the tab'],
+        ['closeTab', 'Close tab'],
         ['goBack', 'Go back'],
-        ['reload', 'Reload the tab'],
-        ['hardReload', 'Hard reload the tab'],
-        ['newTab', 'Open a new tab'],
-        ['duplicateTab', 'Duplicate the tab'],
-        [ACTION_REOPEN_CLOSED_TAB, 'Reopen the last closed tab']
+        ['reload', 'Reload'],
+        ['hardReload', 'Hard reload'],
+        ['newTab', 'New tab'],
+        ['duplicateTab', 'Duplicate tab'],
+        [ACTION_REOPEN_CLOSED_TAB, 'Reopen last closed tab']
     ];
     // The setting of the double right click itself; the ones with a modifier key can follow it
     const DOUBLE_RIGHT_CLICK_ACTION = 'DOUBLE_RIGHT_CLICK_ACTION';

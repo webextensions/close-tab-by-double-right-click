@@ -64,7 +64,7 @@ test('choosing to reopen the last closed tab asks for the "sessions" permission,
     await expect(shiftAction).toHaveValue('sameAsDoubleRightClick');
     expect(await isSessionsPermissionGranted(serviceWorker)).toBe(false);
 
-    await chooseOption(shiftAction, 'Reopen the last closed tab');
+    await chooseOption(shiftAction, 'Reopen last closed tab');
     await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(true);
     await expect(optionsPage.getByText('Saved')).toBeVisible();
     await expect.poll(() => serviceWorker.evaluate((setting) => chrome.storage.sync.get(setting), SHIFT_ACTION)).toEqual({
@@ -85,14 +85,14 @@ test('the permission stays while another gesture still reopens the last closed t
     const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + Double right click' });
     const ctrlAction = optionsPage.getByRole('combobox', { name: 'Ctrl + Double right click' });
 
-    await chooseOption(shiftAction, 'Reopen the last closed tab');
+    await chooseOption(shiftAction, 'Reopen last closed tab');
     await expect(shiftAction).toHaveValue('reopenClosedTab');
-    await chooseOption(ctrlAction, 'Reopen the last closed tab');
+    await chooseOption(ctrlAction, 'Reopen last closed tab');
     await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get('CTRL_DOUBLE_RIGHT_CLICK_ACTION'))).toEqual({
         CTRL_DOUBLE_RIGHT_CLICK_ACTION: 'reopenClosedTab'
     });
 
-    await chooseOption(shiftAction, 'Close the tab');
+    await chooseOption(shiftAction, 'Close tab');
     await expect.poll(() => serviceWorker.evaluate((setting) => chrome.storage.sync.get(setting), SHIFT_ACTION)).toEqual({
         [SHIFT_ACTION]: 'closeTab'
     });
@@ -104,7 +104,7 @@ test('"Reset" removes the permission along with the choice to reopen the last cl
     const optionsPage = await openOptionsPage({ context, extensionId });
     const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + Double right click' });
 
-    await chooseOption(shiftAction, 'Reopen the last closed tab');
+    await chooseOption(shiftAction, 'Reopen last closed tab');
     await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(true);
 
     await optionsPage.getByRole('button', { name: 'Reset', exact: true }).click();
@@ -126,7 +126,7 @@ test('a denied permission puts the previous choice back and shows no note', asyn
     });
 
     // Read the note once: a retrying assertion would wait for the note to hide on its own
-    await chooseOption(shiftAction, 'Reopen the last closed tab');
+    await chooseOption(shiftAction, 'Reopen last closed tab');
     await expect(shiftAction).toHaveValue('sameAsDoubleRightClick');
     expect(await optionsPage.getByText('Saved').isVisible()).toBe(false);
     expect(await isSessionsPermissionGranted(serviceWorker)).toBe(false);
@@ -161,7 +161,7 @@ test('when the browser does not ask for the permission, the choice stays and the
             throw new Error('permissions.request may only be called from a user input handler');
         };
     });
-    await chooseOption(shiftAction, 'Reopen the last closed tab');
+    await chooseOption(shiftAction, 'Reopen last closed tab');
 
     await expect.poll(() => serviceWorker.evaluate((setting) => chrome.storage.sync.get(setting), SHIFT_ACTION)).toEqual({
         [SHIFT_ACTION]: 'reopenClosedTab'
@@ -187,7 +187,7 @@ test('outside macOS, the hidden Cmd row neither asks for the permission nor keep
 
 test('once chosen, Shift + double right click reopens the tab which the gesture closed', async ({ context, serviceWorker, extensionId }) => {
     const optionsPage = await openOptionsPage({ context, extensionId });
-    await chooseOption(optionsPage.getByRole('combobox', { name: 'Shift + Double right click' }), 'Reopen the last closed tab');
+    await chooseOption(optionsPage.getByRole('combobox', { name: 'Shift + Double right click' }), 'Reopen last closed tab');
     await expect.poll(() => isSessionsPermissionGranted(serviceWorker)).toBe(true);
     await optionsPage.close();
 

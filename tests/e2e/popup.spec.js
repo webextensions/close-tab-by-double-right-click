@@ -95,7 +95,7 @@ test('on macOS, the popup fits the height of a popup, and its width with the not
 test('a change in the popup gets saved', async ({ context, serviceWorker }) => {
     const popup = await openPopup({ context, serviceWorker });
 
-    await chooseOption(popup.getByRole('combobox', { name: 'Alt + Double right click' }), 'Duplicate the tab');
+    await chooseOption(popup.getByRole('combobox', { name: 'Alt + Double right click' }), 'Duplicate tab');
     await expect(popup.getByText('Saved')).toBeVisible();
     await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
         ALT_DOUBLE_RIGHT_CLICK_ACTION: 'duplicateTab'
@@ -108,7 +108,7 @@ test('choosing to reopen the last closed tab in the popup asks, in a dialog, to 
     const shiftAction = popup.getByRole('combobox', { name: 'Shift + Double right click' });
     const pageCount = context.pages().length;
 
-    await chooseOption(shiftAction, 'Reopen the last closed tab');
+    await chooseOption(shiftAction, 'Reopen last closed tab');
 
     const dialog = popup.getByRole('dialog', { name: 'Allow access in the options' });
     await expect(dialog).toBeVisible();
@@ -128,7 +128,7 @@ test('choosing to reopen the last closed tab in the popup asks, in a dialog, to 
     // again: Escape cancels it, although the dialog keeps "Open options" as the value of its last button
     const pageCountAfterOpen = context.pages().length;
     await popup.bringToFront();
-    await chooseOption(shiftAction, 'Reopen the last closed tab');
+    await chooseOption(shiftAction, 'Reopen last closed tab');
     await expect(dialog).toBeVisible();
     await popup.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
@@ -151,7 +151,7 @@ test('"Cancel", Escape and a click beside the dialog in the popup keep the popup
         () => popup.mouse.click(2, 2)
     ];
     for (const dismiss of dismissals) {
-        await chooseOption(shiftAction, 'Reopen the last closed tab');
+        await chooseOption(shiftAction, 'Reopen last closed tab');
         await expect(dialog).toBeVisible();
         await dismiss();
         await expect(dialog).toBeHidden();
@@ -168,7 +168,7 @@ test('with the permission granted, choosing to reopen the last closed tab in the
     // Granted on the options page (Chromium grants it there without a prompt in the tests)
     const optionsPage = await context.newPage();
     await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
-    await chooseOption(optionsPage.getByRole('combobox', { name: 'Ctrl + Double right click' }), 'Reopen the last closed tab');
+    await chooseOption(optionsPage.getByRole('combobox', { name: 'Ctrl + Double right click' }), 'Reopen last closed tab');
     await expect.poll(() => serviceWorker.evaluate(() => chrome.permissions.contains({ permissions: ['sessions'] }))).toBe(true);
     await optionsPage.close();
 
@@ -177,7 +177,7 @@ test('with the permission granted, choosing to reopen the last closed tab in the
     // The browser answers in order, so the popup has its own check of the permission by then
     expect(await popup.evaluate(() => chrome.permissions.contains({ permissions: ['sessions'] }))).toBe(true);
 
-    await chooseOption(popup.getByRole('combobox', { name: 'Shift + Double right click' }), 'Reopen the last closed tab');
+    await chooseOption(popup.getByRole('combobox', { name: 'Shift + Double right click' }), 'Reopen last closed tab');
 
     await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
         CTRL_DOUBLE_RIGHT_CLICK_ACTION: 'reopenClosedTab',

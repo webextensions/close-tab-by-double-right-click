@@ -70,9 +70,9 @@ MAXIMUM_TIME_DROPDOWN = 'Maximum time between clicks'
 GESTURE_DROPDOWNS = {'plain': 'Double right click', 'shift': 'Shift + Double right click',
                      'ctrl': 'Ctrl + Double right click', 'alt': 'Alt + Double right click'}
 SAME_AS_DOUBLE_RIGHT_CLICK = 'Same as Double right click'
-ACTION_LABELS = ['Do nothing', 'Close the tab', 'Go back', 'Reload the tab', 'Hard reload the tab', 'Open a new tab',
-                 'Duplicate the tab', 'Reopen the last closed tab']
-DEFAULT_GESTURES = {'plain': 'Close the tab', 'shift': SAME_AS_DOUBLE_RIGHT_CLICK, 'ctrl': SAME_AS_DOUBLE_RIGHT_CLICK,
+ACTION_LABELS = ['Do nothing', 'Close tab', 'Go back', 'Reload', 'Hard reload', 'New tab',
+                 'Duplicate tab', 'Reopen last closed tab']
+DEFAULT_GESTURES = {'plain': 'Close tab', 'shift': SAME_AS_DOUBLE_RIGHT_CLICK, 'ctrl': SAME_AS_DOUBLE_RIGHT_CLICK,
                     'alt': SAME_AS_DOUBLE_RIGHT_CLICK}
 # The Tab presses from the top of the options page to its controls: the four gesture dropdowns, the radio buttons, the
 # dropdown of the maximum time, then "Done"
@@ -295,7 +295,7 @@ def has_state(node, state):
 def read_options_page(pid):
     """Return (document object path, shown state) for the options page, or (None, None) if it is not found.
 
-    The shown state looks like options_state('custom', '1000', shift='Reopen the last closed tab').
+    The shown state looks like options_state('custom', '1000', shift='Reopen last closed tab').
     """
     desktop = Atspi.get_desktop(0)
     for index in range(desktop.get_child_count()):
@@ -840,8 +840,8 @@ def reopened_tab_urls(browser, mouse, keep, handles_before):
 
 def check_reopen_closed_tab(browser, mouse, keep):
     # Each closed tab gets its own URL, since the earlier checks closed many tabs with the same one
-    expected = options_state('custom', '1000', shift='Reopen the last closed tab')
-    state = choose_gesture_action(browser, mouse, keep, 'shift', 'Reopen the last closed tab', expected)
+    expected = options_state('custom', '1000', shift='Reopen last closed tab')
+    state = choose_gesture_action(browser, mouse, keep, 'shift', 'Reopen last closed tab', expected)
     check('choosing to reopen the last closed tab for Shift, from the opened dropdown, gets the permission',
           state == expected, json.dumps(state))
 
@@ -888,8 +888,8 @@ def check_key_actions(browser, mouse, keep):
     check('Ctrl + double right click set to do nothing keeps the tab open', target in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
 
-    expected = options_state('custom', '1000', ctrl='Hard reload the tab')
-    state = choose_gesture_action(browser, mouse, keep, 'ctrl', 'Hard reload the tab', expected)
+    expected = options_state('custom', '1000', ctrl='Hard reload')
+    state = choose_gesture_action(browser, mouse, keep, 'ctrl', 'Hard reload', expected)
     check('setting Ctrl to hard reload the tab', state == expected, json.dumps(state))
     with HARD_RELOAD_REQUESTS_LOCK:
         HARD_RELOAD_REQUESTS.clear()
@@ -907,8 +907,8 @@ def check_key_actions(browser, mouse, keep):
           target in browser.handles() and len(requests) == 2 and requests[1] == 'no-cache', json.dumps(requests))
     close_tab_if_open(browser, mouse, target, keep)
 
-    expected = options_state('custom', '1000', ctrl='Hard reload the tab', alt='Duplicate the tab')
-    state = choose_gesture_action(browser, mouse, keep, 'alt', 'Duplicate the tab', expected)
+    expected = options_state('custom', '1000', ctrl='Hard reload', alt='Duplicate tab')
+    state = choose_gesture_action(browser, mouse, keep, 'alt', 'Duplicate tab', expected)
     check('setting Alt to duplicate the tab', state == expected, json.dumps(state))
     target = open_test_page(browser)
     focus_page(mouse)

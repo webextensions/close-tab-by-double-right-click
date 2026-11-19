@@ -96,13 +96,13 @@ test('the gestures start with the double right click closing the tab and nothing
     await expect(optionsPage.getByRole('combobox', { name: 'Cmd + Double right click' })).toBeHidden();
     await expect(optionsPage.getByRole('combobox', { name: 'Double right click', exact: true }).locator('option')).toHaveText([
         'Do nothing',
-        'Close the tab',
+        'Close tab',
         'Go back',
-        'Reload the tab',
-        'Hard reload the tab',
-        'Open a new tab',
-        'Duplicate the tab',
-        'Reopen the last closed tab'
+        'Reload',
+        'Hard reload',
+        'New tab',
+        'Duplicate tab',
+        'Reopen last closed tab'
     ]);
     await expect(optionsPage.getByRole('combobox', { name: 'Alt + Double right click' }).locator('option').first()).toHaveText(
         'Same as Double right click'
@@ -127,7 +127,7 @@ test('choosing what a gesture does saves it and shows the note', async ({ contex
     await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
     const altAction = optionsPage.getByRole('combobox', { name: 'Alt + Double right click' });
 
-    await chooseOption(altAction, 'Duplicate the tab');
+    await chooseOption(altAction, 'Duplicate tab');
     await expect(optionsPage.getByText('Saved')).toBeVisible();
     await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
         ALT_DOUBLE_RIGHT_CLICK_ACTION: 'duplicateTab'
@@ -190,7 +190,7 @@ test('"Reset" shows once a gesture differs from its default, and puts the gestur
     await expect(altAction).toHaveValue('sameAsDoubleRightClick');
     await expect(reset).toBeHidden();
 
-    await chooseOption(altAction, 'Duplicate the tab');
+    await chooseOption(altAction, 'Duplicate tab');
     await chooseOption(doubleRightClickAction, 'Do nothing');
     await expect(reset).toBeVisible();
     await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
@@ -244,7 +244,7 @@ test('outside macOS, a Cmd setting synced from a Mac neither shows "Reset" nor g
     await expect(ctrlAction).toHaveValue('sameAsDoubleRightClick');
     await expect(reset).toBeHidden();
 
-    await chooseOption(ctrlAction, 'Reload the tab');
+    await chooseOption(ctrlAction, 'Reload');
     await expect(reset).toBeVisible();
     await reset.click();
 

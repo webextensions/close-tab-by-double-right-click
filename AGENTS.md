@@ -58,8 +58,8 @@ is.
 - Reopening the last closed tab needs the optional `sessions` permission. Keep it optional: as a required permission
   next to `tabs`, it changes Chrome's warning to "Read your browsing history on all your signed-in devices". The
   options page asks for it when a dropdown gets set to reopen, and removes it once none is. Nothing may be awaited
-  before `permissions.request` there: Firefox only asks straight from the user's action. Keep "Reopen the last closed
-  tab" last in the dropdowns, so that arrow keys do not pass it (each step fires `change` and would ask). The popup
+  before `permissions.request` there: Firefox only asks straight from the user's action. Keep "Reopen last closed tab"
+  last in the dropdowns, so that arrow keys do not pass it (each step fires `change` and would ask). The popup
   never asks: the browser's prompt can take the focus and close the popup before the choice gets saved. There,
   choosing reopen without the permission (or "Grant access") shows a `<dialog>` which offers to open the options page
   (the popup then closes). Keep the closed dialog without a `display` of its own, so that it stays out of the layout

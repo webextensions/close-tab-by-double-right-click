@@ -210,6 +210,31 @@ test('"Reset" shows once a gesture differs from its default, and puts the gestur
     await expect(reset).toBeHidden();
 });
 
+// The options dialog of chrome://extensions and the popup size themselves to the page, which must not jump (the dialog
+// flashes a scrollbar while the page grows)
+for (const pathname of ['/options.html', '/options.html?popup']) {
+    test(`"Reset" showing and going away keeps the height of ${pathname}`, async ({ context, extensionId }) => {
+        const optionsPage = await context.newPage();
+        await optionsPage.goto(`chrome-extension://${extensionId}${pathname}`);
+        const reset = optionsPage.getByRole('button', { name: 'Reset', exact: true });
+        const shiftAction = optionsPage.getByRole('combobox', { name: 'Shift + Double right click' });
+        const pageHeight = async function () {
+            return await optionsPage.evaluate(() => document.body.getBoundingClientRect().height);
+        };
+        await expect(reset).toBeHidden();
+        const heightWithoutReset = await pageHeight();
+
+        await chooseOption(shiftAction, 'Do nothing');
+        await expect(optionsPage.getByText('Saved')).toBeVisible();
+        await expect(reset).toBeVisible();
+        expect(await pageHeight()).toBe(heightWithoutReset);
+
+        await chooseOption(shiftAction, 'Same as Double right click');
+        await expect(reset).toBeHidden();
+        expect(await pageHeight()).toBe(heightWithoutReset);
+    });
+}
+
 test('outside macOS, a Cmd setting synced from a Mac neither shows "Reset" nor gets reset', async ({ context, serviceWorker, extensionId }) => {
     await setGestureAction(serviceWorker, 'META_DOUBLE_RIGHT_CLICK_ACTION', 'nothing');
     const optionsPage = await context.newPage();

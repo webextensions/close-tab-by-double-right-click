@@ -103,10 +103,11 @@ input:focus-visible {
     margin-top: 14px;
 }
 
-/* A button which looks like a link */
+/* A button which looks like a link. Its margins take back its padding, so that it is no taller than the heading: the
+   page would grow each time it shows, and the options dialog of chrome://extensions would flash a scrollbar. */
 .reset-gestures {
     padding: 2px 6px;
-    margin-right: -6px;
+    margin: -2px -6px -2px 0;
     border: 0;
     border-radius: 6px;
     background: none;

@@ -194,17 +194,36 @@ const hasServiceWorkerRestarted = async function (serviceWorker) {
 // A local server which sends the headers of its answer at once, and the page itself only when sendPage() gets called.
 // Until then the tab shows the new document without anything in it. (A routed request cannot do that:
 // route.fulfill() sends the whole answer at once.)
-const startLatePageServer = async function () {
+// With holdHeaders, it sends nothing at all until sendPage(), so the tab keeps waiting for the first response of its
+// page. (A tab which the extension opens itself can escape the routes of Playwright.)
+const startLatePageServer = async function ({ holdHeaders = false } = {}) {
     let sendPage;
+    // sendPage() can come before the request does (nothing waits for it after chrome.tabs.create())
+    let pageWanted = false;
     const server = http.createServer((request, response) => {
-        response.writeHead(200, { 'Content-Type': 'text/html' });
-        response.flushHeaders();
-        sendPage = () => response.end(CANCEL_CONTEXT_MENU_PAGE);
+        if (!holdHeaders) {
+            response.writeHead(200, { 'Content-Type': 'text/html' });
+            response.flushHeaders();
+        }
+        sendPage = () => {
+            if (holdHeaders) {
+                response.writeHead(200, { 'Content-Type': 'text/html' });
+            }
+            response.end(CANCEL_CONTEXT_MENU_PAGE);
+        };
+        if (pageWanted) {
+            sendPage();
+        }
     });
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     return {
         url: `http://127.0.0.1:${server.address().port}/`,
-        sendPage: () => sendPage(),
+        sendPage: () => {
+            pageWanted = true;
+            if (sendPage) {
+                sendPage();
+            }
+        },
         close: () => {
             server.closeAllConnections();
             server.close();

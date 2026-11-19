@@ -143,7 +143,9 @@ is.
   bot check which Akamai puts in front of amazon.com makes one. Amazon's DNS only picks Akamai for a minute at a time,
   so [tests/sites/sites.spec.js](tests/sites/sites.spec.js) has an entry which pins the browser to it.
 - `route.fulfill()` sends a whole answer at once. For a page whose headers come before the page itself, use
-  `startLatePageServer` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js).
+  `startLatePageServer` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js). A tab which the extension opens itself
+  (`chrome.tabs.create`) can escape Playwright's routes, and its request for `drc.test` then waits on the real DNS:
+  serve such a tab from `startLatePageServer` as well (`holdHeaders` holds back the whole answer).
 - A page which is still loading: use the `STALLED_*` pages in [tests/shared/test-pages.js](tests/shared/test-pages.js)
   and open them with `waitUntil: 'commit'`. Whatever waits for the page to load never returns there (`page.goto` by
   default, `executeScript` without `injectImmediately`, WebDriver's navigation command). On a page which has not

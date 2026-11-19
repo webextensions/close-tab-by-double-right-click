@@ -287,48 +287,53 @@ if (window.DRCattachListeners) {
         });
     });
 
-    // Keep this as the last statement: Firefox rejects the injection unless the file ends on a value which can be cloned
-    setTimeout(async function () {
+    // Read on start, and again on each change of the setting, so that the pages which are already open follow it at
+    // once. Both keys come in one read, so that two reads at the same time cannot mix their halves.
+    const readMaxTimeBetweenClicks = async function () {
         var chromeStorageForExtensionData = chrome.storage.sync || chrome.storage.local;
 
-        let maxTimeBetweenClicksType;
-
+        let values;
         try {
-            let fromStorageMaxTimeBetweenClicksType = (await chromeStorageForExtensionData.get(MAXIMUM_TIME_BETWEEN_CLICKS_TYPE))[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE];
-            if (
-                fromStorageMaxTimeBetweenClicksType === 'default' ||
-                fromStorageMaxTimeBetweenClicksType === 'custom'
-            ) {
-                maxTimeBetweenClicksType = fromStorageMaxTimeBetweenClicksType;
-            } else {
-                maxTimeBetweenClicksType = 'default';
-            }
+            values = await chromeStorageForExtensionData.get([
+                MAXIMUM_TIME_BETWEEN_CLICKS_TYPE,
+                MAXIMUM_TIME_BETWEEN_CLICKS_VALUE
+            ]);
         } catch (e) {
-            maxTimeBetweenClicksType = 'default';
-            console.log(`Caught an unexpected error while trying to read ${MAXIMUM_TIME_BETWEEN_CLICKS_TYPE}`);
+            values = {};
+            console.log('Caught an unexpected error while trying to read the maximum time between clicks');
             console.log(e);
         }
 
-        if (maxTimeBetweenClicksType === 'custom') {
-            try {
-                let fromStorageMaxTimeBetweenClicksValue = (await chromeStorageForExtensionData.get(MAXIMUM_TIME_BETWEEN_CLICKS_VALUE))[MAXIMUM_TIME_BETWEEN_CLICKS_VALUE];
-                if (fromStorageMaxTimeBetweenClicksValue) {
-                    maxTimeBetweenClicksValue = parseInt(fromStorageMaxTimeBetweenClicksValue, 10);
-                }
-            } catch (e) {
-                maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
-                console.log(`Caught an unexpected error while trying to read ${MAXIMUM_TIME_BETWEEN_CLICKS_VALUE}`);
-                console.log(e);
-            }
-            if (isOfferedTimeBetweenClicks(maxTimeBetweenClicksValue)) {
-                // do nothing
-            } else {
-                maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
-            }
+        if (values[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE] === 'custom') {
+            const value = parseInt(values[MAXIMUM_TIME_BETWEEN_CLICKS_VALUE], 10);
+            maxTimeBetweenClicksValue = isOfferedTimeBetweenClicks(value) ? value : TIME_BETWEEN_CLICKS_DEFAULT;
         } else {
             maxTimeBetweenClicksValue = TIME_BETWEEN_CLICKS_DEFAULT;
         }
 
+        // Read by the tests; only this script's isolated world sees it, not the page
+        window.DRCmaxTimeBetweenClicks = maxTimeBetweenClicksValue;
         window.DRCready = true;
+    };
+
+    // Every frame of every tab hears of each change, also of the other settings, so the keys get checked first
+    chrome.storage.onChanged.addListener(function (changes) {
+        if (
+            Object.hasOwn(changes, MAXIMUM_TIME_BETWEEN_CLICKS_TYPE) ||
+            Object.hasOwn(changes, MAXIMUM_TIME_BETWEEN_CLICKS_VALUE)
+        ) {
+            readMaxTimeBetweenClicks();
+        }
     });
+
+    // A page kept in the back/forward cache may have missed a change while it was frozen. Once the extension got
+    // disabled, removed or reloaded, the page can come back with this script left behind, which can read nothing.
+    listen(window, 'pageshow', function (e) {
+        if (e.persisted && chrome.runtime && chrome.runtime.id) {
+            readMaxTimeBetweenClicks();
+        }
+    });
+
+    // Keep this as the last statement: Firefox rejects the injection unless the file ends on a value which can be cloned
+    setTimeout(readMaxTimeBetweenClicks);
 }

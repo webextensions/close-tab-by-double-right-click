@@ -721,7 +721,9 @@ def open_options_page(browser, mouse, first_url=None):
 
 def check_options_page(browser, mouse, keep):
     # WebDriver cannot read or script extension pages ("privileged scope"), so drive the page with the keyboard, read
-    # it through the accessibility tree, and check the effect: the content script must pick up the saved custom value
+    # it through the accessibility tree, and check the effect: the content script must pick up the saved custom value,
+    # also in a tab which was open before the change
+    open_before = open_test_page(browser)
     open_options_page(browser, mouse)
     default_state = options_state('default', '500')
     _, state = wait_for_options_page(browser.pid, default_state)
@@ -742,7 +744,14 @@ def check_options_page(browser, mouse, keep):
     mouse.type_text('w')  # close the options tab
     mouse.key(KEYSYM_CONTROL_L, False)
     time.sleep(1)
-    browser.switch_to(keep)
+    browser.switch_to(open_before)
+    time.sleep(0.5)
+    mouse.move_to(600, 450)
+    right_clicks(mouse, 0.8)
+    time.sleep(1.5)
+    check('a tab opened before choosing custom 1000 ms follows it: right clicks 800 ms apart close it',
+          open_before not in browser.handles())
+    close_tab_if_open(browser, mouse, open_before, keep)
 
     target = open_test_page(browser)
     mouse.move_to(600, 450)
@@ -763,8 +772,8 @@ def check_done_button(browser, mouse, keep):
     mouse.type_text('\t' * TABS_TO_DONE)
     mouse.type_text(' ')
     # The note shows after 100 ms, for 2.5 seconds
-    shown = bool(document) and wait_for_text_in_document(document, 'Your change would apply next time onwards', 2.5)
-    # Changing the maximum time shows the same note, so the state must be unchanged
+    shown = bool(document) and wait_for_text_in_document(document, 'Your changes are saved', 2.5)
+    # "Done" itself saves nothing, so the state must be unchanged
     _, state = read_options_page(browser.pid)
     check('"Done" on the options page which stays open shows the note', shown and state == unchanged_state,
           f'note shown: {shown}, state: {json.dumps(state)}')

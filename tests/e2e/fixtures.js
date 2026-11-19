@@ -15,7 +15,8 @@ import {
     SVG_PAGE,
     TEST_PAGE,
     chooseOption,
-    isContentScriptReady
+    isContentScriptReady,
+    readContentScriptMaxTime
 } from '../shared/test-pages.js';
 
 const pathToChromeBuild = path.join(import.meta.dirname, '..', '..', 'dist', 'chrome');
@@ -323,6 +324,7 @@ export {
     openTestPage,
     pathToChromeBuild,
     pathToSource,
+    readContentScriptMaxTime,
     readRuntimeErrors,
     restoredSessionIds,
     setGestureAction,

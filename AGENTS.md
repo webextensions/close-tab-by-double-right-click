@@ -48,7 +48,10 @@ is.
   `mouseup` of a press already counted on `mousedown` must stay ignored there, or a single right click closes the tab.
 - The options page sets what a double right click does, and with Shift, Ctrl, Alt or (on macOS only) Cmd held. The
   content script only reports the gesture and its keys; the background script reads the settings on each gesture and
-  decides. Two keys held together do nothing, and a key with nothing set does what the plain gesture does.
+  decides. Two keys held together do nothing, and a key with nothing set does what the plain gesture does. The content
+  script keeps only the maximum time between clicks, which it reads on start, on each change of it (`storage.onChanged`,
+  checked for its two keys, both read in one `get`) and on a page restored from the back/forward cache, so that open
+  pages follow it at once.
 - The look of the options page lives in [extension/options.css](extension/options.css), in light and dark. Its rule
   which keeps `[hidden]` elements hidden must stay, or a styled element which `options.js` hides shows up and joins the
   Tab order. The note which confirms a change (`utils.alertNote`) styles itself inline, so `options.css` overrides its

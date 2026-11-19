@@ -89,6 +89,20 @@ const isContentScriptReady = async function (serviceWorker, url) {
     return await isContentScriptReadyInTab(serviceWorker, { url });
 };
 
+// The maximum time between clicks which the content script applies in the latest tab which shows the given URL
+const readContentScriptMaxTime = async function (serviceWorker, url) {
+    return await serviceWorker.evaluate(async (url) => {
+        const tab = (await chrome.tabs.query({ url })).at(-1);
+        // Runs in the same isolated world as the content script
+        const [{ result }] = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => window.DRCmaxTimeBetweenClicks,
+            injectImmediately: true
+        });
+        return result;
+    }, url);
+};
+
 // Picks an option of a dropdown the way a user does, with key presses (the browser asks for a permission only on the
 // user's action, unlike when a script sets the value): opens the dropdown, moves to the option and takes it, so that
 // the dropdown changes only once
@@ -125,5 +139,6 @@ export {
     TEST_PAGE,
     chooseOption,
     isContentScriptReady,
-    isContentScriptReadyInTab
+    isContentScriptReadyInTab,
+    readContentScriptMaxTime
 };

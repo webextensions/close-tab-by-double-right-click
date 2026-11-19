@@ -4,6 +4,7 @@ import {
     expect,
     holdRightClick,
     openTestPage,
+    readContentScriptMaxTime,
     setGestureAction,
     test
 } from './fixtures.js';
@@ -15,7 +16,7 @@ const setCustomMaxTimeBetweenClicks = async function ({ context, serviceWorker, 
     await expect(optionsPage.getByRole('radio', { name: /Default/ })).toBeChecked();
 
     await optionsPage.getByRole('combobox', { name: 'Maximum time between clicks' }).selectOption(value);
-    await expect(optionsPage.getByText('Your change would apply next time onwards')).toBeVisible();
+    await expect(optionsPage.getByText('Saved')).toBeVisible();
     await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
         MAXIMUM_TIME_BETWEEN_CLICKS_TYPE: 'custom',
         MAXIMUM_TIME_BETWEEN_CLICKS_VALUE: value
@@ -75,7 +76,7 @@ test('"Done" shows the note when the options page stays open', async ({ context,
     });
 
     await optionsPage.getByRole('button', { name: 'Done' }).click();
-    await expect(optionsPage.getByText('Your change would apply next time onwards')).toBeVisible();
+    await expect(optionsPage.getByText('Your changes are saved')).toBeVisible();
 });
 
 test('the maximum time between clicks gets saved in one write before its note shows', async ({ context, serviceWorker, extensionId }) => {
@@ -482,6 +483,38 @@ for (const [value, apart] of [['750', 650], ['2000', 1500]]) {
         await closed;
     });
 }
+
+test('a page opened before the change follows a custom maximum time at once', async ({ context, serviceWorker }) => {
+    const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}custom-while-open`);
+    const url = page.url();
+
+    await storeCustomMaxTimeBetweenClicks(serviceWorker, '1000');
+    await expect.poll(() => readContentScriptMaxTime(serviceWorker, url)).toBe(1000);
+    const closed = page.waitForEvent('close');
+
+    // Not within the default 500 ms
+    await rightClicksApart(page, 800);
+
+    await closed;
+});
+
+test('a page opened before the change goes back to the default 500 ms at once', async ({ context, serviceWorker }) => {
+    await storeCustomMaxTimeBetweenClicks(serviceWorker, '1000');
+    const page = await openTestPage({ context, serviceWorker }, `${CANCEL_CONTEXT_MENU_PATH}default-while-open`);
+    const url = page.url();
+    await expect.poll(() => readContentScriptMaxTime(serviceWorker, url)).toBe(1000);
+
+    await serviceWorker.evaluate(async () => {
+        await chrome.storage.sync.set({ MAXIMUM_TIME_BETWEEN_CLICKS_TYPE: 'default' });
+    });
+    await expect.poll(() => readContentScriptMaxTime(serviceWorker, url)).toBe(500);
+
+    // Within 1000 ms, but not within 500 ms
+    await rightClicksApart(page, 800);
+    await page.waitForTimeout(1000);
+
+    expect(page.isClosed()).toBe(false);
+});
 
 test('the note which confirms a change leaves room above the first heading', async ({ context, extensionId }) => {
     const optionsPage = await context.newPage();

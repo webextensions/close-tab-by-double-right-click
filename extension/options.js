@@ -23,7 +23,7 @@ if (isPopup) {
     document.documentElement.classList.add('popup');
 }
 
-const notifyUser = function (message = 'Your change would apply next time onwards') {
+const notifyUser = function (message = 'Your changes are saved') {
     // Pinned a little below the top of the page, which leaves room for it above the first heading
     utils.alertNote(`✓ ${message}`, 2500, { paddingTop: '4px' });
     // The note reuses its element, which a failed save marks
@@ -62,7 +62,7 @@ const main = function () {
                 notifySaveFailed(e);
                 return;
             }
-            notifyUser();
+            notifyUser('Saved');
         });
     });
 
@@ -123,7 +123,7 @@ const main = function () {
             return;
         }
 
-        notifyUser();
+        notifyUser('Saved');
     });
 
     // What a double right click does, without a modifier key and with each one held on its first click. The background

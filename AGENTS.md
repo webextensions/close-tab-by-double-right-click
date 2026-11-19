@@ -157,7 +157,9 @@ is.
   unless the page cancels that menu.
 - A double right click cannot span two documents. A real page which reloads itself, or which puts a frame under the
   pointer between the two clicks, fails a test without any bug in the extension: `openRealSite` lets a page settle
-  first, and `stallSubresources` holds a loading page in place.
+  first, and `stallSubresources` holds a loading page in place. `doubleRightClickAsDelivered` repeats the gesture once
+  (noted in the HTML report) when the page loaded another document around the clicks (eg: a Cloudflare check which
+  got passed) or the second click went out too late on a busy page, never just because the tab stayed open.
 - `stallSubresources` fails the requests which scripts make (`xhr`, `fetch`) instead of leaving them unanswered: a
   synchronous one without an answer freezes the page for good, and then no script answers and no click arrives. The
   bot check which Akamai puts in front of amazon.com makes one. Amazon's DNS only picks Akamai for a minute at a time,

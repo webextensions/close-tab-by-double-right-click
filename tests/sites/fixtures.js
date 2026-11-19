@@ -15,6 +15,8 @@ const DEFAULT_POSITION = { x: 640, y: 360 };
 // How long a right click keeps the button down, and when the second click of a double right click starts
 const HOLD_MS = 120;
 const SECOND_CLICK_AFTER_MS = 270;
+// The default maximum time between the clicks of a double right click
+const MAXIMUM_TIME_BETWEEN_CLICKS_MS = 500;
 
 // Shown in the HTML report
 const annotate = function (type, description) {
@@ -211,7 +213,38 @@ const rightClickAsDelivered = async function (sitePage, position) {
 // On a page which cancels the context menu, both clicks arrive in full, whatever the sequence.
 // Pass { awaitPointerMove: false } on a page which may not have rendered anything yet: Chromium holds a "mousemove"
 // back for up to 5 seconds there, until the press which follows it pushes it through.
-const doubleRightClickAsDelivered = async function (sitePage, position, { sequence = 'chromium-x11', secondClickAfter = SECOND_CLICK_AFTER_MS, awaitPointerMove = true } = {}) {
+// Tells when the tab gets another document (not merely another URL within the same one) from now on: a navigation which
+// asks the server for a document and then shows it. Returns a function which stops watching and tells whether that
+// happened.
+const watchForNewDocument = function ({ page }) {
+    let requested = false,
+        replaced = false;
+    const onRequest = function (request) {
+        if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
+            requested = true;
+        }
+    };
+    const onNavigated = function (frame) {
+        if (requested && frame === page.mainFrame()) {
+            replaced = true;
+        }
+    };
+    page.on('request', onRequest);
+    page.on('framenavigated', onNavigated);
+    return function () {
+        page.off('request', onRequest);
+        page.off('framenavigated', onNavigated);
+        return replaced;
+    };
+};
+
+// A double right click which cannot work for a reason of its own: the page replaced its document around the clicks
+// (eg: a bot check which got passed), or kept the test so busy that the second click went out after the maximum time.
+// Resolves to that reason, or to undefined.
+const doubleRightClickOnce = async function (sitePage, position, { sequence, secondClickAfter, awaitPointerMove }) {
+    const stopWatching = watchForNewDocument(sitePage);
+    let sentLate = false,
+        replaced;
     try {
         await watchContextMenu(sitePage);
         // The pointer of a user is on the spot before the click. The content script relies on that for a frame which
@@ -225,6 +258,11 @@ const doubleRightClickAsDelivered = async function (sitePage, position, { sequen
         const startedAt = Date.now();
         const cancelled = await pressAndMaybeRelease(sitePage, position);
         await sleep(Math.max(0, startedAt + secondClickAfter - Date.now()));
+        // Leaves some time for the browser to deliver the click
+        sentLate = (
+            secondClickAfter < MAXIMUM_TIME_BETWEEN_CLICKS_MS &&
+            Date.now() - startedAt > MAXIMUM_TIME_BETWEEN_CLICKS_MS - 50
+        );
 
         if (cancelled || sequence === 'chromium-x11') {
             await pressAndMaybeRelease(sitePage, position);
@@ -233,12 +271,42 @@ const doubleRightClickAsDelivered = async function (sitePage, position, { sequen
         } else {
             await sendMouseEvent(sitePage, 'mouseReleased', position, 'right');
         }
+        // A document which replaces the page right after the clicks can take them along
+        await sleep(300);
     } catch (err) {
         // The extension can close the tab before the second click is over
         if (!sitePage.page.isClosed()) {
             throw err;
         }
+    } finally {
+        replaced = stopWatching();
     }
+    if (sitePage.page.isClosed()) {
+        return undefined;
+    }
+    if (replaced) {
+        return 'the page replaced its document around the clicks';
+    }
+    if (sentLate) {
+        return `the second click went out later than ${MAXIMUM_TIME_BETWEEN_CLICKS_MS} ms after the first one`;
+    }
+};
+
+// Repeats the double right click once when it could not work for a reason of its own (see doubleRightClickOnce), after
+// the clicks of the first one have stopped counting and the page has settled. Never because the tab stayed open.
+const doubleRightClickAsDelivered = async function (sitePage, position, { sequence = 'chromium-x11', secondClickAfter = SECOND_CLICK_AFTER_MS, awaitPointerMove = true } = {}) {
+    const options = { sequence, secondClickAfter, awaitPointerMove };
+    const reason = await doubleRightClickOnce(sitePage, position, options);
+    if (!reason) {
+        return;
+    }
+    await sleep(MAXIMUM_TIME_BETWEEN_CLICKS_MS + 500);
+    if (sitePage.page.isClosed()) {
+        return;
+    }
+    annotate('repeated', `${reason}, so the double right click got repeated`);
+    await sitePage.page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
+    await doubleRightClickOnce(sitePage, position, options);
 };
 
 export {

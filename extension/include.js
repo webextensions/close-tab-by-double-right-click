@@ -20,7 +20,7 @@
     const isFirefox = chrome.runtime.getURL('').startsWith('moz-extension://');
 
     // Web pages which do not get the content script (the browser blocks it on most of them), so they get the
-    // "Close Tab" context menu entry instead
+    // "Close tab" context menu entry instead
     function isScriptingBlocked(url) {
         if (
             url.indexOf('https://chromewebstore.google.com/') === 0 ||
@@ -218,7 +218,7 @@
 
         chrome.contextMenus.create({
             id: CONTEXT_MENU_ENTRY_ID,
-            title: 'Close Tab',
+            title: 'Close tab',
             contexts: ['all']
         });
     }

@@ -570,7 +570,7 @@ def check_rewritten_page(browser, mouse, keep):
 def choose_close_tab_entry(mouse):
     mouse.click(BTN_RIGHT)
     time.sleep(0.8)
-    # Selects the first menu item starting with "C", which is "Close Tab" on the pages checked here
+    # Selects the first menu item starting with "C", which is "Close tab" on the pages checked here
     mouse.type_text('c')
     time.sleep(0.3)
     mouse.key(KEYSYM_RETURN)
@@ -578,11 +578,11 @@ def choose_close_tab_entry(mouse):
 
 
 def check_context_menu_entry(browser, mouse, keep):
-    # A new tab starts on about:blank, where the extension adds a "Close Tab" context-menu entry
+    # A new tab starts on about:blank, where the extension adds a "Close tab" context-menu entry
     blank = browser.new_tab()
     time.sleep(2)
     choose_close_tab_entry(mouse)
-    check('"Close Tab" context-menu entry on about:blank closes the tab', blank not in browser.handles())
+    check('"Close tab" context-menu entry on about:blank closes the tab', blank not in browser.handles())
     close_tab_if_open(browser, mouse, blank, keep)
 
 
@@ -595,7 +595,7 @@ def check_error_page(browser, mouse, keep):
         pass  # WebDriver reports reaching an error page as a failed navigation
     time.sleep(2)
     choose_close_tab_entry(mouse)
-    check('"Close Tab" context-menu entry on a browser error page closes the tab', target not in browser.handles())
+    check('"Close tab" context-menu entry on a browser error page closes the tab', target not in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
 
 
@@ -610,8 +610,8 @@ def is_online():
 
 
 def check_restricted_domain(browser, mouse, keep):
-    # The content script cannot run on Firefox's restricted domains, so they get the "Close Tab" context-menu entry
-    name = '"Close Tab" context-menu entry on a restricted domain closes the tab'
+    # The content script cannot run on Firefox's restricted domains, so they get the "Close tab" context-menu entry
+    name = '"Close tab" context-menu entry on a restricted domain closes the tab'
     if not is_online():
         print(f'SKIP  {name}  (no internet access)', flush=True)
         return
@@ -650,12 +650,12 @@ def open_real_site(browser, url):
 def check_real_site(browser, mouse, keep, site):
     name = site['name']
     if site.get('kind') == 'menu-entry':
-        # The content script cannot run or gets no clicks there, so the site gets the "Close Tab" context-menu entry
+        # The content script cannot run or gets no clicks there, so the site gets the "Close tab" context-menu entry
         target = browser.new_tab(site['url'])
         time.sleep(3)
         mouse.move_to(*POINTER)
         choose_close_tab_entry(mouse)
-        check(f'{name}: "Close Tab" context-menu entry closes the tab', target not in browser.handles())
+        check(f'{name}: "Close tab" context-menu entry closes the tab', target not in browser.handles())
         close_tab_if_open(browser, mouse, target, keep)
         return
 

@@ -290,7 +290,7 @@ const runSiteChecks = async function (context, serviceWorker, displayMode) {
     // sites get none, since it could follow a link there.
     await openTestPage(context, serviceWorker, TEST_URL);
 
-    // The sites which get the "Close Tab" context menu entry are left out: nothing here can choose an entry of the
+    // The sites which get the "Close tab" context menu entry are left out: nothing here can choose an entry of the
     // native context menu
     for (const site of sitesFor('chrome').filter((site) => site.kind !== 'menu-entry')) {
         const report = function (outcome, name, detail) {

@@ -52,7 +52,7 @@ for (const site of [...sitesFor('chrome'), amazonThroughAkamai]) {
         }
 
         if (site.kind === 'menu-entry') {
-            test('"Close Tab" context menu entry is there and closes the tab', async ({ context, serviceWorker }) => {
+            test('"Close tab" context menu entry is there and closes the tab', async ({ context, serviceWorker }) => {
                 const sitePage = await openSite({ context, serviceWorker }, site.url, { contentScript: false });
                 await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(true);
 

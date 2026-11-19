@@ -68,7 +68,7 @@ is.
   click reports no keys while they are held, and the page gets no key events while the native menu is open. For the
   same reason, the Wayland workaround ignores the `keydown` and `keyup` of Shift, Ctrl, Alt and Meta: the page gets
   the `keyup` of a key released right after the second click before the gesture is confirmed.
-- Where no content script can run, the "Close Tab" context menu entry stands in: special URLs (`chrome://`, `file://`,
+- Where no content script can run, the "Close tab" context menu entry stands in: special URLs (`chrome://`, `file://`,
   web stores), a tab without a committed URL (it waits for the first response of its page), http(s) tabs which fail
   the scripting probe in [extension/include.js](extension/include.js) (the browser's error pages), and PDF files. The
   browser's PDF viewer gets the clicks there; in Chrome the probe passes on it, so the probe reports the document type.

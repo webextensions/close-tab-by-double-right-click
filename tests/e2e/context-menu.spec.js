@@ -21,7 +21,7 @@ const openSpecialPage = async function ({ context, serviceWorker, extensionId })
     return page;
 };
 
-test('"Close Tab" context menu entry closes the tab after the service worker restarts', async ({ context, serviceWorker, extensionId }) => {
+test('"Close tab" context menu entry closes the tab after the service worker restarts', async ({ context, serviceWorker, extensionId }) => {
     const page = await openSpecialPage({ context, serviceWorker, extensionId });
     const closed = page.waitForEvent('close');
 
@@ -37,7 +37,7 @@ test('"Close Tab" context menu entry closes the tab after the service worker res
     expect(page.isClosed()).toBe(true);
 });
 
-test('"Close Tab" context menu entry is removed on navigating to a regular page after the service worker restarts', async ({ context, serviceWorker, extensionId }) => {
+test('"Close tab" context menu entry is removed on navigating to a regular page after the service worker restarts', async ({ context, serviceWorker, extensionId }) => {
     const page = await openSpecialPage({ context, serviceWorker, extensionId });
 
     await stopServiceWorker({ context, serviceWorker }, page);
@@ -48,7 +48,7 @@ test('"Close Tab" context menu entry is removed on navigating to a regular page 
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
 });
 
-test('"Close Tab" context menu entry closes the tab which was clicked', async ({ context, serviceWorker, extensionId }) => {
+test('"Close tab" context menu entry closes the tab which was clicked', async ({ context, serviceWorker, extensionId }) => {
     const specialPage = await openSpecialPage({ context, serviceWorker, extensionId });
     const url = `${TEST_ORIGIN}/clicked-tab`;
     const clickedPage = await context.newPage();
@@ -62,7 +62,7 @@ test('"Close Tab" context menu entry closes the tab which was clicked', async ({
     expect(specialPage.isClosed()).toBe(false);
 });
 
-test('local file pages get the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+test('local file pages get the "Close tab" context menu entry', async ({ context, serviceWorker }) => {
     const page = await context.newPage();
     await page.goto(`${TEST_ORIGIN}/before-local-file`);
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
@@ -73,7 +73,7 @@ test('local file pages get the "Close Tab" context menu entry', async ({ context
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(true);
 });
 
-test('a tab which waits for the first response of its page gets the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+test('a tab which waits for the first response of its page gets the "Close tab" context menu entry', async ({ context, serviceWorker }) => {
     const page = await context.newPage();
     await page.goto(`${TEST_ORIGIN}/before-slow-server`);
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
@@ -94,7 +94,7 @@ test('a tab which waits for the first response of its page gets the "Close Tab" 
     }
 });
 
-test('a browser error page gets the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+test('a browser error page gets the "Close tab" context menu entry', async ({ context, serviceWorker }) => {
     const page = await context.newPage();
     await page.goto(`${TEST_ORIGIN}/before-error-page`);
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
@@ -109,7 +109,7 @@ test('a browser error page gets the "Close Tab" context menu entry', async ({ co
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
 });
 
-test('a PDF file gets the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+test('a PDF file gets the "Close tab" context menu entry', async ({ context, serviceWorker }) => {
     const page = await context.newPage();
     await page.goto(`${TEST_ORIGIN}/before-pdf`);
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
@@ -122,7 +122,7 @@ test('a PDF file gets the "Close Tab" context menu entry', async ({ context, ser
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);
 });
 
-test('a tab whose page has not started to arrive gets the "Close Tab" context menu entry', async ({ context, serviceWorker }) => {
+test('a tab whose page has not started to arrive gets the "Close tab" context menu entry', async ({ context, serviceWorker }) => {
     const page = await context.newPage();
     await page.goto(`${TEST_ORIGIN}/before-late-page`);
     await expect.poll(() => contextMenuEntryExists(serviceWorker)).toBe(false);

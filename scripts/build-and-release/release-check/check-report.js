@@ -1,7 +1,7 @@
-// Prints one "ok" or "FAIL" line per check of release-check.js and release-check-zips.js, and remembers whether any
-// check failed, so that a script can run all its checks first and set the exit code at the end.
+// Prints one line per check of release-check.js and release-check-zips.js (with a check mark or a cross), and remembers
+// whether any check failed, so that a script can run all its checks first and set the exit code at the end.
 
-import { styleText } from 'node:util';
+import { failureMark, successMark } from '../marks.js';
 
 export const createCheckReport = function () {
     let failedCount = 0;
@@ -11,7 +11,7 @@ export const createCheckReport = function () {
             if (!passed) {
                 failedCount++;
             }
-            console.log(`${passed ? styleText('green', '  ok  ') : styleText('red', 'FAIL  ')}${message}`);
+            console.log(`${passed ? successMark() : failureMark()} ${message}`);
             return passed;
         },
         get failedCount() {

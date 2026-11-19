@@ -7,8 +7,9 @@
 
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { parseArgs } from 'node:util';
+import { parseArgs, styleText } from 'node:util';
 
+import { failureMark, successMark } from '../marks.js';
 import { manifestTransforms } from './manifest-transforms.js';
 
 const projectRoot = path.join(import.meta.dirname, '..', '..', '..');
@@ -38,15 +39,29 @@ const build = async function (browser) {
     }
 };
 
-const { positionals } = parseArgs({ allowPositionals: true });
-const browsers = positionals.length ? positionals : Object.keys(manifestTransforms);
-for (const browser of browsers) {
-    if (!Object.hasOwn(manifestTransforms, browser)) {
-        throw new Error(`Unknown browser "${browser}"; expected: ${Object.keys(manifestTransforms).join(', ')}`);
+try {
+    const { positionals } = parseArgs({ allowPositionals: true });
+    const browsers = positionals.length ? positionals : Object.keys(manifestTransforms);
+    for (const browser of browsers) {
+        if (!Object.hasOwn(manifestTransforms, browser)) {
+            throw new Error(`Unknown browser "${browser}"; expected: ${Object.keys(manifestTransforms).join(', ')}`);
+        }
     }
+    const startTime = performance.now();
+    for (const browser of browsers) {
+        await build(browser);
+    }
+    const duration = Math.round(performance.now() - startTime);
+    const builtDirs = browsers.map((browser) => `dist/${browser}`).join(', ');
+    const time = styleText('dim', `at ${new Date().toLocaleTimeString('en-GB')}`);
+    console.log(`\n${successMark()} Built ${builtDirs} in ${duration} ms ${time}`);
+} catch (err) {
+    // The first line of the stack repeats the message
+    const stackBelowMessage = err.stack?.split('\n').slice(1).join('\n');
+    const message = styleText('red', `Build failed: ${err.message}`, { stream: process.stderr });
+    console.error(`\n${failureMark(process.stderr)} ${message}`);
+    if (stackBelowMessage) {
+        console.error(stackBelowMessage);
+    }
+    process.exitCode = 1;
 }
-for (const browser of browsers) {
-    await build(browser);
-}
-const builtDirs = browsers.map((browser) => `dist/${browser}`).join(', ');
-console.log(`Built ${builtDirs} at ${new Date().toLocaleTimeString('en-GB')}`);

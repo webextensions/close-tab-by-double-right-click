@@ -9,6 +9,8 @@ import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
+import { failureMark, successMark } from '../marks.js';
+
 const execFileAsync = promisify(execFile);
 
 const repoRoot = process.cwd();
@@ -21,7 +23,7 @@ const zipPath = path.join(artifactsDirName, `${name}-${version}-source.zip`);
 try {
     await execFileAsync('git', ['rev-parse', '--verify', '--quiet', `refs/tags/${tag}`], { cwd: repoRoot });
 } catch {
-    console.error(`The tag ${tag} does not exist: run "npm version" first (see RELEASING.md)`);
+    console.error(`\n${failureMark(process.stderr)} The tag ${tag} does not exist: run "npm version" first (see RELEASING.md)`);
     process.exit(1);
 }
 
@@ -29,4 +31,4 @@ await mkdir(path.join(repoRoot, artifactsDirName), { recursive: true });
 await execFileAsync('git', ['archive', '--format=zip', `--prefix=${name}-${version}/`, `--output=${zipPath}`, tag], {
     cwd: repoRoot
 });
-console.log(`Zipped the source code of ${tag} into ${zipPath}`);
+console.log(`\n${successMark()} Zipped the source code of ${tag} into ${zipPath}`);

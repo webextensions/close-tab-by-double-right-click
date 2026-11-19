@@ -100,7 +100,7 @@ test.describe('release-check-zips.js', () => {
         const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
 
         expect(exitCode, stdout).toBe(0);
-        expect(stdout).not.toContain('FAIL');
+        expect(stdout).not.toContain('\u2716');
     });
 
     test('fails without the zip of a browser', async () => {
@@ -131,7 +131,7 @@ test.describe('release-check-zips.js', () => {
         const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain(`FAIL  ${zipName('chrome')}: missing images/double-click-16x16.png; not in extension/: stale.js`);
+        expect(stdout).toContain(`\u2716 ${zipName('chrome')}: missing images/double-click-16x16.png; not in extension/: stale.js`);
     });
 
     test('fails for a zip whose file differs from extension/', async () => {
@@ -141,7 +141,7 @@ test.describe('release-check-zips.js', () => {
         const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain(`FAIL  ${zipName('firefox')}: differs from extension/ in options.js`);
+        expect(stdout).toContain(`\u2716 ${zipName('firefox')}: differs from extension/ in options.js`);
     });
 
     test('fails for a zip with the manifest of the other browser', async () => {
@@ -151,7 +151,7 @@ test.describe('release-check-zips.js', () => {
         const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain(`FAIL  ${zipName('chrome')}: its manifest is not the chrome one`);
+        expect(stdout).toContain(`\u2716 ${zipName('chrome')}: its manifest is not the chrome one`);
         expect(stdout).toContain('differs in background, browser_specific_settings');
     });
 
@@ -163,7 +163,7 @@ test.describe('release-check-zips.js', () => {
         const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain(`FAIL  ${zipName('chrome')}: its manifest has version 0.0.1, but package.json has ${version}`);
+        expect(stdout).toContain(`\u2716 ${zipName('chrome')}: its manifest has version 0.0.1, but package.json has ${version}`);
     });
 });
 
@@ -206,7 +206,7 @@ test.describe('release-check.js', () => {
         const { exitCode, stdout } = await runReleaseCheck();
 
         expect(exitCode, stdout).toBe(0);
-        expect(stdout).not.toContain('FAIL');
+        expect(stdout).not.toContain('\u2716');
         expect(stdout).toContain('1 commit(s) since v1.0.0');
         expect(stdout).toMatch(/Commits since v1\.0\.0 \(a draft for the release notes\):\n[0-9a-f]+ A change/);
     });
@@ -217,7 +217,7 @@ test.describe('release-check.js', () => {
         const { exitCode, stdout } = await runReleaseCheck();
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain('FAIL  on branch feature, not on main');
+        expect(stdout).toContain('\u2716 on branch feature, not on main');
     });
 
     test('fails with changes which are not committed', async () => {
@@ -226,7 +226,7 @@ test.describe('release-check.js', () => {
         const { exitCode, stdout } = await runReleaseCheck();
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain('FAIL  the working tree has changes which are not committed');
+        expect(stdout).toContain('\u2716 the working tree has changes which are not committed');
         expect(stdout).toContain('?? new-file.js');
     });
 
@@ -236,7 +236,7 @@ test.describe('release-check.js', () => {
         const { exitCode, stdout } = await runReleaseCheck();
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain('FAIL  HEAD differs from origin/main: 1 commit(s) not pushed');
+        expect(stdout).toContain('\u2716 HEAD differs from origin/main: 1 commit(s) not pushed');
     });
 
     test('fails behind origin/main', async () => {
@@ -247,7 +247,7 @@ test.describe('release-check.js', () => {
         const { exitCode, stdout } = await runReleaseCheck();
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain('FAIL  HEAD differs from origin/main: 1 commit(s) behind');
+        expect(stdout).toContain('\u2716 HEAD differs from origin/main: 1 commit(s) behind');
     });
 
     test('fails when package.json and the manifest have different versions', async () => {
@@ -258,7 +258,7 @@ test.describe('release-check.js', () => {
         const { exitCode, stdout } = await runReleaseCheck();
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain('FAIL  package.json has version 1.0.0, but extension/manifest.json has 1.0.1');
+        expect(stdout).toContain('\u2716 package.json has version 1.0.0, but extension/manifest.json has 1.0.1');
     });
 
     test('fails when the current version has no tag', async () => {
@@ -269,7 +269,7 @@ test.describe('release-check.js', () => {
         const { exitCode, stdout } = await runReleaseCheck();
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain('FAIL  tag v1.1.0 exists');
+        expect(stdout).toContain('\u2716 tag v1.1.0 exists');
     });
 
     test('fails with no commits since the last tag', async () => {
@@ -281,7 +281,7 @@ test.describe('release-check.js', () => {
         const { exitCode, stdout } = await runReleaseCheck();
 
         expect(exitCode).toBe(1);
-        expect(stdout).toContain('FAIL  no commits since v1.1.0: nothing to release');
+        expect(stdout).toContain('\u2716 no commits since v1.1.0: nothing to release');
     });
 });
 

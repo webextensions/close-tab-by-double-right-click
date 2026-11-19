@@ -11,6 +11,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
+import { failureMark, successMark } from '../marks.js';
 import { createCheckReport } from './check-report.js';
 
 const execFileAsync = promisify(execFile);
@@ -103,8 +104,8 @@ if (commitsSinceTag) {
 
 const { failedCount } = report;
 if (failedCount) {
-    console.log(`\n${failedCount} check(s) failed: fix them before running "npm version"`);
+    console.log(`\n${failureMark()} ${failedCount} check(s) failed: fix them before running "npm version"`);
 } else {
-    console.log('\nReady: run "npm version patch", "npm version minor" or "npm version major" (see RELEASING.md)');
+    console.log(`\n${successMark()} Ready: run "npm version patch", "npm version minor" or "npm version major" (see RELEASING.md)`);
 }
 process.exitCode = failedCount ? 1 : 0;

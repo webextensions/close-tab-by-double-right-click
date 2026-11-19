@@ -12,6 +12,7 @@ import { isDeepStrictEqual } from 'node:util';
 import JSZip from 'jszip';
 
 import { manifestTransforms } from '../build-dist/manifest-transforms.js';
+import { failureMark, successMark } from '../marks.js';
 import { createCheckReport } from './check-report.js';
 
 const projectRoot = process.cwd();
@@ -121,8 +122,8 @@ for (const browser of Object.keys(manifestTransforms)) {
 
 const { failedCount } = report;
 if (failedCount) {
-    console.log(`\n${failedCount} check(s) failed: do not upload these zips`);
+    console.log(`\n${failureMark()} ${failedCount} check(s) failed: do not upload these zips`);
 } else {
-    console.log(`\nReady: upload the zips in ${artifactsDirName}/ to the stores (see RELEASING.md)`);
+    console.log(`\n${successMark()} Ready: upload the zips in ${artifactsDirName}/ to the stores (see RELEASING.md)`);
 }
 process.exitCode = failedCount ? 1 : 0;

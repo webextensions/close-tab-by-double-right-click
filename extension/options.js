@@ -40,13 +40,13 @@ const main = function () {
 
     const radios = document.querySelectorAll(`input[name="${maximumTimeTypeRadioName}"]`);
     radios.forEach((radio) => {
-        radio.addEventListener('change', function () {
+        radio.addEventListener('change', async function () {
             const value = radio.value;
             let valueToSet = 'default';
             if (value === 'custom') {
                 valueToSet = 'custom';
             }
-            chromeStorageForExtensionData.set({[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE]: valueToSet});
+            await chromeStorageForExtensionData.set({[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE]: valueToSet});
             notifyUser();
         });
     });
@@ -77,7 +77,7 @@ const main = function () {
         }
         elMaxTimeBetweenClicksDropdown.value = value;
     });
-    elMaxTimeBetweenClicksDropdown.addEventListener('change', function () {
+    elMaxTimeBetweenClicksDropdown.addEventListener('change', async function () {
         const
             value = elMaxTimeBetweenClicksDropdown.value,
             intValue = parseInt(value, 10);
@@ -91,11 +91,12 @@ const main = function () {
             valueToSet = TIME_BETWEEN_CLICKS_DEFAULT;
         }
 
-        chromeStorageForExtensionData.set({[MAXIMUM_TIME_BETWEEN_CLICKS_VALUE]: `${valueToSet}`});
-
         // Also mark that "Custom" maximum-time-between-clicks would be used
         RadioButtonSelectedValueSet(maximumTimeTypeRadioName, 'custom');
-        chromeStorageForExtensionData.set({[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE]: 'custom'});
+        await chromeStorageForExtensionData.set({
+            [MAXIMUM_TIME_BETWEEN_CLICKS_VALUE]: `${valueToSet}`,
+            [MAXIMUM_TIME_BETWEEN_CLICKS_TYPE]: 'custom'
+        });
 
         notifyUser();
     });

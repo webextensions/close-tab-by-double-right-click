@@ -78,6 +78,50 @@ test('"Done" shows the note when the options page stays open', async ({ context,
     await expect(optionsPage.getByText('Your change would apply next time onwards')).toBeVisible();
 });
 
+test('the maximum time between clicks gets saved in one write before its note shows', async ({ context, serviceWorker, extensionId }) => {
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+    const note = optionsPage.locator('.alert-note-text');
+
+    // Records the keys of each write, and holds each one until it gets released
+    await optionsPage.evaluate(() => {
+        globalThis.heldWrites = [];
+        const set = chrome.storage.sync.set;
+        chrome.storage.sync.set = async function (...args) {
+            const { promise, resolve } = Promise.withResolvers();
+            globalThis.heldWrites.push({ keys: Object.keys(args[0]).sort(), release: resolve });
+            await promise;
+            return set.apply(this, args);
+        };
+    });
+    const writtenKeys = () => optionsPage.evaluate(() => globalThis.heldWrites.map((write) => write.keys));
+
+    await optionsPage.getByRole('combobox', { name: 'Maximum time between clicks' }).selectOption('1000');
+    await expect.poll(writtenKeys).toEqual([
+        ['MAXIMUM_TIME_BETWEEN_CLICKS_TYPE', 'MAXIMUM_TIME_BETWEEN_CLICKS_VALUE']
+    ]);
+    await optionsPage.waitForTimeout(300);
+    expect(await note.isVisible()).toBe(false);
+    await optionsPage.evaluate(() => globalThis.heldWrites[0].release());
+    await expect(note).toBeVisible();
+
+    await optionsPage.evaluate(() => window.utils.alertNote.hide());
+    await optionsPage.getByRole('radio', { name: /Default/ }).check();
+    await expect.poll(writtenKeys).toEqual([
+        ['MAXIMUM_TIME_BETWEEN_CLICKS_TYPE', 'MAXIMUM_TIME_BETWEEN_CLICKS_VALUE'],
+        ['MAXIMUM_TIME_BETWEEN_CLICKS_TYPE']
+    ]);
+    await optionsPage.waitForTimeout(300);
+    expect(await note.isVisible()).toBe(false);
+    await optionsPage.evaluate(() => globalThis.heldWrites[1].release());
+    await expect(note).toBeVisible();
+
+    await expect.poll(() => serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
+        MAXIMUM_TIME_BETWEEN_CLICKS_TYPE: 'default',
+        MAXIMUM_TIME_BETWEEN_CLICKS_VALUE: '1000'
+    });
+});
+
 const GESTURE_ROWS = [
     ['Double right click', 'closeTab'],
     ['Shift + Double right click', 'sameAsDoubleRightClick'],

@@ -280,6 +280,27 @@ const contextMenusCreateCalls = async function (serviceWorker) {
     return await serviceWorker.evaluate(() => globalThis.contextMenusCreateCalls);
 };
 
+// Opens chrome://extensions, which collects the errors of the extension from then on (read them with
+// readRuntimeErrors)
+const collectRuntimeErrors = async function ({ context, extensionId }) {
+    const extensionsPage = await context.newPage();
+    await extensionsPage.goto('chrome://extensions/');
+    // chrome.developerPrivate is the API the chrome://extensions page itself uses. It only collects the errors of an
+    // extension in developer mode.
+    await extensionsPage.evaluate(async (extensionId) => {
+        await chrome.developerPrivate.updateProfileConfiguration({ inDeveloperMode: true });
+        await chrome.developerPrivate.updateExtensionConfiguration({ extensionId, errorCollection: true });
+    }, extensionId);
+    return extensionsPage;
+};
+
+const readRuntimeErrors = async function (extensionsPage, extensionId) {
+    return await extensionsPage.evaluate(async (extensionId) => {
+        const info = await chrome.developerPrivate.getExtensionInfo(extensionId);
+        return info.runtimeErrors.map((error) => error.message);
+    }, extensionId);
+};
+
 export {
     ASK_BEFORE_LEAVING_PATH,
     CANCEL_CONTEXT_MENU_PATH,
@@ -291,6 +312,7 @@ export {
     SVG_PATH,
     TEST_ORIGIN,
     clickContextMenuEntry,
+    collectRuntimeErrors,
     contextMenuEntryActions,
     contextMenuEntryExists,
     contextMenusCreateCalls,
@@ -301,6 +323,7 @@ export {
     openTestPage,
     pathToChromeBuild,
     pathToSource,
+    readRuntimeErrors,
     restoredSessionIds,
     setGestureAction,
     spyOnContextMenusCreate,

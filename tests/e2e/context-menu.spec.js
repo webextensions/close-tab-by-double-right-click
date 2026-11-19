@@ -3,12 +3,14 @@ import {
     TEST_ORIGIN,
     chooseOption,
     clickContextMenuEntry,
+    collectRuntimeErrors,
     contextMenuEntryActions,
     contextMenuEntryExists,
     contextMenusCreateCalls,
     expect,
     hasServiceWorkerRestarted,
     pathToSource,
+    readRuntimeErrors,
     setGestureAction,
     spyOnContextMenusCreate,
     startLatePageServer,
@@ -254,4 +256,21 @@ test('a context menu entry which waits for the settings does not show up after t
     } finally {
         server.close();
     }
+});
+
+test('closing a tab which is already gone is not reported as an error of the extension', async ({ context, serviceWorker, extensionId }) => {
+    const extensionsPage = await collectRuntimeErrors({ context, extensionId });
+    const messages = [];
+    serviceWorker.on('console', (message) => {
+        messages.push({ type: message.type(), text: message.text() });
+    });
+
+    // The tab can get closed between the click on the entry and the background script closing it
+    await serviceWorker.evaluate(() => chrome.contextMenus.onClicked.dispatch({ menuItemId: 'closeTab' }, { id: 987654321 }));
+
+    await expect.poll(() => {
+        return messages.some((message) => message.type === 'debug' && message.text.includes('Could not do what the context menu entry does'));
+    }).toBe(true);
+    await extensionsPage.waitForTimeout(1000);
+    expect(await readRuntimeErrors(extensionsPage, extensionId)).toEqual([]);
 });

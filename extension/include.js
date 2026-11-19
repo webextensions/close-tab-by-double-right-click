@@ -75,21 +75,23 @@
         }
     }
 
-    function closeTabByTabId(tabId) {
+    async function closeTabByTabId(tabId) {
         if (removedTabs[tabId]) {
             return;
         } else {
-            chrome.tabs.remove(tabId);
+            const removal = chrome.tabs.remove(tabId);
             removedTabs[tabId] = true;
 
             setTimeout(function () {
                 delete removedTabs[tabId];
             }, 2500);
+
+            await removal;
         }
     }
 
-    function closeTab(tab) {
-        closeTabByTabId(tab.id);
+    async function closeTab(tab) {
+        await closeTabByTabId(tab.id);
     }
 
     // Reopening a closed tab needs the "sessions" permission, which is optional: the user grants it on the options
@@ -129,8 +131,8 @@
     // The actions which the user can choose from, by the names which the settings keep
     const ACTIONS = {
         nothing: function () {},
-        closeTab: function (tab) {
-            closeTab(tab);
+        closeTab: async function (tab) {
+            await closeTab(tab);
         },
         reopenClosedTab: async function () {
             // Once the user revoked the permission, it does nothing (the options page shows that it is missing)

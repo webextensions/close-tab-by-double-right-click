@@ -17,6 +17,9 @@
     --note-background: #e7f6ec;
     --note-border: #a6dcb8;
     --note-text: #17572f;
+    --note-failed-background: #fdecec;
+    --note-failed-border: #efb1ad;
+    --note-failed-text: #8f1f1f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,6 +40,9 @@
         --note-background: #183826;
         --note-border: #2f6b47;
         --note-text: #c3efd3;
+        --note-failed-background: #3d1d1d;
+        --note-failed-border: #7d3a37;
+        --note-failed-text: #ffd2ce;
     }
 }
 
@@ -274,6 +280,15 @@ label {
 #topCenterAlertNote .alert-note-text {
     color: var(--note-text) !important;
     font: 600 1.25rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif !important;
+}
+/* The same note for a change which could not be saved (options.js marks it), its rules more specific than the ones
+   above */
+#topCenterAlertNote.alert-note-failed div:has(> .alert-note-text) {
+    border-color: var(--note-failed-border) !important;
+    background-color: var(--note-failed-background) !important;
+}
+#topCenterAlertNote.alert-note-failed .alert-note-text {
+    color: var(--note-failed-text) !important;
 }
 
 /* The popup of the toolbar icon (options.html?popup), which sizes itself to the page: as wide as its content, and laid

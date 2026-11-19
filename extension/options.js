@@ -26,6 +26,15 @@ if (isPopup) {
 const notifyUser = function (message = 'Your change would apply next time onwards') {
     // Pinned a little below the top of the page, which leaves room for it above the first heading
     utils.alertNote(`✓ ${message}`, 2500, { paddingTop: '4px' });
+    // The note reuses its element, which a failed save marks
+    document.getElementById('topCenterAlertNote').classList.remove('alert-note-failed');
+};
+
+// A change which could not be saved (eg: over the write quota of chrome.storage.sync), in the same note restyled
+const notifySaveFailed = function (e) {
+    console.log('Could not save the change', e);
+    utils.alertNote('✗ Could not save. Try again.', 5000, { paddingTop: '4px' });
+    document.getElementById('topCenterAlertNote').classList.add('alert-note-failed');
 };
 
 const main = function () {
@@ -46,17 +55,15 @@ const main = function () {
             if (value === 'custom') {
                 valueToSet = 'custom';
             }
-            await chromeStorageForExtensionData.set({[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE]: valueToSet});
+            try {
+                await chromeStorageForExtensionData.set({[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE]: valueToSet});
+            } catch (e) {
+                showSavedMaxTimeBetweenClicks();
+                notifySaveFailed(e);
+                return;
+            }
             notifyUser();
         });
-    });
-
-    chromeStorageForExtensionData.get(MAXIMUM_TIME_BETWEEN_CLICKS_TYPE, function (values) {
-        if (values && values[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE] === 'custom') {
-            RadioButtonSelectedValueSet(maximumTimeTypeRadioName, 'custom');
-        } else {
-            RadioButtonSelectedValueSet(maximumTimeTypeRadioName, 'default');
-        }
     });
 
     const elMaxTimeBetweenClicksDropdown = document.querySelector('.maximum-time-between-clicks-value');
@@ -65,18 +72,30 @@ const main = function () {
     const isOfferedTimeBetweenClicks = function (value) {
         return [...elMaxTimeBetweenClicksDropdown.options].some((option) => option.value === `${value}`);
     };
-    chromeStorageForExtensionData.get(MAXIMUM_TIME_BETWEEN_CLICKS_VALUE, function (values) {
-        let value = parseInt(values && values[MAXIMUM_TIME_BETWEEN_CLICKS_VALUE], 10);
-        if (
-            Number.isInteger(value) &&
-            isOfferedTimeBetweenClicks(value)
-        ) {
-            // do nothing
-        } else {
-            value = TIME_BETWEEN_CLICKS_DEFAULT;
-        }
-        elMaxTimeBetweenClicksDropdown.value = value;
-    });
+    // Shows the saved setting, on loading the page and after a change which could not be saved
+    const showSavedMaxTimeBetweenClicks = function () {
+        chromeStorageForExtensionData.get(MAXIMUM_TIME_BETWEEN_CLICKS_TYPE, function (values) {
+            if (values && values[MAXIMUM_TIME_BETWEEN_CLICKS_TYPE] === 'custom') {
+                RadioButtonSelectedValueSet(maximumTimeTypeRadioName, 'custom');
+            } else {
+                RadioButtonSelectedValueSet(maximumTimeTypeRadioName, 'default');
+            }
+        });
+
+        chromeStorageForExtensionData.get(MAXIMUM_TIME_BETWEEN_CLICKS_VALUE, function (values) {
+            let value = parseInt(values && values[MAXIMUM_TIME_BETWEEN_CLICKS_VALUE], 10);
+            if (
+                Number.isInteger(value) &&
+                isOfferedTimeBetweenClicks(value)
+            ) {
+                // do nothing
+            } else {
+                value = TIME_BETWEEN_CLICKS_DEFAULT;
+            }
+            elMaxTimeBetweenClicksDropdown.value = value;
+        });
+    };
+    showSavedMaxTimeBetweenClicks();
     elMaxTimeBetweenClicksDropdown.addEventListener('change', async function () {
         const
             value = elMaxTimeBetweenClicksDropdown.value,
@@ -93,10 +112,16 @@ const main = function () {
 
         // Also mark that "Custom" maximum-time-between-clicks would be used
         RadioButtonSelectedValueSet(maximumTimeTypeRadioName, 'custom');
-        await chromeStorageForExtensionData.set({
-            [MAXIMUM_TIME_BETWEEN_CLICKS_VALUE]: `${valueToSet}`,
-            [MAXIMUM_TIME_BETWEEN_CLICKS_TYPE]: 'custom'
-        });
+        try {
+            await chromeStorageForExtensionData.set({
+                [MAXIMUM_TIME_BETWEEN_CLICKS_VALUE]: `${valueToSet}`,
+                [MAXIMUM_TIME_BETWEEN_CLICKS_TYPE]: 'custom'
+            });
+        } catch (e) {
+            showSavedMaxTimeBetweenClicks();
+            notifySaveFailed(e);
+            return;
+        }
 
         notifyUser();
     });
@@ -210,7 +235,13 @@ const main = function () {
     };
     elResetGestures.addEventListener('click', async function () {
         const elVisibleGestureActions = elGestureActions.filter(isVisibleRow);
-        await chromeStorageForExtensionData.remove(elVisibleGestureActions.map((elGestureAction) => elGestureAction.dataset.setting));
+        try {
+            await chromeStorageForExtensionData.remove(elVisibleGestureActions.map((elGestureAction) => elGestureAction.dataset.setting));
+        } catch (e) {
+            // Nothing on the page has changed yet
+            notifySaveFailed(e);
+            return;
+        }
         elVisibleGestureActions.forEach((elGestureAction) => {
             elGestureAction.value = defaultAction(elGestureAction);
             savedActions.set(elGestureAction, elGestureAction.value);
@@ -222,7 +253,15 @@ const main = function () {
 
     const saveAction = async function (elGestureAction) {
         const action = elGestureAction.value;
-        await chromeStorageForExtensionData.set({ [elGestureAction.dataset.setting]: action });
+        try {
+            await chromeStorageForExtensionData.set({ [elGestureAction.dataset.setting]: action });
+        } catch (e) {
+            elGestureAction.value = savedActions.get(elGestureAction);
+            notifySaveFailed(e);
+            // A permission granted for this choice is not needed without it
+            await removeSessionsPermissionIfUnused();
+            return;
+        }
         savedActions.set(elGestureAction, action);
         showResetGestures();
         notifyUser('Saved');

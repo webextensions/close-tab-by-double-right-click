@@ -122,6 +122,72 @@ test('the maximum time between clicks gets saved in one write before its note sh
     });
 });
 
+test('a change which cannot be saved shows the failure note and keeps showing what is saved', async ({ context, serviceWorker, extensionId }) => {
+    await setGestureAction(serviceWorker, 'ALT_DOUBLE_RIGHT_CLICK_ACTION', 'duplicateTab');
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+    const timeDropdown = optionsPage.getByRole('combobox', { name: 'Maximum time between clicks' });
+    const defaultRadio = optionsPage.getByRole('radio', { name: /Default/ });
+    const customRadio = optionsPage.getByRole('radio', { name: /Custom/ });
+    const altAction = optionsPage.getByRole('combobox', { name: 'Alt + Double right click' });
+    const ctrlAction = optionsPage.getByRole('combobox', { name: 'Ctrl + Double right click' });
+    const reset = optionsPage.getByRole('button', { name: 'Reset', exact: true });
+    const failureNote = optionsPage.getByText('Could not save. Try again.');
+    const noteContainer = optionsPage.locator('#topCenterAlertNote');
+    await expect(defaultRadio).toBeChecked();
+    await expect(altAction).toHaveValue('duplicateTab');
+    await expect(reset).toBeVisible();
+
+    // Every write fails, as it does over the write quota of chrome.storage.sync
+    await optionsPage.evaluate(() => {
+        const { set, remove } = chrome.storage.sync;
+        const fail = async function () {
+            throw new Error('MAX_WRITE_OPERATIONS_PER_MINUTE quota exceeded');
+        };
+        chrome.storage.sync.set = fail;
+        chrome.storage.sync.remove = fail;
+        window.restoreWrites = function () {
+            chrome.storage.sync.set = set;
+            chrome.storage.sync.remove = remove;
+        };
+    });
+    // Each step hides the note of the step before, so that it shows its own
+    const hideNote = () => optionsPage.evaluate(() => window.utils.alertNote.hide());
+
+    await timeDropdown.selectOption('1000');
+    await expect(failureNote).toBeVisible();
+    await expect(noteContainer).toHaveClass(/alert-note-failed/);
+    await expect(timeDropdown).toHaveValue('500');
+    await expect(defaultRadio).toBeChecked();
+
+    await hideNote();
+    // click() rather than check(), which would fail on the radio getting unchecked again
+    await customRadio.click();
+    await expect(failureNote).toBeVisible();
+    await expect(defaultRadio).toBeChecked();
+
+    await hideNote();
+    await chooseOption(ctrlAction, 'Duplicate tab');
+    await expect(failureNote).toBeVisible();
+    await expect(ctrlAction).toHaveValue('sameAsDoubleRightClick');
+
+    await hideNote();
+    await reset.click();
+    await expect(failureNote).toBeVisible();
+    await expect(altAction).toHaveValue('duplicateTab');
+    await expect(reset).toBeVisible();
+
+    expect(await serviceWorker.evaluate(() => chrome.storage.sync.get(null))).toEqual({
+        ALT_DOUBLE_RIGHT_CLICK_ACTION: 'duplicateTab'
+    });
+
+    // Once the writes work again, a change shows the note which confirms it, in its usual look
+    await optionsPage.evaluate(() => window.restoreWrites());
+    await chooseOption(ctrlAction, 'Duplicate tab');
+    await expect(optionsPage.getByText('Saved')).toBeVisible();
+    await expect(noteContainer).not.toHaveClass(/alert-note-failed/);
+});
+
 const GESTURE_ROWS = [
     ['Double right click', 'closeTab'],
     ['Shift + Double right click', 'sameAsDoubleRightClick'],

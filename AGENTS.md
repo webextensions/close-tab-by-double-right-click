@@ -52,7 +52,8 @@ is.
 - The look of the options page lives in [extension/options.css](extension/options.css), in light and dark. Its rule
   which keeps `[hidden]` elements hidden must stay, or a styled element which `options.js` hides shows up and joins the
   Tab order. The note which confirms a change (`utils.alertNote`) styles itself inline, so `options.css` overrides its
-  colors with `!important`.
+  colors with `!important`. A change which could not be saved shows the same note with the class `alert-note-failed`
+  (its own colors, in rules more specific than those), which the note of a saved change removes.
 - The toolbar icon's popup is the options page itself, opened as `options.html?popup`: `options.js` gives it the
   `popup` class, which `options.css` sizes to its content, and shows "Open in a tab" there only.
 - Reopening the last closed tab needs the optional `sessions` permission. Keep it optional: as a required permission

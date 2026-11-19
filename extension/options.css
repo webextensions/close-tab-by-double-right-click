@@ -50,8 +50,9 @@ html {
 }
 body {
     margin: 0;
-    /* At the top, room for the note which confirms a change (see notifyUser in options.js) */
-    padding: 40px 20px 20px;
+    /* At the top, room for the note which confirms a change (see notifyUser in options.js). As much at the bottom, which
+       leaves more room below "Done" than above it, where the page ends. */
+    padding: 32px 20px;
     background: var(--page-background);
     color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
@@ -268,52 +269,32 @@ label {
     font: 600 1.25rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif !important;
 }
 
-/* The popup of the toolbar icon (options.html?popup), which sizes itself to the page: narrow, with each label above its
-   dropdown, and compact, so that it stays within the 600 px height of a popup even with the Cmd row on macOS */
+/* The popup of the toolbar icon (options.html?popup), which sizes itself to the page: as wide as its content, and laid
+   out and spaced as the options page (so a larger font makes it wider, not different) */
 .popup body {
     box-sizing: border-box;
-    width: 340px;
-    padding: 36px 10px 10px;
+    width: max-content;
 }
 .popup .page > div {
     flex: 1;
     min-width: 0;
 }
-.popup .option {
-    padding: 12px 14px 14px;
-}
-.popup .option + .option {
-    margin-top: 10px;
-}
-.popup .option-body {
-    margin-top: 10px;
-}
-.popup select {
-    min-height: 28px;
-}
-.popup .option-value + .option-value {
-    margin-top: 8px;
-}
+/* Each label stays level with its dropdown when a notice shows below that */
 .popup .gestures {
-    grid-template-columns: 1fr;
-    gap: 2px;
-}
-.popup .gesture:not(:first-child) label {
-    margin-top: 6px;
+    align-items: baseline;
 }
 .popup .gesture > span {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
 }
-.popup .gesture-action {
-    flex: 1 0 100%;
-    min-width: 0;
-}
-/* Below its dropdown, which keeps the full width */
+/* Below its dropdown, and the sentence about the missing access within the width of the card, so that neither widens
+   the popup when it shows */
 .popup .gesture-permission-missing {
     margin: 4px 0 0;
 }
+.popup .sessions-permission-missing {
+    contain: inline-size;
+}
 .popup .page-actions {
     gap: 10px;
-    margin-top: 12px;
 }

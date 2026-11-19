@@ -25,7 +25,7 @@ if (isPopup) {
 
 const notifyUser = function (message = 'Your change would apply next time onwards') {
     // Pinned a little below the top of the page, which leaves room for it above the first heading
-    utils.alertNote(`✓ ${message}`, 2500, { paddingTop: '8px' });
+    utils.alertNote(`✓ ${message}`, 2500, { paddingTop: '4px' });
 };
 
 const main = function () {

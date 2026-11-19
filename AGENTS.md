@@ -54,7 +54,7 @@ is.
   Tab order. The note which confirms a change (`utils.alertNote`) styles itself inline, so `options.css` overrides its
   colors with `!important`.
 - The toolbar icon's popup is the options page itself, opened as `options.html?popup`: `options.js` gives it the
-  `popup` class, which `options.css` lays out narrow, and shows "Open in a tab" there only.
+  `popup` class, which `options.css` sizes to its content, and shows "Open in a tab" there only.
 - Reopening the last closed tab needs the optional `sessions` permission. Keep it optional: as a required permission
   next to `tabs`, it changes Chrome's warning to "Read your browsing history on all your signed-in devices". The
   options page asks for it when a dropdown gets set to reopen, and removes it once none is. Nothing may be awaited

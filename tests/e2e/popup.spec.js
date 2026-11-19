@@ -44,7 +44,11 @@ test('the toolbar icon opens the options page as its popup, with its own layout'
     const popup = await openPopup({ context, serviceWorker });
     await expect(popup.locator('html')).toHaveClass('popup');
     await expect(popup.getByRole('button', { name: 'Open in a tab' })).toBeVisible();
-    expect(await popup.evaluate(() => document.body.getBoundingClientRect().width)).toBe(340);
+    // Each label beside its dropdown, as on the options page
+    const label = await popup.getByText('Shift + Double right click', { exact: true }).boundingBox();
+    const dropdown = await popup.getByRole('combobox', { name: 'Shift + Double right click' }).boundingBox();
+    expect(dropdown.x).toBeGreaterThan(label.x + label.width);
+    expect(Math.abs((label.y + label.height / 2) - (dropdown.y + dropdown.height / 2))).toBeLessThan(4);
 
     // Not on the options page
     const optionsPage = await context.newPage();
@@ -64,6 +68,8 @@ test('on macOS, the popup fits the height of a popup, and its width with the not
     await expect(popup.getByRole('combobox', { name: 'Cmd + Double right click' })).toBeVisible();
     // Browsers show a popup at most 600 px high
     expect(await popup.evaluate(() => Math.ceil(document.body.getBoundingClientRect().height))).toBeLessThanOrEqual(600);
+    // The popup is as wide as its content, which the notices must not widen
+    const width = await popup.evaluate(() => document.body.getBoundingClientRect().width);
 
     await setGestureAction(serviceWorker, 'SHIFT_DOUBLE_RIGHT_CLICK_ACTION', 'reopenClosedTab');
     await popup.reload();
@@ -74,15 +80,16 @@ test('on macOS, the popup fits the height of a popup, and its width with the not
     const widest = await popup.evaluate(() => {
         return Math.max(...[...document.body.querySelectorAll('*')].map((el) => el.getBoundingClientRect().right));
     });
-    expect(widest).toBeLessThanOrEqual(340);
+    expect(await popup.evaluate(() => document.body.getBoundingClientRect().width)).toBe(width);
+    expect(widest).toBeLessThanOrEqual(width);
 
     // The dialog which "Grant access" opens fits as well. A modal dialog centers in the window, which is as wide as the
     // page in a real popup.
-    await popup.setViewportSize({ width: 340, height: 600 });
+    await popup.setViewportSize({ width: Math.ceil(width), height: 600 });
     await popup.getByRole('button', { name: 'Grant access' }).click();
     const dialogBox = await popup.getByRole('dialog').boundingBox();
     expect(dialogBox.x).toBeGreaterThanOrEqual(0);
-    expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(340);
+    expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(width);
 });
 
 test('a change in the popup gets saved', async ({ context, serviceWorker }) => {

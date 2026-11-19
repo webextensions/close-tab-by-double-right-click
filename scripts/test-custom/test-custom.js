@@ -53,7 +53,7 @@ const e2eSpecTimes = {
     'reopen-tab.spec.js': '20-35 s',
     'setup.spec.js': '1-3 s',
     'untrusted-events.spec.js': '3-6 s',
-    'window-focus.spec.js': '1-3 s'
+    'window-focus.spec.js': '2-5 s'
 };
 
 const e2eSpecFiles = (await readdir(path.join(projectRoot, 'tests', 'e2e')))

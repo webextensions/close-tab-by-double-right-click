@@ -274,7 +274,12 @@
             var url = tab && tab.url;
             if (tab && tab.active) {
                 chrome.windows.getLastFocused(function (win) {
-                    if (tab.windowId === win.id) {
+                    if (chrome.runtime.lastError) {
+                        // do nothing
+                    }
+
+                    // The window can already be gone, in which case "win" is undefined
+                    if (win && tab.windowId === win.id) {
                         const contextMenuCheck = ++latestContextMenuCheck;
                         if (!url) {
                             // Nothing got loaded into the tab so far (eg: a link opened in a new tab, while the

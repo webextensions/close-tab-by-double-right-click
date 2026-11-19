@@ -26,7 +26,7 @@ Extension **Double Right Click - close tab & more** for Google Chrome and Mozill
 
 * To enable this extension in "incognito" window mode, you will need to provide permissions for this by going to "chrome://extensions".
 
-* This extension implements an alternative approach for closing "chrome://", "about:blank", "file:///" and other special tabs. This is due to technical limitations of Chrome API. In these tabs, you would find a "Close tab" context-menu entry which is shown when you right click anywhere on the page. The same entry is shown on a tab which still waits for the first response of a slow site (in Chrome also while the site has answered, but its page has not started to arrive), on the error pages of the browser (eg: "This site can't be reached"), and on PDF files, where the PDF viewer of the browser receives the clicks.
+* This extension implements an alternative approach for closing "chrome://", "about:blank", "file:///" and other special tabs. This is due to technical limitations of Chrome API. In these tabs, you would find a context-menu entry which does what a double right click is set to do ("Close tab" by default; none when set to do nothing), shown when you right click anywhere on the page. The same entry is shown on a tab which still waits for the first response of a slow site (in Chrome also while the site has answered, but its page has not started to arrive), on the error pages of the browser (eg: "This site can't be reached"), and on PDF files, where the PDF viewer of the browser receives the clicks.
 
 * In Chrome on Linux, a right click followed by a quick left click on the same spot can also close the tab. On Wayland, the browser does not tell the extension which mouse button closed the context menu.
 

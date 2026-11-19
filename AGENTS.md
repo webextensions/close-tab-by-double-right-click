@@ -68,13 +68,19 @@ is.
   click reports no keys while they are held, and the page gets no key events while the native menu is open. For the
   same reason, the Wayland workaround ignores the `keydown` and `keyup` of Shift, Ctrl, Alt and Meta: the page gets
   the `keyup` of a key released right after the second click before the gesture is confirmed.
-- Where no content script can run, the "Close tab" context menu entry stands in: special URLs (`chrome://`, `file://`,
+- Where no content script can run, a context menu entry stands in: special URLs (`chrome://`, `file://`,
   web stores), a tab without a committed URL (it waits for the first response of its page), http(s) tabs which fail
   the scripting probe in [extension/include.js](extension/include.js) (the browser's error pages), and PDF files. The
   browser's PDF viewer gets the clicks there; in Chrome the probe passes on it, so the probe reports the document type.
   Chrome shows the empty document of a page as soon as its headers came, and neither the content script nor the probe
   runs before the `<html>` tag arrives, so a probe without an answer adds the entry as well. (Firefox keeps the
   previous page until then.)
+- That entry does what a plain double right click is set to do (the keys held do not count: Chrome does not report
+  them for a menu click). Its id is the action, which a click performs, and its title the label of the action in the
+  dropdowns: keep `ACTION_TITLES` in [extension/include.js](extension/include.js) alike with `ACTION_LABELS` in
+  [extension/options.js](extension/options.js). There is no entry for "Do nothing", nor for reopening without the
+  `sessions` permission. The background script refreshes the entry when that setting or a permission changes, and
+  counts its decisions, so that an entry which waits for the settings cannot show up after a newer removal.
 - A frame which still waits for its own page shows an empty placeholder document, in which the browser runs no
   declared content script. The content script of the page around the frame attaches its listeners to that placeholder
   on `mouseover`; keep that. Injecting into the placeholder from the background script breaks same-site frames: the
@@ -119,7 +125,8 @@ is.
   controls by counting Tab presses, and reads the radio buttons and the dropdowns (by their names) through the
   accessibility tree, as well as the note which "Done" shows (Firefox keeps the page open), so update the script when
   changing those. It sets `extensions.webextOptionalPermissionPrompts` to false, so choosing to reopen from an opened
-  dropdown grants `sessions` without a prompt (still only on the user's action).
+  dropdown grants `sessions` without a prompt (still only on the user's action). It chooses a context menu entry by
+  typing the first letter of its title ("Close tab", "New tab"), so update it when changing those titles.
 - In the Chromium which Playwright launches (also the one of `verify:chrome`), the options dialog of
   `chrome://extensions` cuts off the right part of the options page, as it did before the page was restyled. Chrome
   started with `npm run start:chrome` shows the page whole, so judge the dialog there.

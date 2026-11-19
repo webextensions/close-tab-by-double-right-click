@@ -105,7 +105,8 @@ const main = function () {
     const ACTION_SAME_AS_DOUBLE_RIGHT_CLICK = 'sameAsDoubleRightClick';
     const ACTION_REOPEN_CLOSED_TAB = 'reopenClosedTab';
     // Reopening comes last, since it asks for a permission: arrow keys change the value of a closed dropdown one option
-    // at a time, which should not stop by it on the way to another one
+    // at a time, which should not stop by it on the way to another one. The context menu entry shows the same labels
+    // (keep them alike with ACTION_TITLES in include.js).
     const ACTION_LABELS = [
         ['nothing', 'Do nothing'],
         ['closeTab', 'Close tab'],

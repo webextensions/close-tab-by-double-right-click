@@ -1,8 +1,6 @@
 (function () {
     const removedTabs = {};
 
-    const CONTEXT_MENU_ENTRY_ID = 'close-tab';
-
     // Firefox runs no extension scripts on these domains (its default "extensions.webextensions.restrictedDomains")
     const FIREFOX_RESTRICTED_DOMAINS = [
         'accounts-static.cdn.mozilla.net',
@@ -19,8 +17,8 @@
     ];
     const isFirefox = chrome.runtime.getURL('').startsWith('moz-extension://');
 
-    // Web pages which do not get the content script (the browser blocks it on most of them), so they get the
-    // "Close tab" context menu entry instead
+    // Web pages which do not get the content script (the browser blocks it on most of them), so they get the context
+    // menu entry instead
     function isScriptingBlocked(url) {
         if (
             url.indexOf('https://chromewebstore.google.com/') === 0 ||
@@ -157,6 +155,18 @@
         }
     };
 
+    // The titles of the context menu entry for each action: the labels of the dropdowns on the options page (keep them
+    // alike with ACTION_LABELS in options.js)
+    const ACTION_TITLES = {
+        closeTab: 'Close tab',
+        goBack: 'Go back',
+        reload: 'Reload',
+        hardReload: 'Hard reload',
+        newTab: 'New tab',
+        duplicateTab: 'Duplicate tab',
+        reopenClosedTab: 'Reopen last closed tab'
+    };
+
     const chromeStorageForExtensionData = chrome.storage.sync || chrome.storage.local;
 
     async function readAction(storageKey) {
@@ -203,7 +213,12 @@
         }
     }
 
+    // Counts what got decided for the context menu entry, so that an entry which waits for the settings cannot show up
+    // after a newer decision removed it. Nothing is lost when a restart of the background script resets it.
+    let latestMenuDecision = 0;
+
     function removeContextMenuEntry() {
+        latestMenuDecision++;
         /*
             Note:
             Ideally, we would want to remove only the entry which was added earlier, but the background script can
@@ -213,14 +228,32 @@
         chrome.contextMenus.removeAll();
     }
 
-    function addContextMenuEntry() {
-        removeContextMenuEntry();
+    // The entry stands in for a plain double right click: it does the same, and its id is the name of that action, so
+    // that a click does what the entry showed. Without anything to do, there is no entry.
+    async function addContextMenuEntry() {
+        const decision = ++latestMenuDecision;
+        let action;
+        try {
+            action = await findAction({});
+            if (action === 'reopenClosedTab' && !(await isReopenEnabled())) {
+                action = 'nothing';
+            }
+        } catch (e) {
+            action = 'nothing';
+            console.debug('Could not read what the double right click does', e);
+        }
+        if (decision !== latestMenuDecision) {
+            return;
+        }
 
-        chrome.contextMenus.create({
-            id: CONTEXT_MENU_ENTRY_ID,
-            title: 'Close tab',
-            contexts: ['all']
-        });
+        chrome.contextMenus.removeAll();
+        if (Object.hasOwn(ACTION_TITLES, action)) {
+            chrome.contextMenus.create({
+                id: action,
+                title: ACTION_TITLES[action],
+                contexts: ['all']
+            });
+        }
     }
 
     // How long the scripting probe below may take to answer on a page which has started to arrive (in milliseconds)
@@ -330,12 +363,35 @@
     );
 
     // Registered at the top level, otherwise the click which wakes up an idle background script would have no listener
-    chrome.contextMenus.onClicked.addListener(function (info, tab) {
-        // The entry is shared by all tabs, so close the tab which was clicked
-        if (info.menuItemId === CONTEXT_MENU_ENTRY_ID && tab) {
-            closeTab(tab);
+    chrome.contextMenus.onClicked.addListener(async function (info, tab) {
+        // The entry is shared by all tabs, so act on the tab which was clicked
+        if (Object.hasOwn(ACTION_TITLES, info.menuItemId) && tab) {
+            try {
+                await ACTIONS[info.menuItemId](tab);
+            } catch (e) {
+                // Expected for example when going back in a tab without history
+                console.debug('Could not do what the context menu entry does', info.menuItemId, e);
+            }
         }
     });
+
+    // The entry follows what a double right click does, and whether reopening a closed tab is allowed
+    function refreshContextMenuEntry() {
+        chrome.tabs.query({ active: true, lastFocusedWindow: true }, function (tabs) {
+            if (tabs && tabs[0]) {
+                addContextMenuEntryIfRequired(tabs[0].id);
+            }
+        });
+    }
+
+    chrome.storage.onChanged.addListener(function (changes) {
+        if (Object.hasOwn(changes, DOUBLE_RIGHT_CLICK_ACTION)) {
+            refreshContextMenuEntry();
+        }
+    });
+
+    chrome.permissions.onAdded.addListener(refreshContextMenuEntry);
+    chrome.permissions.onRemoved.addListener(refreshContextMenuEntry);
 
     chrome.tabs.onActivated.addListener(function (activeInfo) {
         addContextMenuEntryIfRequired(activeInfo.tabId);

@@ -567,11 +567,11 @@ def check_rewritten_page(browser, mouse, keep):
     close_tab_if_open(browser, mouse, target, keep)
 
 
-def choose_close_tab_entry(mouse):
+def choose_context_menu_entry(mouse, first_letter='c'):
     mouse.click(BTN_RIGHT)
     time.sleep(0.8)
-    # Selects the first menu item starting with "C", which is "Close tab" on the pages checked here
-    mouse.type_text('c')
+    # Selects the first menu item starting with that letter: "C" is the entry "Close tab" on the pages checked here
+    mouse.type_text(first_letter)
     time.sleep(0.3)
     mouse.key(KEYSYM_RETURN)
     time.sleep(1.5)
@@ -581,7 +581,7 @@ def check_context_menu_entry(browser, mouse, keep):
     # A new tab starts on about:blank, where the extension adds a "Close tab" context-menu entry
     blank = browser.new_tab()
     time.sleep(2)
-    choose_close_tab_entry(mouse)
+    choose_context_menu_entry(mouse)
     check('"Close tab" context-menu entry on about:blank closes the tab', blank not in browser.handles())
     close_tab_if_open(browser, mouse, blank, keep)
 
@@ -594,7 +594,7 @@ def check_error_page(browser, mouse, keep):
     except RuntimeError:
         pass  # WebDriver reports reaching an error page as a failed navigation
     time.sleep(2)
-    choose_close_tab_entry(mouse)
+    choose_context_menu_entry(mouse)
     check('"Close tab" context-menu entry on a browser error page closes the tab', target not in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
 
@@ -618,7 +618,7 @@ def check_restricted_domain(browser, mouse, keep):
     target = browser.new_tab(RESTRICTED_DOMAIN_URL)
     time.sleep(3)
     focus_page(mouse)
-    choose_close_tab_entry(mouse)
+    choose_context_menu_entry(mouse)
     check(name, target not in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
 
@@ -654,7 +654,7 @@ def check_real_site(browser, mouse, keep, site):
         target = browser.new_tab(site['url'])
         time.sleep(3)
         mouse.move_to(*POINTER)
-        choose_close_tab_entry(mouse)
+        choose_context_menu_entry(mouse)
         check(f'{name}: "Close tab" context-menu entry closes the tab', target not in browser.handles())
         close_tab_if_open(browser, mouse, target, keep)
         return
@@ -933,6 +933,30 @@ def check_key_actions(browser, mouse, keep):
     browser.switch_to(keep)
 
 
+def check_context_menu_entry_action(browser, mouse, keep):
+    # The entry does what a double right click is set to do. Follows check_key_actions, which leaves the gestures at
+    # their defaults
+    expected = options_state('custom', '1000', plain='New tab')
+    try:
+        state = choose_gesture_action(browser, mouse, keep, 'plain', 'New tab', expected)
+        check('setting the double right click to open a new tab', state == expected, json.dumps(state))
+        blank = browser.new_tab()
+        time.sleep(2)
+        handles_before = browser.handles()
+        choose_context_menu_entry(mouse, 'n')
+        still_open = blank in browser.handles()
+        opened = [handle for handle in browser.handles() if handle not in handles_before]
+        check('context-menu entry "New tab" on about:blank opens a tab and keeps the tab open',
+              still_open and len(opened) == 1, f'still open: {still_open}, opened: {len(opened)}')
+        for handle in opened:
+            close_tab_if_open(browser, mouse, handle, keep)
+        close_tab_if_open(browser, mouse, blank, keep)
+    finally:
+        expected = options_state('custom', '1000')
+        state = choose_gesture_action(browser, mouse, keep, 'plain', 'Close tab', expected)
+        check('setting the double right click back to close the tab', state == expected, json.dumps(state))
+
+
 def main():
     # Firefox only exposes its accessibility tree when asked to; NO_AT_BRIDGE (set in some desktop sessions) turns it off
     driver_env = {name: value for name, value in os.environ.items() if name != 'NO_AT_BRIDGE'}
@@ -955,7 +979,8 @@ def main():
         steps = (check_real_sites,) if ARGUMENTS.sites else (
             check_clicks, check_held_clicks, check_key_clicks, check_own_handlers, check_loading_pages,
             check_rewritten_page, check_context_menu_entry, check_error_page, check_restricted_domain,
-            check_options_page, check_done_button, check_reopen_closed_tab, check_key_actions)
+            check_options_page, check_done_button, check_reopen_closed_tab, check_key_actions,
+            check_context_menu_entry_action)
         for step in steps:
             try:
                 step(browser, mouse, keep)

@@ -231,26 +231,53 @@ const startLatePageServer = async function ({ holdHeaders = false } = {}) {
     };
 };
 
-const CONTEXT_MENU_ENTRY_ID = 'close-tab';
+// The id of the context menu entry is the action which it does (the one of a plain double right click)
+const CONTEXT_MENU_ENTRY_IDS = ['closeTab', 'goBack', 'reload', 'hardReload', 'newTab', 'duplicateTab', 'reopenClosedTab'];
 
-// chrome.contextMenus has no API to read the entries, but update() rejects for an id which does not exist
-const contextMenuEntryExists = async function (serviceWorker) {
-    return await serviceWorker.evaluate(async (menuItemId) => {
-        try {
-            await chrome.contextMenus.update(menuItemId, {});
-            return true;
-        } catch {
-            return false;
+// The actions whose context menu entry exists. chrome.contextMenus has no API to read the entries, but update()
+// rejects for an id which does not exist.
+const contextMenuEntryActions = async function (serviceWorker) {
+    return await serviceWorker.evaluate(async (menuItemIds) => {
+        const existing = [];
+        for (const menuItemId of menuItemIds) {
+            try {
+                await chrome.contextMenus.update(menuItemId, {});
+                existing.push(menuItemId);
+            } catch {
+                // It does not exist
+            }
         }
-    }, CONTEXT_MENU_ENTRY_ID);
+        return existing;
+    }, CONTEXT_MENU_ENTRY_IDS);
+};
+
+const contextMenuEntryExists = async function (serviceWorker, action = 'closeTab') {
+    return (await contextMenuEntryActions(serviceWorker)).includes(action);
 };
 
 // Playwright cannot operate the native context menu, so dispatch the click event directly
-const clickContextMenuEntry = async function (serviceWorker, url) {
+const clickContextMenuEntry = async function (serviceWorker, url, action = 'closeTab') {
     await serviceWorker.evaluate(async ({ menuItemId, url }) => {
         const [tab] = await chrome.tabs.query({ url });
         chrome.contextMenus.onClicked.dispatch({ menuItemId }, tab);
-    }, { menuItemId: CONTEXT_MENU_ENTRY_ID, url });
+    }, { menuItemId: action, url });
+};
+
+// Records the properties of each context menu entry which the service worker creates (read them with
+// contextMenusCreateCalls), which still creates it. A restart of the service worker drops the recording.
+const spyOnContextMenusCreate = async function (serviceWorker) {
+    await serviceWorker.evaluate(() => {
+        globalThis.contextMenusCreateCalls = [];
+        const create = chrome.contextMenus.create;
+        chrome.contextMenus.create = function (properties, ...rest) {
+            globalThis.contextMenusCreateCalls.push(properties);
+            return create.call(this, properties, ...rest);
+        };
+    });
+};
+
+const contextMenusCreateCalls = async function (serviceWorker) {
+    return await serviceWorker.evaluate(() => globalThis.contextMenusCreateCalls);
 };
 
 export {
@@ -264,7 +291,9 @@ export {
     SVG_PATH,
     TEST_ORIGIN,
     clickContextMenuEntry,
+    contextMenuEntryActions,
     contextMenuEntryExists,
+    contextMenusCreateCalls,
     chooseOption,
     expect,
     hasServiceWorkerRestarted,
@@ -274,6 +303,7 @@ export {
     pathToSource,
     restoredSessionIds,
     setGestureAction,
+    spyOnContextMenusCreate,
     spyOnTabsReload,
     startLatePageServer,
     stopServiceWorker,

@@ -61,6 +61,30 @@ const STALLED_IMAGE_CANCEL_CONTEXT_MENU_PAGE = CANCEL_CONTEXT_MENU_PAGE.replace(
     `<img src="${STALLED_PATH}image.png"></body>`
 );
 
+// Pages which keep the main thread busy for 200 ms on a right press, as a heavy site can: in a "mousedown" listener,
+// or in a "contextmenu" listener. The browser opens its context menu only once the page is done with "contextmenu", so
+// the "mouseup" of a short right click reaches such a page.
+const BUSY_RIGHT_PRESS_SCRIPT = (
+    '<script>document.addEventListener("TYPE", (e) => {' +
+    ' if (e.button === 2) { const end = performance.now() + 200; while (performance.now() < end) {} } });</script>'
+);
+const BUSY_MOUSEDOWN_PAGE = TEST_PAGE.replace(
+    '</body>',
+    `${BUSY_RIGHT_PRESS_SCRIPT.replace('TYPE', 'mousedown')}</body>`
+);
+const BUSY_CONTEXT_MENU_PAGE = TEST_PAGE.replace(
+    '</body>',
+    `${BUSY_RIGHT_PRESS_SCRIPT.replace('TYPE', 'contextmenu')}</body>`
+);
+
+// A page which starts a task of 300 ms right after a right press: the browser shows its context menu in time, but the
+// timers of the page run late
+const LONG_TASK_AFTER_RIGHT_PRESS_PAGE = TEST_PAGE.replace(
+    '</body>',
+    '<script>document.addEventListener("mousedown", (e) => { if (e.button === 2) { setTimeout(() => {' +
+    ' const end = performance.now() + 300; while (performance.now() < end) {} }); } });</script></body>'
+);
+
 // Whether the content script has finished setting up in the latest tab which matches the given chrome.tabs query
 const isContentScriptReadyInTab = async function (serviceWorker, queryInfo) {
     return await serviceWorker.evaluate(async (queryInfo) => {
@@ -125,9 +149,12 @@ const chooseOption = async function (select, label) {
 
 export {
     ASK_BEFORE_LEAVING_PAGE,
+    BUSY_CONTEXT_MENU_PAGE,
+    BUSY_MOUSEDOWN_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
     FRAME_PATH,
     LATE_FRAME_PAGE,
+    LONG_TASK_AFTER_RIGHT_PRESS_PAGE,
     OFFSET_FRAME_PAGE,
     PDF_FILE,
     STALLED_HEAD_CANCEL_CONTEXT_MENU_PAGE,

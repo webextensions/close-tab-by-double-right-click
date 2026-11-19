@@ -42,6 +42,13 @@ is.
   `pointerrawupdate` (https pages only) while a right press waits for its second click. Keep all three workarounds.
   Compare the pointer positions of those events in screen coordinates: inside a same-site frame, Chromium gives
   `pointerrawupdate` the position within the top page, and the mouse events the position within the frame.
+- The browser opens its native context menu only once the page is done with `contextmenu`, so a page which is busy on
+  a right press (eg: a heavy site) gets the `mouseup` of a short right click before the menu could swallow it. On Linux
+  the content script ignores a `mouseup` which comes before the menu could open: earlier than 50 ms after the page was
+  done with `contextmenu` (its listener on the window in the bubble phase, or a timer for a page which stops the
+  event). Keep measuring the time between clicks from the events' `timeStamp`, which a busy page cannot delay, and add
+  the start of the document which the listener is on (`eventTime`): a frame (eg: a placeholder) counts from its own
+  start in Chrome and in Firefox, and Chromium gives `pointerrawupdate` inside a frame the top window as its `view`.
 - The content script must attach its handlers with `addEventListener`, never through the `document.on*` properties:
   Firefox shares those with the page, so each side would overwrite the other's handler.
 - A page which cancels `contextmenu` gets no native menu, so both events of one right click reach it. On Linux the
@@ -101,7 +108,7 @@ is.
 - `npm run release:check` runs `git fetch origin` (needs internet access; it updates only the remote-tracking refs).
 - `npm start` rebuilds `dist/chrome` and `dist/firefox` on every change and never exits on its own.
 - `npm run start:chrome` / `npm run start:firefox` open a browser and block until it is closed.
-- `npm run verify:firefox` and `npm run verify:chrome` (about three minutes each) take over the
+- `npm run verify:firefox` and `npm run verify:chrome` (about four minutes each) take over the
   real mouse and keyboard (Linux with GNOME only): warn the user right before each run.
 - `npm run verify:firefox:sites` (about 5 minutes) and `npm run verify:chrome:sites` (about 10 minutes) take them over
   as well, and need internet access.
@@ -122,6 +129,8 @@ is.
 - Playwright's `click()` releases the button at once, which hides bugs that need a realistic press. Use
   `holdRightClick` in [tests/e2e/fixtures.js](tests/e2e/fixtures.js), and only on the page which cancels the context
   menu: on any other page Playwright fires `contextmenu` without opening a native menu, so a held click counts twice.
+  The pages which are busy on a right press are the exception, with `{ awaitPress: false }`: Playwright otherwise
+  releases the button only once the page has handled the press, after the busy time.
 - Playwright cannot load extensions into Firefox, so `test:e2e` covers Chromium only, loading `dist/chrome` (the
   manifest test also loads `extension/`). Firefox is covered by
   [scripts/verify-firefox/verify-firefox.py](scripts/verify-firefox/verify-firefox.py), which runs against

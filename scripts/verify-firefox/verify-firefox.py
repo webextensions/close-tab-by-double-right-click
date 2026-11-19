@@ -13,7 +13,7 @@ is what breaks double right click on Linux. This script instead:
 
 Requirements: Linux with GNOME (Wayland or X11), geckodriver on PATH (the Firefox snap ships one), python3-gi and
 gir1.2-atspi-2.0.
-It takes over the mouse and keyboard for about three minutes: do not touch them while it runs.
+It takes over the mouse and keyboard for about four minutes: do not touch them while it runs.
 
 Usage: npm run verify:firefox (generates dist/firefox first), or
 python3 scripts/verify-firefox/verify-firefox.py [path/to/extension]
@@ -86,6 +86,21 @@ TEST_PAGE = ('<!doctype html><html><head><title>Test page</title></head>'
 CANCEL_CONTEXT_MENU_PATH = '/cancel-context-menu'
 CANCEL_CONTEXT_MENU_PAGE = TEST_PAGE.replace(
     '</body>', '<script>document.addEventListener("contextmenu", (e) => e.preventDefault());</script></body>')
+# Pages which keep the main thread busy for 200 ms on a right press, as a heavy site can (in "mousedown", or in
+# "contextmenu"), and one which starts a task of 300 ms right after it. Firefox opens its context menu only once the
+# page is done with "contextmenu", so the "mouseup" of a short right click reaches a busy page.
+BUSY_RIGHT_PRESS_SCRIPT = ('<script>document.addEventListener("TYPE", (e) => { if (e.button === 2) {'
+                           ' const end = performance.now() + 200; while (performance.now() < end) {} } });</script>')
+BUSY_MOUSEDOWN_PATH = '/busy-mousedown'
+BUSY_MOUSEDOWN_PAGE = TEST_PAGE.replace('</body>', BUSY_RIGHT_PRESS_SCRIPT.replace('TYPE', 'mousedown') + '</body>')
+BUSY_CONTEXT_MENU_PATH = '/busy-context-menu'
+BUSY_CONTEXT_MENU_PAGE = TEST_PAGE.replace('</body>',
+                                          BUSY_RIGHT_PRESS_SCRIPT.replace('TYPE', 'contextmenu') + '</body>')
+LONG_TASK_AFTER_RIGHT_PRESS_PATH = '/long-task-after-right-press'
+LONG_TASK_AFTER_RIGHT_PRESS_PAGE = TEST_PAGE.replace(
+    '</body>',
+    '<script>document.addEventListener("mousedown", (e) => { if (e.button === 2) { setTimeout(() => {'
+    ' const end = performance.now() + 300; while (performance.now() < end) {} }); } });</script></body>')
 # A page which uses the "on<event>" properties of the document, which Firefox shares with content scripts
 OWN_HANDLERS_PATH = '/own-handlers'
 OWN_HANDLERS_PAGE = TEST_PAGE.replace(
@@ -185,7 +200,9 @@ class TestPageHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         pages = {CANCEL_CONTEXT_MENU_PATH: CANCEL_CONTEXT_MENU_PAGE, OWN_HANDLERS_PATH: OWN_HANDLERS_PAGE,
                  STALLED_HEAD_PATH: STALLED_HEAD_PAGE, STALLED_IMAGE_PATH: STALLED_IMAGE_PAGE,
-                 LATE_FRAME_PATH: LATE_FRAME_PAGE}
+                 LATE_FRAME_PATH: LATE_FRAME_PAGE, BUSY_MOUSEDOWN_PATH: BUSY_MOUSEDOWN_PAGE,
+                 BUSY_CONTEXT_MENU_PATH: BUSY_CONTEXT_MENU_PAGE,
+                 LONG_TASK_AFTER_RIGHT_PRESS_PATH: LONG_TASK_AFTER_RIGHT_PRESS_PAGE}
         self.wfile.write(pages.get(self.path, TEST_PAGE).encode())
 
     def log_message(self, *args):
@@ -201,6 +218,9 @@ STALLED_HEAD_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{STALLED_HEAD_PAT
 STALLED_IMAGE_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{STALLED_IMAGE_PATH}'
 LATE_FRAME_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{LATE_FRAME_PATH}'
 HARD_RELOAD_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{HARD_RELOAD_PATH}'
+BUSY_MOUSEDOWN_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{BUSY_MOUSEDOWN_PATH}'
+BUSY_CONTEXT_MENU_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{BUSY_CONTEXT_MENU_PATH}'
+LONG_TASK_AFTER_RIGHT_PRESS_URL = f'http://127.0.0.1:{TEST_SERVER.server_port}{LONG_TASK_AFTER_RIGHT_PRESS_PATH}'
 
 
 # ---- WebDriver (geckodriver) ----
@@ -480,6 +500,29 @@ def check_held_clicks(browser, mouse, keep):
     check('double right click on a page which cancels the context menu closes the tab',
           target not in browser.handles())
     close_tab_if_open(browser, mouse, target, keep)
+
+
+def check_busy_pages(browser, mouse, keep):
+    # A page which is busy when a right click arrives gets the "mouseup" of that click before the context menu could
+    # open and swallow it. On the page with the long task, the menu opens in time, but the timers of the page run late.
+    pages = (('a page busy in "mousedown"', BUSY_MOUSEDOWN_URL),
+             ('a page busy in "contextmenu"', BUSY_CONTEXT_MENU_URL),
+             ('a page which starts a long task right after the press', LONG_TASK_AFTER_RIGHT_PRESS_URL))
+    for page, url in pages:
+        for hold_seconds, held in ((0.03, ''), (0.12, ' held for 120 ms')):
+            target = open_test_page(browser, url)
+            focus_page(mouse)
+            mouse.click(BTN_RIGHT, hold_seconds)
+            time.sleep(1.2)
+            check(f'single right click{held} on {page} keeps the tab open', target in browser.handles())
+            close_tab_if_open(browser, mouse, target, keep)
+
+        target = open_test_page(browser, url)
+        focus_page(mouse)
+        right_clicks(mouse, 0.15)
+        time.sleep(1.5)
+        check(f'double right click on {page} closes the tab', target not in browser.handles())
+        close_tab_if_open(browser, mouse, target, keep)
 
 
 def right_clicks_with_key(mouse, keysym):
@@ -986,7 +1029,7 @@ def main():
         mouse = Input()
 
         steps = (check_real_sites,) if ARGUMENTS.sites else (
-            check_clicks, check_held_clicks, check_key_clicks, check_own_handlers, check_loading_pages,
+            check_clicks, check_held_clicks, check_busy_pages, check_key_clicks, check_own_handlers, check_loading_pages,
             check_rewritten_page, check_context_menu_entry, check_error_page, check_restricted_domain,
             check_options_page, check_done_button, check_reopen_closed_tab, check_key_actions,
             check_context_menu_entry_action)

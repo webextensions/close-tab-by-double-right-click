@@ -8,7 +8,7 @@
 // - reads the outcome (tab closed or still open) back through Playwright
 //
 // Requirements: Linux with GNOME, python3-gi, and "npx playwright install chromium".
-// It takes over the mouse and keyboard for about three minutes: do not touch them while it runs.
+// It takes over the mouse and keyboard for about four minutes: do not touch them while it runs.
 //
 // Usage: npm run verify:chrome (generates dist/chrome first), or
 // node scripts/verify-chrome/verify-chrome.js [path/to/extension]
@@ -25,9 +25,12 @@ import { chromium } from '@playwright/test';
 
 import { findMiddleOfElement, openRealSite, sitesFor } from '../../tests/shared/real-sites.js';
 import {
+    BUSY_CONTEXT_MENU_PAGE,
+    BUSY_MOUSEDOWN_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
     FRAME_PATH,
     LATE_FRAME_PAGE,
+    LONG_TASK_AFTER_RIGHT_PRESS_PAGE,
     OFFSET_FRAME_PAGE,
     STALLED_HEAD_PAGE,
     STALLED_IMAGE_PAGE,
@@ -62,6 +65,11 @@ const STALLED_IMAGE_URL = `${TEST_ORIGIN}/stalled-image`;
 // A page covered by a frame whose own page never arrives, so the page never finishes loading either
 const LATE_FRAME_URL = `${TEST_ORIGIN}/late-frame`;
 const STALLED_URLS = [STALLED_HEAD_URL, STALLED_IMAGE_URL, LATE_FRAME_URL];
+// Pages which keep the main thread busy for 200 ms on a right press (in "mousedown", or in "contextmenu"), and one which
+// starts a task of 300 ms right after it
+const BUSY_MOUSEDOWN_URL = `${TEST_ORIGIN}/busy-mousedown`;
+const BUSY_CONTEXT_MENU_URL = `${TEST_ORIGIN}/busy-context-menu`;
+const LONG_TASK_AFTER_RIGHT_PRESS_URL = `${TEST_ORIGIN}/long-task-after-right-press`;
 // Pages which get closed and then reopened, each under its own URL
 const CLOSED_URL_PREFIX = `${TEST_ORIGIN}/closed-`;
 
@@ -90,6 +98,28 @@ const checks = [
     ['right clicks 800 ms apart keep the tab open (default 500 ms)', false, ['right', 'sleep', 0.8, 'right', 'sleep', 1.2]],
     ['right click followed by a quick Escape keeps the tab open', false, ['right', 'sleep', 0.15, 'esc', 'sleep', 1.2]],
     ['right click followed by a left click 120 px away keeps the tab open', false, ['right', 'sleep', 0.15, 'rel', -120, -120, 'left', 'sleep', 1.2]],
+    ...[
+        ['a page busy in "mousedown"', BUSY_MOUSEDOWN_URL],
+        ['a page busy in "contextmenu"', BUSY_CONTEXT_MENU_URL]
+    ].flatMap(([page, url]) => [
+        [`single right click on ${page} keeps the tab open`, false, ['right', 'sleep', 1.2], url],
+        [`single right click held for 120 ms on ${page} keeps the tab open`, false, ['right-hold', 0.12, 'sleep', 1.2], url],
+        // On Wayland, the second click has to come while the page is still busy: its "mouseup" tells the content script
+        // that no context menu is open, and the menu which opens later swallows a second click
+        [`double right click on ${page} closes the tab`, true, ['right', 'sleep', 0.08, 'right', 'sleep', 1.2], url]
+    ]),
+    [
+        'single right click on a page which starts a long task right after the press keeps the tab open',
+        false,
+        ['right', 'sleep', 1.2],
+        LONG_TASK_AFTER_RIGHT_PRESS_URL
+    ],
+    [
+        'double right click on a page which starts a long task right after the press closes the tab',
+        true,
+        ['right', 'sleep', 0.15, 'right', 'sleep', 1.2],
+        LONG_TASK_AFTER_RIGHT_PRESS_URL
+    ],
     [
         'single right click held for 120 ms on a page which cancels the context menu keeps the tab open',
         false,
@@ -363,6 +393,11 @@ const runChecks = async function (displayMode) {
         await context.route(TEST_URL, (route) => route.fulfill({ contentType: 'text/html', body: TEST_PAGE }));
         await context.route(CANCEL_CONTEXT_MENU_URL, (route) => {
             return route.fulfill({ contentType: 'text/html', body: CANCEL_CONTEXT_MENU_PAGE });
+        });
+        await context.route(BUSY_MOUSEDOWN_URL, (route) => route.fulfill({ contentType: 'text/html', body: BUSY_MOUSEDOWN_PAGE }));
+        await context.route(BUSY_CONTEXT_MENU_URL, (route) => route.fulfill({ contentType: 'text/html', body: BUSY_CONTEXT_MENU_PAGE }));
+        await context.route(LONG_TASK_AFTER_RIGHT_PRESS_URL, (route) => {
+            return route.fulfill({ contentType: 'text/html', body: LONG_TASK_AFTER_RIGHT_PRESS_PAGE });
         });
         await context.route(OFFSET_FRAME_URL, (route) => route.fulfill({ contentType: 'text/html', body: OFFSET_FRAME_PAGE }));
         await context.route(`${TEST_ORIGIN}${FRAME_PATH}`, (route) => route.fulfill({ contentType: 'text/html', body: TEST_PAGE }));

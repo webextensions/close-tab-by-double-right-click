@@ -37,7 +37,7 @@ const REAL_INPUT_COUNTDOWN_SECONDS = 5;
 // The rough time of each end-to-end spec file
 const e2eSpecTimes = {
     'build.spec.js': '1-3 s',
-    'close-tab.spec.js': '15-25 s',
+    'close-tab.spec.js': '20-30 s',
     'context-menu-dismissal.spec.js': '12-20 s',
     'context-menu.spec.js': '5-12 s',
     'extension-lifecycle.spec.js': '3-6 s',
@@ -123,7 +123,7 @@ const groups = [
             {
                 id: 'verify:firefox',
                 label: 'verify:firefox',
-                time: '2-4 min',
+                time: '3-5 min',
                 build: 'firefox',
                 realInput: true,
                 command: ['python3', 'scripts/verify-firefox/verify-firefox.py']
@@ -131,7 +131,7 @@ const groups = [
             {
                 id: 'verify:chrome',
                 label: 'verify:chrome',
-                time: '2-4 min',
+                time: '3-5 min',
                 build: 'chrome',
                 realInput: true,
                 command: [process.execPath, 'scripts/verify-chrome/verify-chrome.js']

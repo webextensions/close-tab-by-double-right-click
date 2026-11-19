@@ -5,6 +5,8 @@ import { test as base, chromium, expect } from '@playwright/test';
 
 import {
     ASK_BEFORE_LEAVING_PAGE,
+    BUSY_CONTEXT_MENU_PAGE,
+    BUSY_MOUSEDOWN_PAGE,
     CANCEL_CONTEXT_MENU_PAGE,
     LATE_FRAME_PAGE,
     OFFSET_FRAME_PAGE,
@@ -26,6 +28,8 @@ const TEST_ORIGIN = 'https://drc.test';
 
 const CANCEL_CONTEXT_MENU_PATH = '/cancel-context-menu/';
 const ASK_BEFORE_LEAVING_PATH = '/ask-before-leaving/';
+const BUSY_CONTEXT_MENU_PATH = '/busy-context-menu/';
+const BUSY_MOUSEDOWN_PATH = '/busy-mousedown/';
 const LATE_FRAME_PATH = '/late-frame/';
 const OFFSET_FRAME_PATH = '/offset-frame/';
 const PDF_PATH = '/pdf/';
@@ -68,6 +72,10 @@ const test = base.extend({
                 body = CANCEL_CONTEXT_MENU_PAGE;
             } else if (pathname.startsWith(ASK_BEFORE_LEAVING_PATH)) {
                 body = ASK_BEFORE_LEAVING_PAGE;
+            } else if (pathname.startsWith(BUSY_CONTEXT_MENU_PATH)) {
+                body = BUSY_CONTEXT_MENU_PAGE;
+            } else if (pathname.startsWith(BUSY_MOUSEDOWN_PATH)) {
+                body = BUSY_MOUSEDOWN_PAGE;
             } else if (pathname.startsWith(OFFSET_FRAME_PATH)) {
                 body = OFFSET_FRAME_PAGE;
             } else if (pathname.startsWith(LATE_FRAME_PATH)) {
@@ -109,14 +117,23 @@ const openTestPage = async function ({ context, serviceWorker }, pathname, { wai
 // so the "mouseup" which that menu would swallow arrives and gets counted.
 // Pass { movePointer: false } on a page which has not rendered anything yet: Chromium holds each "mousemove" back for
 // 5 seconds there (unlike "mousedown" and "mouseup"), so the click then happens wherever the pointer already is.
-const holdRightClick = async function (page, holdMs, { movePointer = true } = {}) {
+// Pass { awaitPress: false } on a page which is busy with the press: Playwright waits until the page has handled it,
+// and a real button gets released meanwhile.
+const holdRightClick = async function (page, holdMs, { movePointer = true, awaitPress = true } = {}) {
     if (movePointer) {
         await page.mouse.move(100, 100);
     }
     try {
-        await page.mouse.down({ button: 'right' });
+        const pressed = page.mouse.down({ button: 'right' });
+        if (awaitPress) {
+            await pressed;
+        } else {
+            // Awaited below
+            pressed.catch(() => {});
+        }
         await page.waitForTimeout(holdMs);
         await page.mouse.up({ button: 'right' });
+        await pressed;
     } catch (err) {
         // On Linux the extension also counts "mousedown", so it can close the tab before this click's "mouseup"
         if (!page.isClosed()) {
@@ -304,6 +321,8 @@ const readRuntimeErrors = async function (extensionsPage, extensionId) {
 
 export {
     ASK_BEFORE_LEAVING_PATH,
+    BUSY_CONTEXT_MENU_PATH,
+    BUSY_MOUSEDOWN_PATH,
     CANCEL_CONTEXT_MENU_PATH,
     LATE_FRAME_PATH,
     OFFSET_FRAME_PATH,

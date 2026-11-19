@@ -3,12 +3,12 @@ if (window.DRCattachListeners) {
     // listener which is still there has no effect.
     window.DRCattachListeners();
 } else {
-    // [target, type, listener] for each listener of this script
+    // [target, type, listener, capture] for each listener of this script
     const listeners = [];
 
     window.DRCattachListeners = function () {
-        listeners.forEach(function ([target, type, listener]) {
-            target.addEventListener(type, listener, true);
+        listeners.forEach(function ([target, type, listener, capture]) {
+            target.addEventListener(type, listener, capture);
         });
     };
 
@@ -19,15 +19,16 @@ if (window.DRCattachListeners) {
     }).observe(document, { childList: true });
 
     // Note: The "on<event>" properties (eg: document.onmouseup) must not be used, since Firefox shares them with the page
-    const listen = function (target, type, handler) {
+    // Listens in the capture phase unless told otherwise
+    const listen = function (target, type, handler, capture = true) {
         const listener = function (e) {
             // Ignores the events which scripts create: otherwise any frame of a page could close the tab
             if (e.isTrusted) {
                 handler(e);
             }
         };
-        listeners.push([target, type, listener]);
-        target.addEventListener(type, listener, true);
+        listeners.push([target, type, listener, capture]);
+        target.addEventListener(type, listener, capture);
     };
 
     const MAXIMUM_TIME_BETWEEN_CLICKS_TYPE = 'MAXIMUM_TIME_BETWEEN_CLICKS_TYPE';
@@ -56,6 +57,23 @@ if (window.DRCattachListeners) {
     // The modifier keys which were held during a mouse event
     var readModifiers = function (e) {
         return { shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey };
+    };
+
+    // When the user made an event, in milliseconds since the epoch. Unlike the time when its listener runs, a busy page
+    // cannot delay it. Each document counts the "timeStamp" of its events from its own start, and this script also
+    // listens in the placeholder documents of frames, which start later than the page. The start comes from the
+    // document which the event reaches: inside a frame, Chromium gives "pointerrawupdate" the window of the top page as
+    // its "view".
+    const eventTime = function (e) {
+        // Each listener of this script is on a document or on a window
+        const target = e.currentTarget;
+        const view = (target && target.defaultView) || (target && target.performance ? target : window);
+        return view.performance.timeOrigin + e.timeStamp;
+    };
+
+    // The current time on the same clock as eventTime()
+    const now = function () {
+        return performance.timeOrigin + performance.now();
     };
 
     // The background script decides what the gesture does, from the modifier keys held on its first click (only the
@@ -107,7 +125,7 @@ if (window.DRCattachListeners) {
                 }
             }, maxTimeBetweenClicksValue);
 
-            var thisTime = new Date(),
+            var thisTime = eventTime(e),
                 timeDiff = thisTime - lastTime;
             lastTime = thisTime;
 
@@ -137,10 +155,26 @@ if (window.DRCattachListeners) {
     var isChromium = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
 
     // Only used on Linux: whether the "mousedown" of the latest right click was counted, whether Shift was
-    // held during it, and the "contextmenu" event received since then
+    // held during it, the "contextmenu" event received since then, and when the page was done with that event
     var rightPressCounted = false,
         rightPressWithShift = false,
-        lastContextMenuEvent = null;
+        lastContextMenuEvent = null,
+        contextMenuHandledAt = null;
+
+    // How long the browser takes to show its context menu once the page is done with "contextmenu" (12 to 25 ms seen
+    // in Firefox), in milliseconds
+    const MENU_OPENING_TIME = 50;
+
+    // The browser opens its native context menu only once the page is done with "contextmenu". A page which is busy
+    // meanwhile (eg: a heavy site) gets the "mouseup" of a short right click before that menu could open and swallow
+    // it, so that "mouseup" belongs to the right click which was already counted on "mousedown".
+    var isReleaseBeforeMenuCouldOpen = function (e) {
+        return (
+            !!lastContextMenuEvent &&
+            !lastContextMenuEvent.defaultPrevented &&
+            (contextMenuHandledAt === null || eventTime(e) < contextMenuHandledAt + MENU_OPENING_TIME)
+        );
+    };
 
     listen(document, 'mouseup', function (e) {
         if (e.button === 2 && rightPressCounted) {
@@ -151,7 +185,7 @@ if (window.DRCattachListeners) {
                 (isFirefox && rightPressWithShift);
             // Without a native context menu (eg: the page shows its own one), nothing swallows this
             // "mouseup", and it belongs to the right click which was already counted on "mousedown"
-            if (!nativeContextMenuOpened) {
+            if (!nativeContextMenuOpened || isReleaseBeforeMenuCouldOpen(e)) {
                 return;
             }
         }
@@ -170,13 +204,25 @@ if (window.DRCattachListeners) {
                 rightPressCounted = true;
                 rightPressWithShift = e.shiftKey;
                 lastContextMenuEvent = null;
+                contextMenuHandledAt = null;
             }
             receiveRightClick(e);
         });
         // "defaultPrevented" is read on "mouseup", by when the page has had its chance to cancel the event
         listen(window, 'contextmenu', function (e) {
             lastContextMenuEvent = e;
+            contextMenuHandledAt = null;
+            // For a page which stops the event before it bubbles up to the window. A busy page delays this as well.
+            setTimeout(function () {
+                if (lastContextMenuEvent === e && contextMenuHandledAt === null) {
+                    contextMenuHandledAt = now();
+                }
+            });
         });
+        // Runs after the listeners of the page, except those which it attaches to the window later
+        listen(window, 'contextmenu', function () {
+            contextMenuHandledAt = now();
+        }, false);
     }
 
     // Chromium on Wayland: while the context menu is open, a second right click on the same spot only closes
@@ -217,7 +263,7 @@ if (window.DRCattachListeners) {
             forget();
             if (e.button === 2) {
                 // That "mousemove" reports no modifier keys, even while they are held, so the press tells which were
-                rightPress = { x: e.screenX, y: e.screenY, time: Date.now(), modifiers: readModifiers(e) };
+                rightPress = { x: e.screenX, y: e.screenY, time: eventTime(e), modifiers: readModifiers(e) };
                 document.addEventListener('pointerrawupdate', receivePointerRawUpdate, true);
             }
         });
@@ -244,7 +290,7 @@ if (window.DRCattachListeners) {
             if (confirmationTimer || e.buttons !== 0) {
                 return;
             }
-            const elapsed = Date.now() - rightPress.time;
+            const elapsed = eventTime(e) - rightPress.time;
             if (elapsed < 50 || elapsed > maxTimeBetweenClicksValue) {
                 forget();
                 return;
@@ -282,8 +328,8 @@ if (window.DRCattachListeners) {
             return;
         }
         placeholdersListenedTo.add(placeholder);
-        listeners.forEach(function ([, type, listener]) {
-            placeholder.addEventListener(type, listener, true);
+        listeners.forEach(function ([, type, listener, capture]) {
+            placeholder.addEventListener(type, listener, capture);
         });
     });
 

@@ -111,6 +111,29 @@ test('context menu closed quickly inside a frame which is not at the top left co
     expect(page.isClosed()).toBe(true);
 });
 
+test('context menu closed quickly inside a frame which a script wrote a while after the page loaded closes the tab', async ({ context, serviceWorker }) => {
+    const page = await openTestPage({ context, serviceWorker }, '/script-written-frame');
+    // The frame starts its clock that much later than the page
+    await page.waitForTimeout(3000);
+    await page.evaluate(() => {
+        const frame = document.createElement('iframe');
+        frame.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;border:0';
+        document.body.append(frame);
+        frame.contentDocument.open();
+        frame.contentDocument.write('<body style="height:100vh">Frame</body>');
+        frame.contentDocument.close();
+    });
+    // The content script runs in a frame which a script writes, since it belongs to the page
+    await expect.poll(() => page.frames()[1].evaluate(() => document.readyState)).toBe('complete');
+    await page.waitForTimeout(500);
+    const closed = page.waitForEvent('close');
+
+    await rightClickThenCloseContextMenu(page, { closedAfter: 200 });
+
+    await closed;
+    expect(page.isClosed()).toBe(true);
+});
+
 test('context menu closed after more than the default 500 ms keeps the tab open', async ({ context, serviceWorker }) => {
     const page = await openTestPage({ context, serviceWorker }, '/menu-closed-slowly');
 

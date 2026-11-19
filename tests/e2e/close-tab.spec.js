@@ -1,5 +1,7 @@
 import {
     ASK_BEFORE_LEAVING_PATH,
+    BUSY_CONTEXT_MENU_PATH,
+    BUSY_MOUSEDOWN_PATH,
     CANCEL_CONTEXT_MENU_PATH,
     expect,
     holdRightClick,
@@ -43,6 +45,46 @@ test('right clicks slower than the default 500 ms keep the tab open', async ({ c
 
     expect(page.isClosed()).toBe(false);
 });
+
+// A page which is busy when a right click arrives gets the "mouseup" of that click before the native context menu
+// could open and swallow it (here, where Playwright opens no menu, it always gets it). The button gets released while
+// the page is still busy with the press, as a real one does.
+for (const [busyIn, pathname] of [['"mousedown"', BUSY_MOUSEDOWN_PATH], ['"contextmenu"', BUSY_CONTEXT_MENU_PATH]]) {
+    for (const holdMs of [30, 120]) {
+        test(`single right click held for ${holdMs} ms on a page busy in ${busyIn} keeps the tab open`, async ({ context, serviceWorker }) => {
+            const page = await openTestPage({ context, serviceWorker }, `${pathname}single-${holdMs}`);
+
+            await holdRightClick(page, holdMs, { awaitPress: false });
+            await page.waitForTimeout(1000);
+
+            expect(page.isClosed()).toBe(false);
+        });
+    }
+
+    // In Chromium on Wayland, a "mousemove" without buttons on the same spot stands in for the second click while the
+    // context menu is open. The hand can move the pointer a little after the release, before that menu opens.
+    test(`single right click on a page busy in ${busyIn}, then a slight move of the pointer, keeps the tab open`, async ({ context, serviceWorker }) => {
+        const page = await openTestPage({ context, serviceWorker }, `${pathname}single-then-move`);
+
+        await holdRightClick(page, 30, { awaitPress: false });
+        await page.mouse.move(101, 100);
+        await page.waitForTimeout(1000);
+
+        expect(page.isClosed()).toBe(false);
+    });
+
+    test(`double right click on a page busy in ${busyIn} closes the tab`, async ({ context, serviceWorker }) => {
+        const page = await openTestPage({ context, serviceWorker }, `${pathname}double`);
+        const closed = page.waitForEvent('close');
+
+        await holdRightClick(page, 30, { awaitPress: false });
+        await page.waitForTimeout(150);
+        await holdRightClick(page, 30, { awaitPress: false });
+
+        await closed;
+        expect(page.isClosed()).toBe(true);
+    });
+}
 
 test('double right click works again after the user chose to stay on the page', async ({ context, serviceWorker }) => {
     const page = await openTestPage({ context, serviceWorker }, `${ASK_BEFORE_LEAVING_PATH}stay-then-leave`);

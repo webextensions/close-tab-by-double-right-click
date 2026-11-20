@@ -32,11 +32,11 @@
         "verify:chrome:sites": "npm run build:chrome && node scripts/verify-chrome/verify-chrome.js --sites"
     },
     "devDependencies": {
-        "@clack/prompts": "^1.8.1",
+        "@clack/prompts": "^1.9.0",
         "@eslint/js": "^10.0.1",
-        "@playwright/test": "^1.65.0",
-        "@stylistic/eslint-plugin": "^5.10.0",
-        "eslint": "^10.14.0",
+        "@playwright/test": "^1.65.1",
+        "@stylistic/eslint-plugin": "^6.0.1",
+        "eslint": "^10.15.0",
         "globals": "^17.14.0",
         "jszip": "^3.10.2",
         "web-ext": "^10.8.0"

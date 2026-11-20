@@ -6,6 +6,7 @@ import { promisify, stripVTControlCharacters } from 'node:util';
 
 import JSZip from 'jszip';
 
+import { sourceZipPaths, sourceZipScripts } from '../../scripts/build-and-release/build-source/source-files.js';
 import {
     expect,
     pathToChromeBuild,
@@ -285,29 +286,122 @@ test.describe('release-check.js', () => {
     });
 });
 
-// These tests need no browser: they run the script in a temporary repository
+// These tests need no browser: they run the script in a temporary repository with the files of the project which build
+// the add-on, a test file and the package.json of the project
 test.describe('build-source.js', () => {
+    const folderName = 'some-extension-1.0.0';
+    const zipPath = () => path.join(tempDir, 'web-ext-artifacts', `${folderName}-source.zip`);
+    let projectPackageJson;
+
     const git = async function (...args) {
-        await execFileAsync('git', args, { cwd: tempDir, env: gitEnv });
+        const { stdout } = await execFileAsync('git', args, { cwd: tempDir, env: gitEnv });
+        return stdout;
     };
+
+    const writePackageJson = async function (packageJson) {
+        await writeFile(path.join(tempDir, 'package.json'), JSON.stringify(packageJson, null, 4) + '\n');
+    };
+
+    const commitAndTag = async function () {
+        await git('add', '--all');
+        await git('commit', '--message', '1.0.0');
+        await git('tag', 'v1.0.0');
+    };
+
+    // The files of the zip (without the folders), with the folder of the zip left out of their paths
+    const readZipFiles = async function () {
+        const zip = await JSZip.loadAsync(await readFile(zipPath()));
+        const files = {};
+        for (const entry of Object.values(zip.files).filter((entry) => !entry.dir)) {
+            expect(entry.name.startsWith(`${folderName}/`), entry.name).toBe(true);
+            files[entry.name.slice(folderName.length + 1)] = await entry.async('nodebuffer');
+        }
+        return files;
+    };
+
+    test.beforeAll(async () => {
+        projectPackageJson = JSON.parse(await readFile(path.join(projectRoot, 'package.json'), 'utf8'));
+    });
 
     test.beforeEach(async () => {
         await git('init', '--initial-branch', 'main');
-        await writeFile(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'some-extension', version: '1.0.0' }));
-        await git('add', '--all');
-        await git('commit', '--message', '1.0.0');
+        await writePackageJson({ ...projectPackageJson, name: 'some-extension', version: '1.0.0' });
+        for (const sourcePath of sourceZipPaths) {
+            await cp(path.join(projectRoot, sourcePath), path.join(tempDir, sourcePath), { recursive: true });
+        }
+        await mkdir(path.join(tempDir, 'tests'));
+        await writeFile(path.join(tempDir, 'tests', 'some.spec.js'), '');
     });
 
-    test('zips the files of the tag of the current version', async () => {
-        await git('tag', 'v1.0.0');
-        await writeFile(path.join(tempDir, 'not-committed.js'), '');
+    test('zips only the files of the tag which build the add-on, with package.json and README.md', async () => {
+        await commitAndTag();
+        await writeFile(path.join(tempDir, 'extension', 'not-committed.js'), '');
 
         const { exitCode, stdout, stderr } = await runScript(buildSourceScript, tempDir);
 
         expect(exitCode, stderr).toBe(0);
-        expect(stdout).toContain('Zipped the source code of v1.0.0 into web-ext-artifacts/some-extension-1.0.0-source.zip');
-        const zip = await JSZip.loadAsync(await readFile(path.join(tempDir, 'web-ext-artifacts', 'some-extension-1.0.0-source.zip')));
-        expect(Object.keys(zip.files).sort()).toEqual(['some-extension-1.0.0/', 'some-extension-1.0.0/package.json']);
+        expect(stdout).toContain(`Zipped the source code of v1.0.0 into web-ext-artifacts/${folderName}-source.zip`);
+        const committedFiles = (await git('ls-files', '--', ...sourceZipPaths)).split('\n').filter(Boolean);
+        expect(Object.keys(await readZipFiles()).sort()).toEqual([...committedFiles, 'README.md', 'package.json'].sort());
+    });
+
+    test('keeps only the build scripts in package.json, without the dependencies', async () => {
+        await commitAndTag();
+
+        const { exitCode, stderr } = await runScript(buildSourceScript, tempDir);
+
+        expect(exitCode, stderr).toBe(0);
+        const files = await readZipFiles();
+        const packageJson = JSON.parse(files['package.json'].toString());
+        expect(packageJson.scripts).toEqual(Object.fromEntries(sourceZipScripts.map((script) => [
+            script,
+            projectPackageJson.scripts[script]
+        ])));
+        expect(packageJson).not.toHaveProperty('devDependencies');
+        expect(packageJson.name).toBe('some-extension');
+        expect(files['README.md'].toString()).toContain('source code of version 1.0.0');
+    });
+
+    test('builds the add-on from the zip with each of its scripts', async () => {
+        await commitAndTag();
+        await runScript(buildSourceScript, tempDir);
+        const unzipDir = path.join(tempDir, 'unzipped');
+        for (const [file, content] of Object.entries(await readZipFiles())) {
+            await mkdir(path.dirname(path.join(unzipDir, file)), { recursive: true });
+            await writeFile(path.join(unzipDir, file), content);
+        }
+
+        for (const script of sourceZipScripts) {
+            await rm(path.join(unzipDir, 'dist'), { recursive: true, force: true });
+            await execFileAsync('npm', ['run', script], { cwd: unzipDir });
+            const builtDirs = (await readdir(path.join(unzipDir, 'dist'))).sort();
+            expect(builtDirs, script).toEqual(script === 'build:dist' ? ['chrome', 'firefox'] : [script.slice('build:'.length)]);
+        }
+        const firefoxManifest = JSON.parse(await readFile(path.join(unzipDir, 'dist', 'firefox', 'manifest.json'), 'utf8'));
+        expect(firefoxManifest.background.scripts).toBeDefined();
+    });
+
+    test('fails when the package.json of the tag misses a build script', async () => {
+        const scripts = { ...projectPackageJson.scripts };
+        delete scripts['build:firefox'];
+        await writePackageJson({ ...projectPackageJson, name: 'some-extension', version: '1.0.0', scripts });
+        await commitAndTag();
+
+        const { exitCode, stderr } = await runScript(buildSourceScript, tempDir);
+
+        expect(exitCode).toBe(1);
+        expect(stderr).toContain('The package.json of v1.0.0 has no script build:firefox');
+    });
+
+    test('fails when a file which builds the add-on is not in the tag', async () => {
+        await rm(path.join(tempDir, 'LICENSE'));
+        await commitAndTag();
+
+        const { exitCode, stderr } = await runScript(buildSourceScript, tempDir);
+
+        expect(exitCode).toBe(1);
+        expect(stderr).toContain('Could not zip the source code of v1.0.0');
+        await expect(readFile(zipPath())).rejects.toThrow('ENOENT');
     });
 
     test('fails when the current version has no tag', async () => {

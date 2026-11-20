@@ -110,6 +110,8 @@ the same version, built from the same commit. The uploads are made by hand in ea
       **Source code** on **Manage Version** and click **Save Changes**. Do not open the source code page of the flow
       by its URL instead: its **Continue** submits the version at once, without the notes. **Manage Version** also
       edits **Version Notes** and **Notes for Reviewers** after the submission.
+    - Update the **Edit Product Page** of the add-on if the name, the description or the categories should change. The
+      texts are in [store-listings/firefox-add-ons/](store-listings/firefox-add-ons/).
 
 8. After both reviews pass, check that both store pages show the new version. If what the extension supports changed,
    also update the browser table and the notes in README.md.

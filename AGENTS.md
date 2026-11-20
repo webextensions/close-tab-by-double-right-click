@@ -97,6 +97,13 @@ is.
   on `mouseover`; keep that. Injecting into the placeholder from the background script breaks same-site frames: the
   browser reuses the placeholder's window for the page, so the script finds itself already there and attaches its
   listeners to the old document.
+- The source zip for AMO (`npm run build:source`) holds only what builds `dist/firefox`: the paths listed in
+  [scripts/build-and-release/build-source/source-files.js](scripts/build-and-release/build-source/source-files.js),
+  a package.json with only the build scripts and no dependencies, and a README.md for the reviewer (from
+  `source-readme.md` next to it). When the Firefox build starts to need another file, add it there, and update that
+  README if the build steps change. A build which needs a dependency would also need the dependencies (and a
+  lockfile) in that package.json, and an install step in the README and in the Notes to Reviewer. `npm run release:check:zips` fails for a source zip which does not
+  build the same files as the firefox zip.
 - The version lives in both package.json and the manifest. Never edit it by hand; `npm version` syncs both.
 - `web-ext lint` should report 0 errors and exactly 3 known warnings:
   `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`, `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`, `UNSAFE_VAR_ASSIGNMENT`.

@@ -55,7 +55,7 @@ the same version, built from the same commit. The uploads are made by hand in ea
     (eg: `2.4.0`), tags that commit (eg: `v2.4.0`) and pushes the commit and the tag. Never edit the version by hand. If
     only the push failed (eg: no network), run `git push --follow-tags` once it works again.
 
-5. Build the store zips and the source zip, then check the store zips:
+5. Build the store zips and the source zip, then check all three:
 
     ```sh
     npm run build
@@ -64,11 +64,13 @@ the same version, built from the same commit. The uploads are made by hand in ea
     ```
 
     `npm run build` writes `double-right-click-<version>-chrome.zip` and
-    `double-right-click-<version>-firefox.zip` into `web-ext-artifacts/`. `npm run build:source` zips the
-    files of the new tag into `double-right-click-<version>-source.zip` there, for AMO (step 7).
-    `npm run release:check:zips` checks that each store zip holds exactly the files of `extension/`, with the same
-    content and the manifest of its browser at the new version. If it fails, run `npm run build` again and do not upload
-    before it passes.
+    `double-right-click-<version>-firefox.zip` into `web-ext-artifacts/`. `npm run build:source` zips what
+    builds the Firefox add-on from the new tag (`extension/`, the build script, `.nvmrc` and `LICENSE`, with a
+    `package.json` of the build scripts only and a `README.md` for the reviewer) into
+    `double-right-click-<version>-source.zip` there, for AMO (step 7). `npm run release:check:zips` checks that each
+    store zip holds exactly the files of `extension/`, with the same content and the manifest of its browser at the new
+    version, and that the source zip holds exactly what builds the add-on and builds the same files as the firefox zip.
+    If it fails, run `npm run build` (or `npm run build:source`) again and do not upload before it passes.
 
 6. Upload to the Chrome Web Store:
     - Open the item in the [Developer Dashboard](https://chrome.google.com/webstore/devconsole), go to its **Package**
@@ -92,8 +94,9 @@ the same version, built from the same commit. The uploads are made by hand in ea
       **Notes to Reviewer**, give the build steps of the source zip:
 
         ```text
-        The files are copied unchanged from extension/; only manifest.json is generated.
-        Build: Node.js from .nvmrc, then "npm ci" and "npm run build:firefox". The add-on is in dist/firefox/.
+        The source zip unpacks into double-right-click-<version>/ (see its README.md). The files are copied unchanged
+        from extension/; only manifest.json is generated.
+        Build: Node.js from .nvmrc, then "npm run build:firefox" (nothing to install). The add-on is in dist/firefox/.
         Source: https://github.com/webextensions/double-right-click (tag v<version>)
         ```
 

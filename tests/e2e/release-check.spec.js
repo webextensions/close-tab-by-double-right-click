@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify, stripVTControlCharacters } from 'node:util';
@@ -66,8 +66,10 @@ test.describe('release-check-zips.js', () => {
     });
 
     test.beforeEach(async () => {
-        await writeFile(path.join(tempDir, 'package.json'), JSON.stringify({ version }));
-        await cp(pathToSource, path.join(tempDir, 'extension'), { recursive: true });
+        await writeFile(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'double-right-click', version }));
+        for (const sourcePath of sourceZipPaths) {
+            await cp(path.join(projectRoot, sourcePath), path.join(tempDir, sourcePath), { recursive: true });
+        }
         await mkdir(path.join(tempDir, 'web-ext-artifacts'));
     });
 
@@ -94,14 +96,51 @@ test.describe('release-check-zips.js', () => {
     const writeChromeZip = (files) => writeZip(zipName('chrome'), pathToChromeBuild, files);
     const writeFirefoxZip = (files) => writeZip(zipName('firefox'), pathToFirefoxBuild, files);
 
+    // Zips the files which build the add-on, a package.json with the build scripts and a README.md into
+    // web-ext-artifacts/, as "npm run build:source" does. "files" works as in writeZip, with paths in the folder of the
+    // zip.
+    const writeSourceZip = async function (files = {}) {
+        const projectPackageJson = JSON.parse(await readFile(path.join(projectRoot, 'package.json'), 'utf8'));
+        const zip = new JSZip();
+        const folder = zip.folder(`double-right-click-${version}`);
+        for (const sourcePath of sourceZipPaths) {
+            const fullPath = path.join(tempDir, sourcePath);
+            const filePaths = (await stat(fullPath)).isDirectory()
+                ? (await readdir(fullPath, { recursive: true, withFileTypes: true }))
+                    .filter((entry) => entry.isFile())
+                    .map((entry) => path.join(entry.parentPath, entry.name))
+                : [fullPath];
+            for (const filePath of filePaths) {
+                folder.file(path.relative(tempDir, filePath).split(path.sep).join('/'), await readFile(filePath));
+            }
+        }
+        folder.file('package.json', JSON.stringify({
+            name: 'double-right-click',
+            version,
+            type: 'module',
+            scripts: Object.fromEntries(sourceZipScripts.map((script) => [script, projectPackageJson.scripts[script]]))
+        }));
+        folder.file('README.md', '# Source code');
+        for (const [file, content] of Object.entries(files)) {
+            if (content === null) {
+                folder.remove(file);
+            } else {
+                folder.file(file, content);
+            }
+        }
+        await writeFile(path.join(tempDir, 'web-ext-artifacts', zipName('source')), await zip.generateAsync({ type: 'nodebuffer' }));
+    };
+
     test('passes for the zips of the current build', async () => {
         await writeChromeZip();
         await writeFirefoxZip();
+        await writeSourceZip();
 
         const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
 
         expect(exitCode, stdout).toBe(0);
         expect(stdout).not.toContain('\u2716');
+        expect(stdout).toContain(`\u2714 ${zipName('source')}: builds the same files as the firefox zip`);
     });
 
     test('fails without the zip of a browser', async () => {
@@ -165,6 +204,50 @@ test.describe('release-check-zips.js', () => {
 
         expect(exitCode).toBe(1);
         expect(stdout).toContain(`\u2716 ${zipName('chrome')}: its manifest has version 0.0.1, but package.json has ${version}`);
+    });
+
+    test('fails without the source zip', async () => {
+        await writeChromeZip();
+        await writeFirefoxZip();
+
+        const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
+
+        expect(exitCode).toBe(1);
+        expect(stdout).toContain(`holds no *-${version}-source.zip (run "npm run build:source")`);
+    });
+
+    test('fails for a source zip which misses a file which builds the add-on or holds more', async () => {
+        await writeChromeZip();
+        await writeFirefoxZip();
+        await writeSourceZip({ 'LICENSE': null, 'tests/some.spec.js': '' });
+
+        const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
+
+        expect(exitCode).toBe(1);
+        expect(stdout).toContain(`\u2716 ${zipName('source')}: missing LICENSE; holds more than what builds the add-on: tests/some.spec.js`);
+    });
+
+    test('fails for a source zip which does not build the firefox zip', async () => {
+        await writeChromeZip();
+        await writeFirefoxZip();
+        await writeSourceZip({ 'extension/options.js': '// changed' });
+
+        const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
+
+        expect(exitCode).toBe(1);
+        expect(stdout).toContain(`\u2716 ${zipName('source')}: differs from the project in extension/options.js`);
+        expect(stdout).toContain(`\u2716 ${zipName('source')}: does not build the firefox zip: builds another options.js`);
+    });
+
+    test('fails for a source zip whose build fails', async () => {
+        await writeChromeZip();
+        await writeFirefoxZip();
+        await writeSourceZip({ 'package.json': JSON.stringify({ scripts: { 'build:firefox': 'node missing.js' } }) });
+
+        const { exitCode, stdout } = await runScript(releaseCheckZipsScript, tempDir);
+
+        expect(exitCode).toBe(1);
+        expect(stdout).toContain(`\u2716 ${zipName('source')}: "npm run build:firefox" failed in it`);
     });
 });
 

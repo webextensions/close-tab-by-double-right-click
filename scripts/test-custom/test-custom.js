@@ -49,7 +49,7 @@ const e2eSpecTimes = {
     'manifest.spec.js': '1-3 s',
     'options.spec.js': '20-35 s',
     'popup.spec.js': '3-6 s',
-    'release-check.spec.js': '1-3 s',
+    'release-check.spec.js': '6-12 s',
     'reopen-tab.spec.js': '20-35 s',
     'setup.spec.js': '1-3 s',
     'untrusted-events.spec.js': '3-6 s',

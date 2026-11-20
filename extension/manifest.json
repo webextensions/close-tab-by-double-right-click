@@ -1,6 +1,6 @@
 {
     "name": "Double Right Click - close tab & more",
-    "version": "3.0.0",
+    "version": "3.1.0",
     "manifest_version": 3,
     "description": "Double right click anywhere on the page to close the tab, reopen the last closed tab and more.",
     "homepage_url": "https://webextensions.org/",

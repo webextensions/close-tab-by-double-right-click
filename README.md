@@ -8,7 +8,7 @@ Extension **Double Right Click - close tab & more** for Google Chrome and Mozill
 
 <img width="32" alt="Google Chrome Logo" src="https://cdn.jsdelivr.net/gh/webextensions/live-css-editor@master/extension/ui-images/logo-google-chrome.svg"> &nbsp; https://chromewebstore.google.com/detail/klngijkfgagcnegkffeckmkdpnpmbdpm
 
-<img width="32" alt="Mozilla Firefox Logo" src="https://cdn.jsdelivr.net/gh/webextensions/live-css-editor@master/extension/ui-images/logo-firefox_edited.png"> &nbsp; https://addons.mozilla.org/firefox/addon/close-tab-double-right-click/
+<img width="32" alt="Mozilla Firefox Logo" src="https://cdn.jsdelivr.net/gh/webextensions/live-css-editor@master/extension/ui-images/logo-firefox_edited.png"> &nbsp; https://addons.mozilla.org/firefox/addon/double-right-click/
 
 **Open source:**
 * https://github.com/webextensions/double-right-click

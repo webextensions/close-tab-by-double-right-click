@@ -1,7 +1,7 @@
 # Firefox Add-ons: Product Page
 
 The texts of the **Describe Add-on** section on the **Edit Product Page** of the add-on in the
-[Developer Hub](https://addons.mozilla.org/developers/addon/close-tab-double-right-click/edit). AMO keeps them apart
+[Developer Hub](https://addons.mozilla.org/developers/addon/double-right-click/edit). AMO keeps them apart
 from the uploads: update them there by hand when the features change.
 
 ## Describe Add-on
@@ -13,7 +13,8 @@ from the uploads: update them there by hand when the features change.
     Double Right Click - close tab & more
     ```
 
-- **Add-on URL**: stays `close-tab-double-right-click`, so that existing links keep working.
+- **Add-on URL**: `double-right-click`. AMO does not redirect the old URL after a change, so a change breaks the links
+  to it.
 - **Summary**: as `description` in [extension/manifest.json](../../extension/manifest.json):
 
     ```text

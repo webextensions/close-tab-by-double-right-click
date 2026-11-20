@@ -84,14 +84,18 @@ the same version, built from the same commit. The uploads are made by hand in ea
 
 7. Upload to Firefox Add-ons:
     - Open the add-on in the [Developer Hub](https://addons.mozilla.org/developers/addons) and click
-      **Upload New Version**. Choose the `-firefox.zip` and wait for the validation: errors block the upload, and
+      **Upload New Version**. AMO may first ask you to accept its Add-on Distribution Agreement again.
+    - Keep "On this site" (listed), choose the `-firefox.zip` and wait for the validation: errors block the upload, and
       warnings do not. The 3 warnings which `npm test` reports as known (see AGENTS.md) are expected here too.
-    - Select Firefox (desktop) as the platform: the extension works with a mouse.
-    - To "Do you need to submit source code?", answer **Yes** and upload the `-source.zip`. The `manifest.json` in the
-      zip is generated (by `scripts/build-and-release/build-dist/build-dist.js`), and AMO asks for the source in that
-      case.
-    - In **Release notes**, write what changed for the users, using the commit list from step 1. In
-      **Notes to Reviewer**, give the build steps of the source zip:
+    - Under "Which applications is this version compatible with?", keep **Firefox** ticked and **Firefox for Android**
+      unticked: the extension works with a mouse. **Continue** then creates the version on AMO, and its number can
+      never be uploaded again.
+    - If AMO asks "Do you need to submit source code?", answer **Yes** and upload the `-source.zip`. The
+      `manifest.json` in the zip is generated (by `scripts/build-and-release/build-dist/build-dist.js`), and AMO asks
+      for the source in that case.
+    - On **Describe Version**, write in **Release Notes** what changed for the users, using the commit list from step
+      1 (some Markdown works: a list needs a blank line before it). In **Notes to Reviewer**, give the build steps of
+      the source zip:
 
         ```text
         The source zip unpacks into double-right-click-<version>/ (see its README.md). The files are copied unchanged
@@ -100,7 +104,12 @@ the same version, built from the same commit. The uploads are made by hand in ea
         Source: https://github.com/webextensions/double-right-click (tag v<version>)
         ```
 
-    - Submit the version.
+    - Click **Submit Version**.
+    - If AMO did not ask for the source (for 3.1.0, it went from the upload straight to **Describe Version**), attach
+      it now: click **Edit version** on the page which confirms the submission, choose the `-source.zip` under
+      **Source code** on **Manage Version** and click **Save Changes**. Do not open the source code page of the flow
+      by its URL instead: its **Continue** submits the version at once, without the notes. **Manage Version** also
+      edits **Version Notes** and **Notes for Reviewers** after the submission.
 
 8. After both reviews pass, check that both store pages show the new version. If what the extension supports changed,
    also update the browser table and the notes in README.md.
